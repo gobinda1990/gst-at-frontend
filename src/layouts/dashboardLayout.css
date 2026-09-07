@@ -1,0 +1,96 @@
+/* =========================================
+   WRAPPER
+========================================= */
+
+.dashboard-wrapper {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* =========================================
+   BODY LAYOUT
+========================================= */
+
+.dashboard-body {
+  display: flex;
+
+  margin-top: 75px; /* header height */
+
+  height: calc(100vh - 75px);
+}
+
+/* =========================================
+   SIDEBAR AREA IS HANDLED IN SIDEBAR CSS
+========================================= */
+
+/* =========================================
+   MAIN CONTENT AREA
+========================================= */
+
+.main-content-area {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+
+  background: #f9fafb;
+}
+
+/* SCROLLABLE CONTENT */
+.main-content {
+  flex: 1;
+
+  padding: 20px;
+
+  overflow-y: auto;
+
+  min-height: 0;
+}
+
+/* =========================================
+   FOOTER FIX
+========================================= */
+
+footer {
+  flex-shrink: 0;
+}
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 992px) {
+
+  .dashboard-body {
+    margin-top: 75px;
+  }
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 768px) {
+
+  .dashboard-body {
+    margin-top: 65px;
+  }
+}
+
+/* =========================================
+   SMALL MOBILE
+========================================= */
+
+@media (max-width: 576px) {
+
+  .dashboard-body {
+    margin-top: 60px;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+}

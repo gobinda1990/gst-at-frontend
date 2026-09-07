@@ -1,0 +1,495 @@
+/* ============================================================
+   TAX SUMMARY SECTION STYLES
+   ============================================================ */
+
+.dash-tax-summary-section {
+  margin-top: 40px;
+  padding: 0;
+}
+
+.dash-section-title {
+  margin-bottom: 24px;
+  padding: 0 0 16px 0;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.dash-section-title h5 {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-section-title small {
+  display: block;
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* ============================================================
+   TAX CHART GRID
+   ============================================================ */
+
+.dash-tax-chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1400px) {
+  .dash-tax-chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dash-panel-full {
+  grid-column: 1 / -1;
+}
+
+/* ============================================================
+   PANEL STYLES (ENHANCED)
+   ============================================================ */
+
+.dash-panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.dash-panel:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #d1d5db;
+}
+
+.dash-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.dash-panel-header h6 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.dash-panel-header small {
+  display: block;
+  margin: 0;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.dash-panel-body {
+  padding: 24px;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   TABLE WRAPPER & STYLES
+   ============================================================ */
+
+.dash-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 6px;
+  margin-top: 16px;
+}
+
+.dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.dash-table thead {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.dash-table thead th {
+  padding: 14px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #d1d5db;
+  white-space: nowrap;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.dash-table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.dash-table tbody tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.dash-table tbody tr:hover {
+  background-color: #f0f4ff;
+  box-shadow: inset 0 0 0 1px #dbeafe;
+}
+
+.dash-table tbody td {
+  padding: 14px 16px;
+  color: #374151;
+  vertical-align: middle;
+}
+
+.dash-table tbody td:first-child {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.dash-table tbody td:last-child {
+  text-align: right;
+}
+
+.dash-table .dash-empty-row {
+  text-align: center;
+  color: #9ca3af;
+  padding: 40px 16px;
+  font-style: italic;
+}
+
+/* ============================================================
+   TAX COMPONENT COLORS & FORMATTING
+   ============================================================ */
+
+.tax-igst {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.tax-cgst {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.tax-sgst {
+  color: #059669;
+  font-weight: 600;
+}
+
+.tax-cess {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.tax-total {
+  color: #1f2937;
+  font-weight: 700;
+  background-color: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.tax-paid {
+  color: #059669;
+  font-weight: 600;
+  background-color: #ecfdf5;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.tax-ratio-good {
+  color: #059669;
+  font-weight: 600;
+}
+
+.tax-ratio-warning {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.tax-ratio-danger {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* ============================================================
+   CHART CONTAINER ANIMATIONS
+   ============================================================ */
+
+.recharts-wrapper {
+  outline: none;
+}
+
+.recharts-surface {
+  overflow: visible;
+}
+
+/* Recharts Tooltip Customization */
+.recharts-tooltip-wrapper {
+  outline: none;
+}
+
+.recharts-default-tooltip {
+  outline: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+/* ============================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================ */
+
+@media (max-width: 1200px) {
+  .dash-panel-body {
+    min-height: 280px;
+  }
+
+  .dash-table {
+    font-size: 12px;
+  }
+
+  .dash-table thead th,
+  .dash-table tbody td {
+    padding: 12px 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dash-tax-summary-section {
+    margin-top: 30px;
+  }
+
+  .dash-section-title h5 {
+    font-size: 16px;
+  }
+
+  .dash-tax-chart-grid {
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .dash-panel-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .dash-panel-body {
+    padding: 16px;
+    min-height: 250px;
+  }
+
+  .dash-table {
+    font-size: 11px;
+  }
+
+  .dash-table thead th,
+  .dash-table tbody td {
+    padding: 10px 8px;
+  }
+
+  .dash-table-wrap {
+    margin-top: 12px;
+  }
+}
+
+/* ============================================================
+   LOADING SKELETON
+   ============================================================ */
+
+.dash-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+.dash-skeleton-kpi {
+  height: 120px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ============================================================
+   DIVIDERS & SEPARATORS
+   ============================================================ */
+
+.dash-divider-v {
+  width: 1px;
+  height: 24px;
+  background-color: #d1d5db;
+  margin: 0 12px;
+}
+
+/* ============================================================
+   SCROLLABLE AREAS
+   ============================================================ */
+
+.dash-alerts-scroll {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.dash-alerts-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dash-alerts-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.dash-alerts-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+  transition: background 0.3s;
+}
+
+.dash-alerts-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ============================================================
+   ALERT CARD STYLES
+   ============================================================ */
+
+.dash-alert-card {
+  padding: 12px;
+  margin-bottom: 8px;
+  border-left: 4px solid #f59e0b;
+  background-color: #fffbeb;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.dash-alert-card:hover {
+  background-color: #fef3c7;
+  border-left-color: #dc2626;
+}
+
+.dash-alert-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dash-alert-gstin {
+  color: #1f2937;
+}
+
+.dash-alert-period {
+  color: #6b7280;
+}
+
+.dash-alert-message {
+  margin: 0;
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   BUTTON STYLES
+   ============================================================ */
+
+.dash-link-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.dash-link-btn:hover {
+  color: #1d4ed8;
+}
+
+.dash-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.dash-action-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.dash-action-btn.primary {
+  background: #3b82f6;
+  border-color: #2563eb;
+  color: white;
+}
+
+.dash-action-btn.primary:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #1d4ed8;
+}
+
+.dash-action-btn.danger {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.dash-action-btn.danger:hover:not(:disabled) {
+  background: #fecaca;
+  border-color: #f87171;
+}
+
+.dash-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dash-action-btn.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,82 @@
+/* =========================================
+   FOOTER BASE
+========================================= */
+
+.footer {
+  width: 100%;
+
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+
+  padding: 12px 20px;
+
+  color: #6b7280;
+
+  font-size: 13px;
+
+  text-align: center;
+
+  flex-shrink: 0;
+}
+
+/* =========================================
+   CONTENT WRAPPER
+========================================= */
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: 10px;
+
+  flex-wrap: wrap;
+}
+
+/* TEXT */
+.footer-text {
+  white-space: nowrap;
+}
+
+/* DIVIDER */
+.footer-divider {
+  color: #d1d5db;
+}
+
+/* =========================================
+   RESPONSIVE DESIGN
+========================================= */
+
+/* TABLET */
+@media (max-width: 768px) {
+
+  .footer {
+    font-size: 12px;
+    padding: 10px 15px;
+  }
+}
+
+/* MOBILE */
+@media (max-width: 576px) {
+
+  .footer-content {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .footer-divider {
+    display: none;
+  }
+
+  .footer {
+    font-size: 11px;
+  }
+}
+
+/* SMALL MOBILE */
+@media (max-width: 360px) {
+
+  .footer {
+    font-size: 10px;
+  }
+}

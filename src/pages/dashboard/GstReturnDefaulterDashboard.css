@@ -1,0 +1,53 @@
+/* =========================================================
+   Official Government Table Header
+   ========================================================= */
+
+.official-table-header {
+  background-color: #141414 !important;
+  color: #ffffff !important;
+  border-bottom: 3px solid #0b5cab !important;
+}
+
+.official-table-header th {
+  background-color: #0c0d0e !important;
+  color: #ffffff !important;
+  padding: 12px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* First header cell */
+.official-table-header th:first-child {
+  border-top-left-radius: 6px;
+}
+
+/* Last header cell */
+.official-table-header th:last-child {
+  border-top-right-radius: 6px;
+}
+
+/* Hover should not change header appearance */
+.official-table-header:hover,
+.official-table-header th:hover {
+  background-color: #163a5f !important;
+  color: #ffffff !important;
+}
+
+/* =========================================================
+   Top Bar Animation
+   ========================================================= */
+
+@keyframes topbar-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(350%);
+  }
+}

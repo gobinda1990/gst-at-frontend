@@ -1,0 +1,2412 @@
+/* =========================================================
+   GST ANALYSIS - OFFICER / GOVERNMENT OFFICE THEME
+   Production Base / Scalable CSS
+   ========================================================= */
+
+
+/* =========================================================
+   1. DESIGN TOKENS
+   ========================================================= */
+
+.gst-analysis-page {
+    --officer-navy: #0b2c4d;
+    --officer-navy-dark: #071b31;
+    --officer-navy-light: #163f63;
+
+    --officer-blue: #1769aa;
+    --officer-blue-light: #e8f0f7;
+
+    --officer-slate: #33455c;
+    --officer-slate-light: #eef2f6;
+
+    --officer-gold: #b8860b;
+    --officer-gold-light: #fbf4df;
+
+    --officer-green: #28745d;
+    --officer-green-dark: #24624f;
+    --officer-green-light: #eaf5f1;
+
+    --officer-purple: #625478;
+    --officer-purple-dark: #51466a;
+    --officer-purple-light: #f0edf5;
+
+    --officer-red: #a52828;
+    --officer-red-light: #fbecec;
+
+    --officer-amber: #9a6b08;
+    --officer-amber-dark: #855b17;
+    --officer-amber-light: #fff5dc;
+
+    --officer-bg: #f4f6f8;
+    --officer-surface: #ffffff;
+    --officer-surface-soft: #fafbfc;
+
+    --officer-text: #172b3d;
+    --officer-text-dark: #12202f;
+    --officer-text-muted: #55606e;
+    --officer-text-light: #7a8694;
+
+    --officer-border: #d8dee6;
+    --officer-border-light: #e5e9ee;
+
+    --officer-shadow-sm:
+        0 2px 7px rgba(7, 27, 49, 0.05);
+
+    --officer-shadow-md:
+        0 4px 14px rgba(7, 27, 49, 0.08);
+
+    --officer-shadow-lg:
+        0 5px 16px rgba(7, 27, 49, 0.11);
+
+    --officer-radius: 8px;
+    --officer-radius-sm: 5px;
+
+    font-size: 0.95rem;
+    background-color: var(--officer-bg);
+    color: var(--officer-text);
+    min-height: 100vh;
+}
+
+
+/* =========================================================
+   2. GLOBAL / RESET WITHIN PAGE
+   ========================================================= */
+
+.gst-analysis-page *,
+.gst-analysis-page *::before,
+.gst-analysis-page *::after {
+    box-sizing: border-box;
+}
+
+.gst-analysis-page .card {
+    border: 1px solid var(--officer-border) !important;
+    background-color: var(--officer-surface);
+}
+
+.gst-analysis-page h4,
+.gst-analysis-page h5,
+.gst-analysis-page h6 {
+    color: var(--officer-text-dark);
+}
+
+.gst-analysis-page .text-muted {
+    color: var(--officer-text-muted) !important;
+}
+
+.gst-analysis-page .small,
+.gst-analysis-page small {
+    font-size: 0.76rem;
+}
+/* ============================================================
+   OFFICER TOPBAR — LIGHT / WHITE OFFICE VIEW
+   ============================================================ */
+
+.gst-analysis-page .officer-topbar {
+  background: #ffffff !important;
+  color: #172b3d !important;
+  border-bottom: 3px solid #b8860b !important;
+  box-shadow: 0 2px 8px rgba(7, 27, 49, 0.08) !important;
+}
+
+/* Title */
+.gst-analysis-page .officer-topbar h5,
+.gst-analysis-page .officer-topbar .officer-title-text {
+  color: #0b2c4d !important;
+}
+
+/* Subtitle */
+.gst-analysis-page .officer-topbar .officer-subtitle {
+  color: #536273 !important;
+  font-weight: 600 !important;
+}
+
+/* Logo */
+.gst-analysis-page .officer-topbar .officer-logo-box {
+  background: #0b2c4d !important;
+  color: #ffffff !important;
+  border: 1px solid #0b2c4d !important;
+  box-shadow: 0 2px 5px rgba(7, 27, 49, 0.15) !important;
+}
+
+/* Search box */
+.gst-analysis-page .officer-topbar .input-group {
+  background: #ffffff;
+}
+
+.gst-analysis-page .officer-topbar .input-group-text {
+  background: #f7f9fb !important;
+  color: #536273 !important;
+  border-color: #d5dce4 !important;
+}
+
+.gst-analysis-page .officer-topbar .form-control {
+  background: #ffffff !important;
+  color: #172b3d !important;
+  border-color: #d5dce4 !important;
+  font-weight: 700 !important;
+}
+
+.gst-analysis-page .officer-topbar .form-control::placeholder {
+  color: #8a95a3 !important;
+  font-weight: 500 !important;
+}
+
+/* GSTIN character counter */
+.gst-analysis-page .officer-topbar .input-group-text small {
+  color: #687585 !important;
+}
+
+.gst-analysis-page .officer-topbar .input-group-text small.text-success {
+  color: #28745d !important;
+}
+
+/* Analyze / Refresh buttons */
+.gst-analysis-page .officer-topbar .btn-primary {
+  background: #0b2c4d !important;
+  border-color: #0b2c4d !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.gst-analysis-page .officer-topbar .btn-primary:hover {
+  background: #071b31 !important;
+  border-color: #071b31 !important;
+}
+
+.gst-analysis-page .officer-topbar .btn-primary:disabled {
+  background: #8b9aaa !important;
+  border-color: #8b9aaa !important;
+  color: #ffffff !important;
+  opacity: 0.8;
+}
+
+/* Back button */
+.gst-analysis-page .officer-topbar .btn-outline-light {
+  background: #ffffff !important;
+  color: #0b2c4d !important;
+  border-color: #b9c4cf !important;
+  font-weight: 700 !important;
+}
+
+.gst-analysis-page .officer-topbar .btn-outline-light:hover {
+  background: #eef3f8 !important;
+  color: #071b31 !important;
+  border-color: #0b2c4d !important;
+}
+
+/* Error message */
+.gst-analysis-page .officer-topbar .text-warning {
+  color: #9a6b08 !important;
+  font-weight: 600 !important;
+}
+
+/* Risk badge area */
+.gst-analysis-page .officer-topbar .officer-risk-badge,
+.gst-analysis-page .officer-topbar .risk-header-badge {
+  border: 1px solid #d8dee6;
+}
+
+/* Mobile */
+@media (max-width: 767.98px) {
+  .gst-analysis-page .officer-topbar {
+    border-bottom-width: 2px !important;
+  }
+
+  .gst-analysis-page .officer-topbar .officer-logo-box {
+    width: 36px !important;
+    height: 36px !important;
+  }
+}
+/* =========================================================
+   4. OFFICER BADGE / CHIP
+   ========================================================= */
+
+.gst-analysis-page .officer-badge-chip {
+    display: inline-flex;
+    align-items: center;
+
+    background-color: rgba(184, 134, 11, 0.18);
+    color: #f3d98b;
+
+    border: 1px solid rgba(184, 134, 11, 0.55);
+    border-radius: 4px;
+
+    padding: 3px 9px;
+
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+}
+
+
+/* =========================================================
+   5. LOGO BOX
+   ========================================================= */
+
+.gst-analysis-page .officer-logo-box {
+    background-color: var(--officer-gold) !important;
+    color: var(--officer-navy-dark) !important;
+}
+
+
+/* =========================================================
+   6. FORM CONTROLS
+   ========================================================= */
+
+.gst-analysis-page .form-control,
+.gst-analysis-page .form-select,
+.gst-analysis-page .input-group-text {
+    font-size: 0.85rem !important;
+    border-color: var(--officer-border);
+}
+
+.gst-analysis-page .form-control:focus,
+.gst-analysis-page .form-select:focus {
+    border-color: #6f8eaa;
+
+    box-shadow:
+        0 0 0 0.2rem rgba(11, 44, 77, 0.12);
+}
+
+
+/* =========================================================
+   7. BUTTONS
+   ========================================================= */
+
+.gst-analysis-page .btn-primary {
+    background-color: var(--officer-navy) !important;
+    border-color: var(--officer-navy) !important;
+}
+
+.gst-analysis-page .btn-primary:hover,
+.gst-analysis-page .btn-primary:focus {
+    background-color: var(--officer-navy-dark) !important;
+    border-color: var(--officer-navy-dark) !important;
+}
+
+.gst-analysis-page .btn-outline-secondary {
+    color: var(--officer-navy) !important;
+    border-color: var(--officer-border) !important;
+}
+
+.gst-analysis-page .btn-outline-secondary:hover {
+    background-color: #eef3f8 !important;
+    color: var(--officer-navy-dark) !important;
+    border-color: #c5ced9 !important;
+}
+
+
+/* =========================================================
+   8. BOOTSTRAP COLOR OVERRIDES
+   ========================================================= */
+
+.gst-analysis-page .bg-primary-subtle {
+    background-color: #e4ecf4 !important;
+}
+
+.gst-analysis-page .text-primary {
+    color: var(--officer-navy) !important;
+}
+
+.gst-analysis-page .badge {
+    font-size: 0.68rem !important;
+    font-weight: 700;
+    padding: 0.35em 0.6em;
+}
+
+
+/* =========================================================
+   9. OFFICER LABEL / VALUE
+   ========================================================= */
+
+.gst-analysis-page .officer-label {
+    color: var(--officer-text-muted) !important;
+
+    font-size: 0.68rem;
+    font-weight: 700;
+
+    letter-spacing: 0.4px;
+}
+
+.gst-analysis-page .officer-value {
+    color: var(--officer-text-dark) !important;
+
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.gst-analysis-page .officer-value-lg {
+    color: var(--officer-text-dark) !important;
+
+    font-size: 1.35rem;
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   10. CARD HEADER
+   ========================================================= */
+
+.gst-analysis-page .card-header {
+    background-color: #ffffff;
+    color: var(--officer-text-dark);
+
+    border-bottom: 1px solid var(--officer-border);
+}
+
+
+/* =========================================================
+   11. GENERAL OFFICE PANEL
+   ========================================================= */
+
+.gst-analysis-page .officer-panel {
+    background-color: #ffffff;
+
+    border: 1px solid var(--officer-border);
+    border-radius: 6px;
+}
+
+
+/* =========================================================
+   12. GOLD ACCENT
+   ========================================================= */
+
+.gst-analysis-page .officer-accent {
+    border-left: 4px solid var(--officer-gold);
+}
+
+
+/* =========================================================
+   13. STATUS COLORS
+   ========================================================= */
+
+.gst-analysis-page .officer-status-success {
+    color: #176b3a !important;
+}
+
+.gst-analysis-page .officer-status-warning {
+    color: #8a5a00 !important;
+}
+
+.gst-analysis-page .officer-status-danger {
+    color: #9f1d20 !important;
+}
+
+.gst-analysis-page .officer-status-info {
+    color: #155a87 !important;
+}
+
+
+/* =========================================================
+   14. OFFICER TABS
+   ========================================================= */
+
+.gst-analysis-page .officer-tab.btn-primary {
+    background-color: var(--officer-navy) !important;
+    border-color: var(--officer-navy) !important;
+}
+
+.gst-analysis-page .officer-tab.btn-light {
+    background-color: #eef1f5 !important;
+    color: var(--officer-slate) !important;
+
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   15. COMMON TABLE
+   ========================================================= */
+
+.gst-analysis-page table {
+    font-size: 0.86rem;
+}
+
+.gst-analysis-page thead.officer-thead th {
+    background-color: var(--officer-navy) !important;
+    color: #ffffff !important;
+
+    padding: 0.65rem 0.75rem;
+
+    font-size: 0.70rem;
+    font-weight: 700;
+
+    line-height: 1.25;
+    letter-spacing: 0.35px;
+
+    text-transform: uppercase;
+    white-space: nowrap;
+
+    border: 0 !important;
+    border-bottom: 3px solid var(--officer-gold) !important;
+
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.gst-analysis-page tbody td {
+    color: #263746;
+
+    font-size: 0.82rem;
+    vertical-align: middle;
+}
+
+
+/* =========================================================
+   16. TABLE RESPONSIVE
+   ========================================================= */
+
+.gst-analysis-page .table-responsive {
+    border: 1px solid var(--officer-border);
+    border-radius: 6px;
+
+    overflow-x: auto;
+}
+
+
+/* =========================================================
+   17. TABLE STRIPING + HOVER
+   ========================================================= */
+
+.gst-analysis-page .table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: #fafbfc;
+}
+
+.gst-analysis-page .table-striped > tbody > tr:nth-of-type(even) > * {
+    background-color: #ffffff;
+}
+
+.gst-analysis-page .table-hover > tbody > tr:hover > * {
+    background-color: #eef3f8 !important;
+}
+
+
+/* =========================================================
+   18. GSTIN INFORMATION CARD
+   ========================================================= */
+
+.gst-analysis-page .officer-gstin-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    min-height: 76px;
+    padding: 10px 14px;
+
+    background: #ffffff;
+
+    border: 1px solid var(--officer-border);
+    border-radius: var(--officer-radius);
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.gst-analysis-page .officer-gstin-card:hover {
+    border-color: #b9c5d2;
+    box-shadow: var(--officer-shadow-md);
+}
+
+
+/* =========================================================
+   19. GSTIN ICON
+   ========================================================= */
+
+.gst-analysis-page .officer-gstin-icon {
+    width: 40px;
+    height: 40px;
+
+    flex: 0 0 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #e8eff6;
+    color: var(--officer-navy);
+
+    border: 1px solid #d2deea;
+    border-radius: 7px;
+}
+
+
+/* =========================================================
+   20. GSTIN CONTENT
+   ========================================================= */
+
+.gst-analysis-page .officer-gstin-content {
+    min-width: 0;
+    flex: 1;
+}
+
+.gst-analysis-page .officer-gstin-content .officer-label {
+    margin-bottom: 2px;
+
+    color: #667383 !important;
+
+    font-size: 0.65rem;
+    font-weight: 700;
+
+    line-height: 1.2;
+    letter-spacing: 0.55px;
+
+    text-transform: uppercase;
+}
+
+.gst-analysis-page .officer-gstin-value {
+    max-width: 100%;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    color: #12202f;
+
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 0.96rem;
+    font-weight: 700;
+
+    line-height: 1.35;
+    letter-spacing: 0.15px;
+}
+
+
+/* =========================================================
+   21. GSTIN STATUS
+   ========================================================= */
+
+.gst-analysis-page .officer-gstin-status,
+.gst-analysis-page .officer-profile-status {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    margin-top: 5px;
+}
+
+.gst-analysis-page .officer-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    padding: 2px 7px;
+
+    border-radius: 4px;
+
+    font-size: 0.61rem;
+    font-weight: 700;
+
+    line-height: 1.45;
+    letter-spacing: 0.25px;
+
+    text-transform: uppercase;
+}
+
+.gst-analysis-page .officer-status-active {
+    background: #e8f5ed;
+    color: #176b3a;
+
+    border: 1px solid #c8e5d2;
+}
+
+.gst-analysis-page .officer-status-warning {
+    background: var(--officer-amber-light);
+    color: #8a5a00;
+
+    border: 1px solid #ead39a;
+}
+
+.gst-analysis-page .officer-status-caption {
+    color: #8a95a3;
+
+    font-size: 0.62rem;
+    font-weight: 500;
+}
+
+
+/* =========================================================
+   22. OFFICER PROFILE SUMMARY
+   ========================================================= */
+
+.gst-analysis-page .officer-profile-card {
+    background: #ffffff;
+
+    border: 1px solid var(--officer-border) !important;
+    border-radius: var(--officer-radius) !important;
+
+    overflow: hidden;
+
+    box-shadow: var(--officer-shadow-sm) !important;
+}
+
+.gst-analysis-page .officer-profile-item {
+    height: 100%;
+    min-height: 86px;
+
+    display: flex;
+    align-items: center;
+    gap: 11px;
+
+    padding: 14px 15px;
+
+    border-right: 1px solid #e2e7ed;
+}
+
+.gst-analysis-page .officer-profile-item:last-child {
+    border-right: none;
+}
+
+.gst-analysis-page .officer-gstin-section {
+    background: #fbfcfe;
+}
+
+
+/* =========================================================
+   23. PROFILE ICONS
+   ========================================================= */
+
+.gst-analysis-page .officer-profile-icon {
+    width: 38px;
+    height: 38px;
+
+    flex: 0 0 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 7px;
+}
+
+.gst-analysis-page .officer-icon-navy {
+    background: #e8eff6;
+    color: var(--officer-navy);
+
+    border: 1px solid #d4e0eb;
+}
+
+.gst-analysis-page .officer-icon-blue {
+    background: #edf3f9;
+    color: #24577d;
+
+    border: 1px solid #d8e4ef;
+}
+
+.gst-analysis-page .officer-icon-slate {
+    background: #f0f2f5;
+    color: #44566b;
+
+    border: 1px solid #dfe3e8;
+}
+
+
+/* =========================================================
+   24. PROFILE CONTENT
+   ========================================================= */
+
+.gst-analysis-page .officer-profile-content {
+    min-width: 0;
+    flex: 1;
+}
+
+.gst-analysis-page .officer-profile-label {
+    margin-bottom: 4px;
+
+    color: #667383 !important;
+
+    font-size: 0.64rem;
+    font-weight: 700;
+
+    line-height: 1.2;
+    letter-spacing: 0.55px;
+
+    text-transform: uppercase;
+}
+
+.gst-analysis-page .officer-profile-gstin {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    color: #102a43;
+
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 0.94rem;
+    font-weight: 700;
+}
+
+.gst-analysis-page .officer-profile-main-value {
+    color: #172b3f;
+
+    font-size: 0.88rem;
+    font-weight: 700;
+
+    line-height: 1.35;
+}
+
+.gst-analysis-page .officer-profile-sub-value {
+    margin-top: 2px;
+
+    color: #697687;
+
+    font-size: 0.73rem;
+    font-weight: 500;
+
+    line-height: 1.3;
+}
+
+.gst-analysis-page .officer-value-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   25. PROFILE STAT ITEMS
+   ========================================================= */
+
+.gst-analysis-page .officer-stat-item {
+    height: 100%;
+    min-height: 86px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    padding: 12px 13px;
+
+    border-right: 1px solid #e2e7ed;
+}
+
+.gst-analysis-page .officer-stat-item:last-child {
+    border-right: none;
+}
+
+.gst-analysis-page .officer-stat-value {
+    margin-top: 1px;
+
+    color: var(--officer-text-dark);
+
+    font-size: 1.25rem;
+    font-weight: 800;
+
+    line-height: 1.15;
+}
+
+.gst-analysis-page .officer-stat-caption {
+    margin-top: 3px;
+
+    color: #7a8694;
+
+    font-size: 0.66rem;
+    font-weight: 500;
+
+    white-space: nowrap;
+}
+
+.gst-analysis-page .officer-stat-danger {
+    color: var(--officer-red) !important;
+}
+
+.gst-analysis-page .officer-stat-success {
+    color: #187044 !important;
+}
+
+.gst-analysis-page .officer-delay-stat {
+    background: #fffdfb;
+}
+
+.gst-analysis-page .officer-profile-item:hover,
+.gst-analysis-page .officer-stat-item:hover {
+    background-color: #f9fbfd;
+}
+
+
+/* =========================================================
+   26. RECENT HISTORY CARD
+   ========================================================= */
+
+.gst-analysis-page .officer-history-card {
+    background: #ffffff;
+
+    border: 1px solid var(--officer-border) !important;
+    border-radius: var(--officer-radius) !important;
+
+    overflow: hidden;
+
+    box-shadow: var(--officer-shadow-sm) !important;
+}
+
+
+/* =========================================================
+   27. VIEW ALL BUTTON
+   ========================================================= */
+
+.gst-analysis-page .officer-view-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    padding: 4px 7px;
+
+    color: var(--officer-navy) !important;
+
+    font-size: 0.72rem;
+    font-weight: 700;
+
+    text-decoration: none !important;
+
+    border: 1px solid transparent;
+    border-radius: 4px;
+
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.gst-analysis-page .officer-view-all-btn:hover {
+    background: #eef3f8;
+
+    border-color: #d5dfe9;
+
+    color: var(--officer-navy-dark) !important;
+}
+
+.gst-analysis-page .officer-view-all-btn:focus {
+    box-shadow:
+        0 0 0 0.15rem rgba(11, 44, 77, 0.12);
+}
+
+
+/* =========================================================
+   28. EMPTY STATE
+   ========================================================= */
+
+.gst-analysis-page .officer-history-empty {
+    padding: 20px 15px;
+}
+
+
+/* =========================================================
+   29. RECENT HISTORY TABLE
+   ========================================================= */
+
+.gst-analysis-page .officer-history-table-wrapper {
+    border-top: 1px solid var(--officer-border);
+    border-radius: 0;
+
+    overflow-x: auto;
+}
+
+.gst-analysis-page .officer-history-table {
+    width: 100%;
+    background: #ffffff;
+}
+
+.gst-analysis-page .officer-history-table thead.officer-thead th {
+    padding: 10px 13px;
+
+    font-size: 0.67rem;
+}
+
+.gst-analysis-page .officer-history-table tbody td {
+    padding: 10px 13px;
+
+    color: #263746;
+
+    font-size: 0.77rem;
+    font-weight: 500;
+
+    border-bottom: 1px solid #e7ebef;
+}
+
+.gst-analysis-page .officer-history-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+/* =========================================================
+   30. PERIOD
+   ========================================================= */
+
+.gst-analysis-page .officer-period-value {
+    color: #102f4d;
+
+    font-size: 0.79rem;
+    font-weight: 750;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   31. RECENT HISTORY FINANCIAL VALUES
+   ========================================================= */
+
+.gst-analysis-page .officer-money-cell {
+    color: #20384d !important;
+
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+
+    font-variant-numeric: tabular-nums;
+
+    white-space: nowrap;
+}
+
+.gst-analysis-page .officer-itc-value {
+    color: var(--officer-green-dark) !important;
+}
+
+.gst-analysis-page .officer-cash-value {
+    color: var(--officer-purple-dark) !important;
+}
+
+
+/* =========================================================
+   32. DELAY / FILING BADGES
+   ========================================================= */
+
+.gst-analysis-page .officer-delay-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    min-width: 55px;
+
+    padding: 4px 7px;
+
+    border-radius: 4px;
+
+    font-size: 0.62rem;
+    font-weight: 700;
+
+    line-height: 1.25;
+
+    white-space: nowrap;
+}
+
+.gst-analysis-page .officer-delay-dot {
+    width: 5px;
+    height: 5px;
+
+    flex: 0 0 5px;
+
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.gst-analysis-page .officer-filing-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 58px;
+
+    padding: 4px 8px;
+
+    border-radius: 4px;
+
+    font-size: 0.62rem;
+    font-weight: 700;
+
+    line-height: 1.25;
+    letter-spacing: 0.15px;
+
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   33. COMPLETE GSTR-3B HISTORY TABLE
+   ========================================================= */
+
+.gst-analysis-page .officer-complete-history-wrapper {
+    border-top: 1px solid var(--officer-border);
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    background: #ffffff;
+}
+
+.gst-analysis-page .officer-complete-history {
+    width: 100%;
+    min-width: 1500px;
+
+    margin-bottom: 0 !important;
+
+    background: #ffffff;
+    color: #263746;
+}
+
+.gst-analysis-page .officer-complete-history thead.officer-thead th {
+    padding: 11px 12px;
+
+    background: var(--officer-navy) !important;
+    color: #ffffff !important;
+
+    border: 0 !important;
+    border-bottom: 3px solid var(--officer-gold) !important;
+
+    font-size: 0.66rem;
+    font-weight: 700;
+
+    line-height: 1.25;
+    letter-spacing: 0.4px;
+
+    text-transform: uppercase;
+    white-space: nowrap;
+
+    vertical-align: middle;
+}
+
+.gst-analysis-page .officer-complete-history .officer-output-header {
+    background: var(--officer-navy-light) !important;
+}
+
+.gst-analysis-page .officer-complete-history tbody tr {
+    background: #ffffff;
+
+    border-bottom: 1px solid #e5e9ee;
+
+    transition: background-color 0.15s ease;
+}
+
+.gst-analysis-page .officer-complete-history tbody tr:hover > * {
+    background-color: #f5f8fb !important;
+}
+
+.gst-analysis-page .officer-complete-history tbody td {
+    padding: 10px 12px;
+
+    border-bottom: 1px solid #e7ebef;
+
+    vertical-align: middle;
+}
+
+
+/* =========================================================
+   34. COMPLETE HISTORY PERIOD
+   ========================================================= */
+
+.gst-analysis-page .officer-history-period-cell {
+    min-width: 125px;
+}
+
+.gst-analysis-page .officer-history-period {
+    display: block;
+
+    color: #102f4d;
+
+    font-size: 0.78rem;
+    font-weight: 750;
+
+    white-space: nowrap;
+}
+
+.gst-analysis-page .officer-history-ret-period {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #8a95a3 !important;
+
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        monospace;
+
+    font-size: 0.61rem;
+
+    letter-spacing: 0.15px;
+}
+
+
+/* =========================================================
+   35. COMPLETE HISTORY TAX VALUES
+   ========================================================= */
+
+.gst-analysis-page .officer-tax-cell {
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 0.73rem !important;
+    font-weight: 600 !important;
+
+    font-variant-numeric: tabular-nums;
+
+    white-space: nowrap;
+    letter-spacing: -0.1px;
+}
+
+
+/* Taxable Value */
+.gst-analysis-page .officer-taxable {
+    color: #173c5b !important;
+    font-weight: 700 !important;
+}
+
+/* IGST */
+.gst-analysis-page .officer-igst {
+    color: #1d5d8f !important;
+}
+
+/* CGST */
+.gst-analysis-page .officer-cgst {
+    color: #26705f !important;
+}
+
+/* SGST */
+.gst-analysis-page .officer-sgst {
+    color: #38705a !important;
+}
+
+/* CESS */
+.gst-analysis-page .officer-cess {
+    color: #8a6200 !important;
+}
+
+/* Output Tax */
+.gst-analysis-page .officer-output-tax {
+    color: var(--officer-navy) !important;
+
+    font-weight: 800 !important;
+
+    background: #f4f8fc;
+}
+
+/* ITC */
+.gst-analysis-page .officer-itc {
+    color: var(--officer-green-dark) !important;
+
+    font-weight: 650 !important;
+}
+
+/* Cash */
+.gst-analysis-page .officer-cash {
+    color: var(--officer-purple-dark) !important;
+
+    font-weight: 650 !important;
+}
+
+/* RCM */
+.gst-analysis-page .officer-rcm {
+    color: var(--officer-amber-dark) !important;
+}
+
+
+/* =========================================================
+   36. RATIOS
+   ========================================================= */
+
+.gst-analysis-page .officer-ratio-cell {
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        monospace;
+
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+
+    font-variant-numeric: tabular-nums;
+
+    white-space: nowrap;
+}
+
+.gst-analysis-page .officer-itc-ratio {
+    color: #246579 !important;
+}
+
+.gst-analysis-page .officer-cash-ratio {
+    color: var(--officer-purple) !important;
+}
+
+
+/* =========================================================
+   37. GST TAX BREAKDOWN
+   ========================================================= */
+
+.gst-analysis-page .gst-tax-breakdown {
+    width: 100%;
+}
+
+
+/* =========================================================
+   38. TAX / PAYMENT / MONTHLY CARDS
+   ========================================================= */
+
+.gst-analysis-page .officer-tax-card,
+.gst-analysis-page .officer-payment-card,
+.gst-analysis-page .officer-monthly-card {
+    background: #ffffff;
+
+    border: 1px solid var(--officer-border) !important;
+    border-radius: var(--officer-radius) !important;
+
+    overflow: hidden;
+
+    box-shadow: var(--officer-shadow-sm) !important;
+
+    transition:
+        box-shadow 0.18s ease,
+        border-color 0.18s ease;
+}
+
+.gst-analysis-page .officer-tax-card:hover,
+.gst-analysis-page .officer-payment-card:hover,
+.gst-analysis-page .officer-monthly-card:hover {
+    border-color: #c5d0dc !important;
+    box-shadow: var(--officer-shadow-md) !important;
+}
+
+
+/* =========================================================
+   39. TAX / PAYMENT CONTENT
+   ========================================================= */
+
+.gst-analysis-page .officer-tax-content,
+.gst-analysis-page .officer-payment-content {
+    padding: 14px 16px 16px;
+}
+
+
+/* =========================================================
+   40. TAX ROW COLORS
+   ========================================================= */
+
+.gst-analysis-page .tax-row-igst {
+    --tax-accent: #1769aa;
+}
+
+.gst-analysis-page .tax-row-cgst {
+    --tax-accent: #28745d;
+}
+
+.gst-analysis-page .tax-row-sgst {
+    --tax-accent: #3d8065;
+}
+
+.gst-analysis-page .tax-row-cess {
+    --tax-accent: #9a6b08;
+}
+
+
+/* =========================================================
+   41. TAX BREAKDOWN ROW
+   ========================================================= */
+
+.gst-analysis-page .tax-breakdown-row {
+    position: relative;
+
+    padding: 11px 10px;
+    margin-bottom: 5px;
+
+    border: 1px solid #e3e8ed;
+    border-left: 3px solid var(--tax-accent, var(--officer-navy));
+
+    border-radius: var(--officer-radius-sm);
+
+    background: #ffffff;
+
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.gst-analysis-page .tax-breakdown-row:hover {
+    background: #f7f9fb;
+    border-color: #d5dde5;
+}
+
+
+/* =========================================================
+   42. TAX LABEL / VALUE
+   ========================================================= */
+
+.gst-analysis-page .tax-breakdown-label {
+    color: #465566 !important;
+
+    font-size: 0.75rem;
+    font-weight: 750;
+
+    letter-spacing: 0.25px;
+}
+
+.gst-analysis-page .tax-breakdown-value {
+    color: var(--tax-accent, var(--officer-navy)) !important;
+
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 0.84rem;
+    font-weight: 800;
+
+    font-variant-numeric: tabular-nums;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   43. TAX PROGRESS BAR
+   ========================================================= */
+
+.gst-analysis-page .tax-breakdown-row .progress {
+    height: 5px;
+
+    margin-top: 7px;
+
+    background: #edf1f4;
+
+    border-radius: 3px;
+
+    overflow: hidden;
+}
+
+.gst-analysis-page .tax-breakdown-row .progress-bar {
+    background-color: var(--tax-accent, var(--officer-navy)) !important;
+
+    border-radius: 3px;
+
+    min-width: 2px;
+}
+
+
+/* =========================================================
+   44. TOTAL OUTPUT TAX
+   ========================================================= */
+
+.gst-analysis-page .officer-tax-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-top: 11px;
+    padding: 13px 12px;
+
+    background: #f1f5f9;
+
+    border: 1px solid #d8e1e9;
+    border-left: 4px solid var(--officer-navy);
+
+    border-radius: var(--officer-radius-sm);
+}
+
+.gst-analysis-page .officer-tax-total-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    color: var(--officer-slate);
+
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
+.gst-analysis-page .officer-tax-total-indicator {
+    width: 7px;
+    height: 7px;
+
+    flex: 0 0 7px;
+
+    background: var(--officer-navy);
+
+    border-radius: 50%;
+}
+
+.gst-analysis-page .officer-tax-total-value {
+    color: var(--officer-navy) !important;
+
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 1rem;
+    font-weight: 800;
+
+    font-variant-numeric: tabular-nums;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   45. PAYMENT & ITC ITEMS
+   ========================================================= */
+
+.gst-analysis-page .officer-payment-item {
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    min-height: 58px;
+
+    padding: 9px 10px;
+    margin-bottom: 7px;
+
+    background: #ffffff;
+
+    border: 1px solid #e1e6eb;
+    border-left: 3px solid #aeb8c4;
+
+    border-radius: var(--officer-radius-sm);
+
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.gst-analysis-page .officer-payment-item:hover {
+    background: #f8fafc;
+    border-color: #ccd5de;
+}
+
+.gst-analysis-page .officer-itc-item {
+    border-left-color: var(--officer-green);
+}
+
+.gst-analysis-page .officer-cash-item {
+    border-left-color: var(--officer-purple);
+}
+
+.gst-analysis-page .officer-rcm-item {
+    border-left-color: var(--officer-amber);
+}
+
+
+/* =========================================================
+   46. PAYMENT ICONS
+   ========================================================= */
+
+.gst-analysis-page .officer-payment-icon {
+    width: 31px;
+    height: 31px;
+
+    flex: 0 0 31px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 5px;
+
+    background: #eef2f6;
+    color: var(--officer-slate);
+}
+
+.gst-analysis-page .officer-itc-item .officer-payment-icon {
+    background: var(--officer-green-light);
+    color: var(--officer-green);
+}
+
+.gst-analysis-page .officer-cash-item .officer-payment-icon {
+    background: var(--officer-purple-light);
+    color: var(--officer-purple);
+}
+
+.gst-analysis-page .officer-rcm-item .officer-payment-icon {
+    background: var(--officer-amber-light);
+    color: var(--officer-amber);
+}
+
+
+/* =========================================================
+   47. PAYMENT TEXT
+   ========================================================= */
+
+.gst-analysis-page .officer-payment-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.gst-analysis-page .officer-payment-label {
+    margin-bottom: 2px;
+
+    color: #687585;
+
+    font-size: 0.65rem;
+    font-weight: 750;
+
+    letter-spacing: 0.35px;
+
+    text-transform: uppercase;
+}
+
+.gst-analysis-page .officer-payment-value {
+    color: var(--officer-text);
+
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 0.88rem;
+    font-weight: 800;
+
+    font-variant-numeric: tabular-nums;
+
+    white-space: nowrap;
+}
+
+.gst-analysis-page .officer-itc-item .officer-payment-value {
+    color: var(--officer-green-dark);
+}
+
+.gst-analysis-page .officer-cash-item .officer-payment-value {
+    color: var(--officer-purple-dark);
+}
+
+.gst-analysis-page .officer-rcm-item .officer-payment-value {
+    color: var(--officer-amber-dark);
+}
+
+
+/* =========================================================
+   48. RATIO GRID
+   ========================================================= */
+
+.gst-analysis-page .officer-ratio-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 8px;
+
+    margin-top: 10px;
+    padding-top: 10px;
+
+    border-top: 1px solid #e1e6eb;
+}
+
+.gst-analysis-page .officer-ratio-box {
+    min-height: 67px;
+
+    padding: 10px 11px;
+
+    background: #f7f9fb;
+
+    border: 1px solid #e0e5ea;
+
+    border-radius: var(--officer-radius-sm);
+}
+
+.gst-analysis-page .officer-cash-ratio-box {
+    border-left: 3px solid var(--officer-purple);
+}
+
+.gst-analysis-page .officer-itc-ratio-box {
+    border-left: 3px solid #246579;
+}
+
+.gst-analysis-page .officer-ratio-label {
+    margin-bottom: 5px;
+
+    color: #687585;
+
+    font-size: 0.62rem;
+    font-weight: 750;
+
+    letter-spacing: 0.3px;
+
+    text-transform: uppercase;
+}
+
+.gst-analysis-page .officer-ratio-value {
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 0.92rem;
+    font-weight: 800;
+
+    font-variant-numeric: tabular-nums;
+}
+
+.gst-analysis-page .officer-cash-ratio-box .officer-ratio-value {
+    color: var(--officer-purple);
+}
+
+.gst-analysis-page .officer-itc-ratio-box .officer-ratio-value {
+    color: #246579;
+}
+
+
+/* =========================================================
+   49. MONTHLY TAX MOVEMENT
+   ========================================================= */
+
+.gst-analysis-page .officer-monthly-chart-wrapper {
+    position: relative;
+
+    width: 100%;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    padding: 14px 16px 0;
+
+    border-top: 1px solid #e1e6eb;
+
+    background: #ffffff;
+}
+
+.gst-analysis-page .officer-monthly-chart {
+    display: flex;
+    align-items: flex-end;
+
+    gap: 16px;
+
+    min-width: max-content;
+    min-height: 285px;
+
+    padding: 8px 8px 0;
+}
+
+
+/* =========================================================
+   50. MONTH COLUMN
+   ========================================================= */
+
+.gst-analysis-page .officer-month-column {
+    width: 92px;
+    min-width: 92px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+
+/* =========================================================
+   51. MONTHLY VALUES
+   ========================================================= */
+
+.gst-analysis-page .officer-month-values {
+    width: 100%;
+
+    min-height: 58px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 1px;
+
+    margin-bottom: 5px;
+}
+
+.gst-analysis-page .officer-chart-value {
+    display: block;
+
+    max-width: 90px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+    font-size: 0.54rem;
+    line-height: 1.25;
+
+    font-weight: 750;
+
+    font-variant-numeric: tabular-nums;
+}
+
+.gst-analysis-page .officer-chart-output {
+    color: var(--officer-blue);
+}
+
+.gst-analysis-page .officer-chart-itc {
+    color: var(--officer-green);
+}
+
+.gst-analysis-page .officer-chart-cash {
+    color: var(--officer-purple);
+}
+
+
+/* =========================================================
+   52. MONTHLY BAR AREA
+   ========================================================= */
+
+.gst-analysis-page .officer-month-bars {
+    position: relative;
+
+    width: 76px;
+    height: 180px;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+
+    gap: 4px;
+
+    padding: 0 8px;
+
+    border-bottom: 2px solid #aeb8c4;
+
+    background:
+        repeating-linear-gradient(
+            to top,
+            transparent 0,
+            transparent 44px,
+            #edf1f4 45px
+        );
+}
+
+
+/* =========================================================
+   53. TAX BARS
+   ========================================================= */
+
+.gst-analysis-page .officer-tax-bar {
+    width: 15px;
+
+    min-height: 0;
+
+    border-radius: 3px 3px 0 0;
+
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+}
+
+.gst-analysis-page .officer-tax-bar:hover {
+    opacity: 0.78;
+    transform: translateY(-2px);
+}
+
+
+/* Output Tax */
+.gst-analysis-page .officer-output-bar {
+    background:
+        linear-gradient(
+            180deg,
+            #287bb8 0%,
+            #1769aa 100%
+        );
+
+    box-shadow:
+        0 1px 2px rgba(23, 105, 170, 0.18);
+}
+
+
+/* ITC */
+.gst-analysis-page .officer-itc-bar {
+    background:
+        linear-gradient(
+            180deg,
+            #3d8065 0%,
+            #28745d 100%
+        );
+
+    box-shadow:
+        0 1px 2px rgba(40, 116, 93, 0.18);
+}
+
+
+/* Cash */
+.gst-analysis-page .officer-cash-bar {
+    background:
+        linear-gradient(
+            180deg,
+            #75668a 0%,
+            #625478 100%
+        );
+
+    box-shadow:
+        0 1px 2px rgba(98, 84, 120, 0.18);
+}
+
+
+/* =========================================================
+   54. MONTH PERIOD
+   ========================================================= */
+
+.gst-analysis-page .officer-month-period {
+    width: 100%;
+
+    margin-top: 8px;
+
+    color: #465566;
+
+    font-size: 0.66rem;
+    font-weight: 750;
+
+    text-align: center;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   55. MONTHLY LEGEND
+   ========================================================= */
+
+.gst-analysis-page .officer-monthly-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 18px;
+
+    padding: 11px 16px 13px;
+
+    border-top: 1px solid #edf0f3;
+
+    background: #fafbfc;
+}
+
+.gst-analysis-page .officer-legend-item {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 6px;
+
+    color: #55606e;
+
+    font-size: 0.67rem;
+    font-weight: 700;
+}
+
+.gst-analysis-page .officer-legend-dot {
+    width: 8px;
+    height: 8px;
+
+    flex: 0 0 8px;
+
+    border-radius: 2px;
+}
+
+.gst-analysis-page .officer-legend-output {
+    background: var(--officer-blue);
+}
+
+.gst-analysis-page .officer-legend-itc {
+    background: var(--officer-green);
+}
+
+.gst-analysis-page .officer-legend-cash {
+    background: var(--officer-purple);
+}
+
+
+/* =========================================================
+   56. KPI - LIFETIME TAXABLE VALUE
+   ========================================================= */
+
+.gst-analysis-page .kpi-card.taxable-value .kpi-title {
+    color: var(--officer-slate) !important;
+
+    font-size: 0.88rem !important;
+    font-weight: 800 !important;
+
+    line-height: 1.3;
+    letter-spacing: 0.25px;
+
+    text-transform: none;
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   57. KPI - LIFETIME CASH PAID
+   ========================================================= */
+
+.gst-analysis-page .kpi-card.cash-paid {
+    border-top: 4px solid var(--officer-purple) !important;
+    border-bottom: 3px solid var(--officer-gold) !important;
+}
+
+.gst-analysis-page .kpi-card.cash-paid .kpi-title {
+    color: #465566 !important;
+
+    font-size: 0.88rem !important;
+    font-weight: 800 !important;
+
+    letter-spacing: 0.2px;
+
+    text-transform: none;
+}
+
+.gst-analysis-page .kpi-card.cash-paid .kpi-value {
+    color: var(--officer-purple-dark) !important;
+
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        monospace;
+
+    font-size: 1.4rem !important;
+    font-weight: 900 !important;
+
+    font-variant-numeric: tabular-nums;
+
+    line-height: 1.25;
+    letter-spacing: -0.3px;
+
+    white-space: nowrap;
+}
+
+.gst-analysis-page .kpi-card.cash-paid .kpi-detail {
+    color: var(--officer-purple) !important;
+
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        monospace;
+
+    font-size: 0.74rem !important;
+    font-weight: 800 !important;
+
+    font-variant-numeric: tabular-nums;
+}
+
+.gst-analysis-page .kpi-card.cash-paid .kpi-icon {
+    color: var(--officer-purple) !important;
+
+    background: var(--officer-purple-light) !important;
+
+    border: 1px solid #d9d1e3;
+}
+
+
+/* =========================================================
+   58. KPI - ITC UTILIZED
+   ========================================================= */
+
+.gst-analysis-page .kpi-card.itc-utilized {
+    border-top: 4px solid var(--officer-green) !important;
+    border-bottom: 3px solid var(--officer-gold) !important;
+}
+
+.gst-analysis-page .kpi-card.itc-utilized .kpi-title {
+    color: #465566 !important;
+
+    font-size: 0.88rem !important;
+    font-weight: 800 !important;
+
+    letter-spacing: 0.2px;
+
+    text-transform: none;
+}
+
+.gst-analysis-page .kpi-card.itc-utilized .kpi-value {
+    color: var(--officer-green-dark) !important;
+
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        monospace;
+
+    font-size: 1.4rem !important;
+    font-weight: 900 !important;
+
+    font-variant-numeric: tabular-nums;
+
+    line-height: 1.25;
+    letter-spacing: -0.3px;
+
+    white-space: nowrap;
+}
+
+.gst-analysis-page .kpi-card.itc-utilized .kpi-detail {
+    color: var(--officer-green) !important;
+
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        monospace;
+
+    font-size: 0.74rem !important;
+    font-weight: 800 !important;
+
+    font-variant-numeric: tabular-nums;
+}
+
+.gst-analysis-page .kpi-card.itc-utilized .kpi-icon {
+    color: var(--officer-green) !important;
+
+    background: var(--officer-green-light) !important;
+
+    border: 1px solid #c9e1d8;
+}
+
+
+/* =========================================================
+   59. KPI - RISK
+   ========================================================= */
+
+.gst-analysis-page .risk-kpi-card {
+    border-top: 4px solid var(--officer-amber) !important;
+    border-bottom: 3px solid var(--officer-gold) !important;
+}
+
+.gst-analysis-page .risk-kpi-card .risk-title {
+    color: #465566 !important;
+
+    font-size: 0.88rem !important;
+    font-weight: 800 !important;
+}
+
+.gst-analysis-page .risk-kpi-card .risk-score {
+    font-family:
+        "IBM Plex Mono",
+        "SFMono-Regular",
+        Consolas,
+        monospace;
+
+    font-size: 1.5rem !important;
+    font-weight: 900 !important;
+
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* =========================================================
+   60. KPI GENERAL
+   ========================================================= */
+
+.gst-analysis-page .kpi-card .kpi-value {
+    line-height: 1.25;
+    letter-spacing: -0.3px;
+}
+
+.gst-analysis-page .kpi-card .kpi-detail {
+    line-height: 1.35;
+}
+
+.gst-analysis-page .kpi-card.cash-paid:hover,
+.gst-analysis-page .kpi-card.itc-utilized:hover,
+.gst-analysis-page .risk-kpi-card:hover {
+    box-shadow: var(--officer-shadow-lg) !important;
+}
+
+
+/* =========================================================
+   61. RESPONSIVE - TABLET
+   ========================================================= */
+
+@media (max-width: 1199.98px) {
+
+    .gst-analysis-page .officer-complete-history {
+        min-width: 1450px;
+    }
+}
+
+
+/* =========================================================
+   62. RESPONSIVE - MOBILE
+   ========================================================= */
+
+@media (max-width: 991.98px) {
+
+    .gst-analysis-page .officer-profile-item,
+    .gst-analysis-page .officer-stat-item {
+        border-right: none;
+        border-bottom: 1px solid #e2e7ed;
+    }
+
+    .gst-analysis-page .col-12:last-child .officer-profile-item,
+    .gst-analysis-page .col-6:last-child .officer-stat-item {
+        border-bottom: none;
+    }
+}
+
+
+@media (max-width: 767.98px) {
+
+    /* Tax / Payment */
+    .gst-analysis-page .officer-tax-content,
+    .gst-analysis-page .officer-payment-content {
+        padding: 12px;
+    }
+
+    .gst-analysis-page .officer-tax-total {
+        padding: 11px 10px;
+    }
+
+    .gst-analysis-page .officer-tax-total-value {
+        font-size: 0.88rem;
+    }
+
+    .gst-analysis-page .officer-payment-value {
+        font-size: 0.82rem;
+    }
+
+    /* Ratio */
+    .gst-analysis-page .officer-ratio-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gst-analysis-page .officer-ratio-box {
+        min-height: 58px;
+    }
+
+    /* Recent history */
+    .gst-analysis-page .officer-history-table {
+        min-width: 850px;
+    }
+
+    /* Complete history */
+    .gst-analysis-page .officer-complete-history thead th {
+        padding: 10px;
+        font-size: 0.62rem;
+    }
+
+    .gst-analysis-page .officer-complete-history tbody td {
+        padding: 9px 10px;
+    }
+
+    .gst-analysis-page .officer-tax-cell {
+        font-size: 0.70rem !important;
+    }
+
+    /* Monthly chart */
+    .gst-analysis-page .officer-monthly-chart-wrapper {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .gst-analysis-page .officer-monthly-chart {
+        gap: 12px;
+    }
+
+    .gst-analysis-page .officer-month-column {
+        width: 84px;
+        min-width: 84px;
+    }
+
+    .gst-analysis-page .officer-month-bars {
+        width: 70px;
+    }
+
+    .gst-analysis-page .officer-chart-value {
+        font-size: 0.50rem;
+    }
+
+    /* KPI */
+    .gst-analysis-page .kpi-card.cash-paid .kpi-title,
+    .gst-analysis-page .kpi-card.itc-utilized .kpi-title,
+    .gst-analysis-page .risk-kpi-card .risk-title {
+        font-size: 0.84rem !important;
+    }
+
+    .gst-analysis-page .kpi-card.cash-paid .kpi-value,
+    .gst-analysis-page .kpi-card.itc-utilized .kpi-value {
+        font-size: 1.22rem !important;
+    }
+}
+
+
+@media (max-width: 575.98px) {
+
+    /* GSTIN */
+    .gst-analysis-page .officer-gstin-card {
+        min-height: 72px;
+        padding: 9px 11px;
+    }
+
+    .gst-analysis-page .officer-gstin-icon {
+        width: 36px;
+        height: 36px;
+
+        flex-basis: 36px;
+    }
+
+    .gst-analysis-page .officer-gstin-value {
+        font-size: 0.88rem;
+    }
+
+    /* Profile */
+    .gst-analysis-page .officer-profile-item {
+        min-height: 76px;
+        padding: 11px 13px;
+    }
+
+    .gst-analysis-page .officer-profile-icon {
+        width: 34px;
+        height: 34px;
+
+        flex-basis: 34px;
+    }
+
+    .gst-analysis-page .officer-profile-gstin {
+        font-size: 0.86rem;
+    }
+
+    .gst-analysis-page .officer-profile-main-value {
+        font-size: 0.84rem;
+    }
+
+    .gst-analysis-page .officer-stat-item {
+        min-height: 76px;
+        padding: 10px 13px;
+    }
+
+    /* Tax */
+    .gst-analysis-page .officer-tax-total-label {
+        font-size: 0.70rem;
+    }
+
+    .gst-analysis-page .officer-tax-total-value {
+        font-size: 0.82rem;
+    }
+}
+
+
+/* =========================================================
+   63. ACCESSIBILITY
+   ========================================================= */
+
+.gst-analysis-page button:focus-visible,
+.gst-analysis-page a:focus-visible,
+.gst-analysis-page input:focus-visible,
+.gst-analysis-page select:focus-visible {
+    outline: 2px solid #6f8eaa;
+    outline-offset: 2px;
+}
+
+
+/* =========================================================
+   64. REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .gst-analysis-page *,
+    .gst-analysis-page *::before,
+    .gst-analysis-page *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+
+/* =========================================================
+   65. PRINT
+   ========================================================= */
+
+@media print {
+
+    .gst-analysis-page {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+
+    .gst-analysis-page .officer-topbar {
+        background: #e7edf3 !important;
+        color: #12202f !important;
+
+        border-bottom: 2px solid #b8860b !important;
+
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .gst-analysis-page .officer-topbar h5,
+    .gst-analysis-page .officer-topbar .officer-title-text {
+        color: #12202f !important;
+    }
+
+    .gst-analysis-page .officer-topbar .officer-subtitle {
+        color: #465566 !important;
+    }
+
+    .gst-analysis-page thead.officer-thead th,
+    .gst-analysis-page .officer-complete-history thead.officer-thead th {
+        background-color: #dce6ef !important;
+        color: #12202f !important;
+
+        border-bottom: 2px solid #b8860b !important;
+
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .gst-analysis-page .card,
+    .gst-analysis-page .officer-history-card,
+    .gst-analysis-page .officer-tax-card,
+    .gst-analysis-page .officer-payment-card,
+    .gst-analysis-page .officer-monthly-card {
+        box-shadow: none !important;
+    }
+
+    .gst-analysis-page .table-responsive,
+    .gst-analysis-page .officer-complete-history-wrapper {
+        overflow: visible !important;
+    }
+
+    .gst-analysis-page .officer-complete-history {
+        min-width: 0 !important;
+    }
+
+    .gst-analysis-page .officer-tax-card,
+    .gst-analysis-page .officer-payment-card,
+    .gst-analysis-page .officer-monthly-card,
+    .gst-analysis-page .officer-history-card {
+        break-inside: avoid;
+    }
+}
+
