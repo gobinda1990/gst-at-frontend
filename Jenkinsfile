@@ -4,9 +4,9 @@ pipeline {
         SONARQUBE_SERVER = 'sonar'
         SONAR_HOST_URL   = 'http://10.153.43.8:9000'
         SCANNER_HOME = tool 'sonar-scanner' 
-        SONAR_PROJECT_KEY = 'wb-impact-dashboard'
-        SONAR_PROJECT_NAME = 'wb-impact-dashboard'
-        IMAGE_NAME = 'wb-impact-dashboard'
+        SONAR_PROJECT_KEY = 'gst-at-frontend'
+        SONAR_PROJECT_NAME = 'gst-at-frontend'
+        IMAGE_NAME = 'gst-at-frontend'
         IMAGE_TAG  = "${BUILD_NUMBER}"
     }
 
