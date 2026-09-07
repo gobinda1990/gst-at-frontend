@@ -3,7 +3,7 @@ import axios from "axios";
 export const dashboardClient =
   axios.create({
 
-    baseURL:"http://localhost:8085/api",
+    baseURL:"http://10.153.43.8:8087/api",
    // timeout: 30000,
     headers: {
       "Content-Type":
