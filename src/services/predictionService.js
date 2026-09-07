@@ -438,7 +438,7 @@ export const fetchGstinAnalysis = async (
 
     const response =
       await dashboardClient.get(
-        `/gst/analytics/return-3b/${cleanGstin}`,
+        `/gst/return-3b/analytics/${cleanGstin}`,
         { signal }
       );
 
