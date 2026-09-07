@@ -3,7 +3,7 @@ import axios from "axios";
 export const dashboardClient =
   axios.create({
 
-    baseURL:"/api/gst/return-3b",
+    baseURL:"/api",
    // timeout: 30000,
     headers: {
       "Content-Type":
