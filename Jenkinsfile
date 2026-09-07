@@ -4,9 +4,9 @@ pipeline {
         SONARQUBE_SERVER = 'sonar'
         SONAR_HOST_URL   = 'http://10.153.43.8:9000'
         SCANNER_HOME = tool 'sonar-scanner' 
-        SONAR_PROJECT_KEY = 'wb-impact-dashboard'
-        SONAR_PROJECT_NAME = 'wb-impact-dashboard'
-        IMAGE_NAME = 'wb-impact-dashboard'
+        SONAR_PROJECT_KEY = 'gst-at-frontend'
+        SONAR_PROJECT_NAME = 'gst-at-frontend'
+        IMAGE_NAME = 'gst-at-frontend'
         IMAGE_TAG  = "${BUILD_NUMBER}"
     }
 
@@ -16,7 +16,7 @@ pipeline {
             steps {
                 echo 'Checking out wb-impact-dashboard repository...'
                 git branch: 'main',
-                    url: 'https://github.com/gobinda1990/wb-impact-dashboard.git'
+                    url: 'https://github.com/gobinda1990/gst-at-frontend.git'
             }
         }
 
@@ -62,7 +62,7 @@ pipeline {
 
                     docker run -d \
                       --name ${IMAGE_NAME} \
-                      -p 8084:80 \
+                      -p 8085:80 \
                       --restart unless-stopped \
                       ${IMAGE_NAME}:latest
                 """
