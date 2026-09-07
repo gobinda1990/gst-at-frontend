@@ -16,7 +16,7 @@ pipeline {
             steps {
                 echo 'Checking out wb-impact-dashboard repository...'
                 git branch: 'main',
-                    url: 'https://github.com/gobinda1990/wb-impact-dashboard.git'
+                    url: 'https://github.com/gobinda1990/gst-at-frontend.git'
             }
         }
 
@@ -62,7 +62,7 @@ pipeline {
 
                     docker run -d \
                       --name ${IMAGE_NAME} \
-                      -p 8084:80 \
+                      -p 8085:80 \
                       --restart unless-stopped \
                       ${IMAGE_NAME}:latest
                 """
