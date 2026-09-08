@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { 
   BarChart3, 
   Download, 
@@ -7,25 +7,16 @@ import {
   Briefcase, 
   IndianRupee 
 } from "lucide-react";
-import { fetchMonthlyRevenueSummary } from "../../services/dashboardService";
+import { 
+  fetchMonthlyRevenueSummary, 
+  fetchFinancialYears 
+} from "../../services/dashboardService";
 
-// Helper to format MMYYYY string into standard readable format (e.g., 032026 -> Mar 2026)
-const formatPeriod = (periodStr) => {
-  if (!periodStr || periodStr.length !== 6) return periodStr || "N/A";
-  const monthStr = periodStr.substring(0, 2);
-  const yearStr = periodStr.substring(2);
-
-  const date = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, 1);
-  return isNaN(date.getTime())
-    ? periodStr
-    : date.toLocaleString("en-IN", { month: "short", year: "numeric" });
-};
-
-// Helper to deduce Financial Year (April-March) from MMYYYY string
-const getFinancialYear = (periodStr) => {
-  if (!periodStr || periodStr.length !== 6) return "Unknown";
-  const month = parseInt(periodStr.substring(0, 2), 10);
-  const year = parseInt(periodStr.substring(2), 10);
+// Helper to calculate current Indian Financial Year (April to March)
+const getCurrentFinancialYear = () => {
+  const now = new Date();
+  const month = now.getMonth() + 1; // 1 - 12
+  const year = now.getFullYear();
 
   if (month >= 4) {
     return `${year}-${(year + 1).toString().slice(-2)}`;
@@ -34,23 +25,70 @@ const getFinancialYear = (periodStr) => {
   }
 };
 
+// Helper to format MMYYYY string into standard readable format (e.g., "042025" -> "Apr 2025")
+const formatPeriod = (periodStr) => {
+  if (!periodStr || String(periodStr).length !== 6) return periodStr || "N/A";
+  const str = String(periodStr);
+  const monthStr = str.substring(0, 2);
+  const yearStr = str.substring(2);
+
+  const date = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, 1);
+  return isNaN(date.getTime())
+    ? periodStr
+    : date.toLocaleString("en-IN", { month: "short", year: "numeric" });
+};
+
 const GstMonthlyRevenueSummary = () => {
-  const [rawData, setRawData] = useState([]);
+  const [data, setData] = useState([]);
+  const [fyOptions, setFyOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // FY Filter State
-  const [selectedFy, setSelectedFy] = useState("2025-26");
+  // Selected FY State (Defaults to current Indian FY)
+  const [selectedFy, setSelectedFy] = useState(() => getCurrentFinancialYear());
 
   // Display Unit State: 'crores' | 'lakhs' | 'standard'
   const [displayUnit, setDisplayUnit] = useState("crores");
 
-  const loadSummaryData = useCallback(async () => {
+  // Fetch FY Dropdown list from backend GET /gst/return-3b/fin-year
+  const loadFinancialYears = useCallback(async (signal) => {
+    try {
+      const response = await fetchFinancialYears(signal);
+      
+      // Extract array whether backend returns direct array or wrapped data
+      const rawYears = Array.isArray(response) ? response : response?.data || [];
+      
+      if (Array.isArray(rawYears) && rawYears.length > 0) {
+        // Sanitize item structures (handles string[] and object[])
+        const normalizedYears = rawYears.map((fy) =>
+          typeof fy === "object" && fy !== null ? fy.finYear || fy.financialYear || String(fy) : String(fy)
+        );
+
+        setFyOptions(normalizedYears);
+
+        // Fallback to first available FY if currently selected FY is missing from backend response
+        const currentFy = getCurrentFinancialYear();
+        if (!normalizedYears.includes(currentFy) && !normalizedYears.includes(selectedFy)) {
+          setSelectedFy(normalizedYears[0]);
+        }
+      } else {
+        setFyOptions([]);
+      }
+    } catch (err) {
+      console.error("Failed to load financial years:", err);
+      setFyOptions([]);
+    }
+  }, [selectedFy]);
+
+  // Fetch Summary Table Data filtered by backend String FY
+  const loadSummaryData = useCallback(async (signal) => {
     try {
       setLoading(true);
       setError(null);
-      const result = await fetchMonthlyRevenueSummary();
-      setRawData(Array.isArray(result) ? result : []);
+      const result = await fetchMonthlyRevenueSummary(selectedFy, signal);
+      if (result !== null) {
+        setData(Array.isArray(result) ? result : []);
+      }
     } catch (err) {
       setError(
         err?.message || "Failed to fetch revenue summary data. Please try again later."
@@ -58,10 +96,20 @@ const GstMonthlyRevenueSummary = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedFy]);
 
+  // Load FY Dropdown list on Component Mount
   useEffect(() => {
-    loadSummaryData();
+    const controller = new AbortController();
+    loadFinancialYears(controller.signal);
+    return () => controller.abort();
+  }, [loadFinancialYears]);
+
+  // Refetch Table Data whenever selectedFy changes
+  useEffect(() => {
+    const controller = new AbortController();
+    loadSummaryData(controller.signal);
+    return () => controller.abort();
   }, [loadSummaryData]);
 
   // Unit Scaler Currency Formatter
@@ -91,24 +139,9 @@ const GstMonthlyRevenueSummary = () => {
     [displayUnit]
   );
 
-  // Extract available FY options
-  const fyOptions = useMemo(() => {
-    const extractedYears = new Set(
-      rawData.map((row) => getFinancialYear(row.retPeriod)).filter((fy) => fy !== "Unknown")
-    );
-    ["2023-24", "2024-25", "2025-26", "2026-27"].forEach((fy) => extractedYears.add(fy));
-    return Array.from(extractedYears).sort().reverse();
-  }, [rawData]);
-
-  // Filter dataset by selected FY
-  const filteredData = useMemo(() => {
-    if (!selectedFy || selectedFy === "ALL") return rawData;
-    return rawData.filter((row) => getFinancialYear(row.retPeriod) === selectedFy);
-  }, [rawData, selectedFy]);
-
-  // Totals Calculation
+  // Aggregated Totals Calculation over dataset
   const totals = useMemo(() => {
-    return filteredData.reduce(
+    return data.reduce(
       (acc, row) => ({
         taxableValue: acc.taxableValue + (Number(row.grossTaxableValue) || 0),
         grossRevenue: acc.grossRevenue + (Number(row.totalGrossRevenue) || 0),
@@ -118,7 +151,7 @@ const GstMonthlyRevenueSummary = () => {
       }),
       { taxableValue: 0, grossRevenue: 0, cashPaid: 0, itcUtilized: 0, taxpayers: 0 }
     );
-  }, [filteredData]);
+  }, [data]);
 
   const overallCashPct = totals.grossRevenue
     ? ((totals.cashPaid / totals.grossRevenue) * 100).toFixed(2)
@@ -130,7 +163,7 @@ const GstMonthlyRevenueSummary = () => {
 
   // CSV Export Handler
   const handleExport = () => {
-    if (!filteredData.length) return;
+    if (!data.length) return;
     const headers = [
       "Period",
       "Taxpayers Filed",
@@ -142,7 +175,7 @@ const GstMonthlyRevenueSummary = () => {
       "ITC %",
     ];
 
-    const rows = filteredData.map((row) => [
+    const rows = data.map((row) => [
       row.retPeriod,
       row.totalTaxpayersFiled || 0,
       row.grossTaxableValue || 0,
@@ -167,7 +200,31 @@ const GstMonthlyRevenueSummary = () => {
   };
 
   return (
-    <div className="container-fluid p-0">
+    <div className="container-fluid p-0 animate-fade-in">
+      {/* INJECTED ANIMATION STYLES */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-card {
+          animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-row {
+          animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .spin-icon {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
+
       {/* STICKY HEADER SECTION */}
       <header
         className="bg-white border-bottom mb-4 sticky-top shadow-sm"
@@ -178,39 +235,49 @@ const GstMonthlyRevenueSummary = () => {
             <div className="d-flex align-items-center gap-2">
               <div
                 className="bg-primary text-white rounded-2 d-flex align-items-center justify-content-center shadow-sm flex-shrink-0"
-                style={{ width: 34, height: 34 }}
+                style={{ width: 36, height: 36 }}
               >
-                <BarChart3 size={18} />
+                <BarChart3 size={20} />
               </div>
               <h5 className="mb-0 fw-bold text-dark text-truncate">
                 GSTR-3B Revenue Summary
               </h5>
             </div>
 
-            {/* Responsive Controls Bar */}
+            {/* Controls Bar */}
             <div className="d-flex flex-wrap align-items-center justify-content-between justify-content-md-end gap-2 w-100 w-md-auto">
               
-              {/* Ultra Compact FY Selector Dropdown */}
-              <div className="input-group input-group-sm flex-grow-0" style={{ width: "auto" }}>
-                <span className="input-group-text bg-light border-end-0 py-1 px-2">
-                  <Calendar size={12} className="text-secondary" />
+              {/* MEDIUM SIZED DYNAMIC FY DROPDOWN */}
+              <div 
+                className="input-group input-group-md flex-grow-0" 
+                style={{ minWidth: "160px", maxWidth: "220px" }}
+              >
+                <span className="input-group-text bg-light border-end-0 px-2 text-secondary">
+                  <Calendar size={15} />
                 </span>
                 <select
-                  className="form-select border-start-0 rounded-end fw-semibold text-secondary py-1 ps-1 pe-4"
+                  aria-label="Select Financial Year"
+                  className="form-select border-start-0 rounded-end fw-semibold text-dark py-1 pe-4"
                   value={selectedFy}
                   onChange={(e) => setSelectedFy(e.target.value)}
                   style={{ 
-                    fontSize: "0.75rem", 
-                    height: "28px", 
-                    lineHeight: "1" 
+                    fontSize: "0.85rem", 
+                    height: "34px", 
+                    cursor: "pointer" 
                   }}
                 >
-                  <option value="ALL">All FYs</option>
-                  {fyOptions.map((fy) => (
-                    <option key={fy} value={fy}>
-                      FY {fy}
+                  <option value="ALL">All Financial Years</option>
+                  {fyOptions.length > 0 ? (
+                    fyOptions.map((fy) => (
+                      <option key={fy} value={fy}>
+                        FY {fy}
+                      </option>
+                    ))
+                  ) : (
+                    <option value={selectedFy} disabled>
+                      {selectedFy ? `FY ${selectedFy}` : "No FY Available"}
                     </option>
-                  ))}
+                  )}
                 </select>
               </div>
 
@@ -219,7 +286,7 @@ const GstMonthlyRevenueSummary = () => {
                 <button
                   type="button"
                   className={`btn py-1 px-2 ${displayUnit === "crores" ? "btn-primary fw-semibold" : "btn-outline-secondary bg-white"}`}
-                  style={{ fontSize: "0.75rem", height: "28px" }}
+                  style={{ fontSize: "0.8rem", height: "34px" }}
                   onClick={() => setDisplayUnit("crores")}
                 >
                   Cr
@@ -227,7 +294,7 @@ const GstMonthlyRevenueSummary = () => {
                 <button
                   type="button"
                   className={`btn py-1 px-2 ${displayUnit === "lakhs" ? "btn-primary fw-semibold" : "btn-outline-secondary bg-white"}`}
-                  style={{ fontSize: "0.75rem", height: "28px" }}
+                  style={{ fontSize: "0.8rem", height: "34px" }}
                   onClick={() => setDisplayUnit("lakhs")}
                 >
                   Lakhs
@@ -235,7 +302,7 @@ const GstMonthlyRevenueSummary = () => {
                 <button
                   type="button"
                   className={`btn py-1 px-2 ${displayUnit === "standard" ? "btn-primary fw-semibold" : "btn-outline-secondary bg-white"}`}
-                  style={{ fontSize: "0.75rem", height: "28px" }}
+                  style={{ fontSize: "0.8rem", height: "34px" }}
                   onClick={() => setDisplayUnit("standard")}
                 >
                   Abs
@@ -246,23 +313,26 @@ const GstMonthlyRevenueSummary = () => {
               <div className="d-flex align-items-center gap-2 flex-grow-1 flex-sm-grow-0 justify-content-end">
                 <button
                   type="button"
-                  className="btn btn-sm btn-outline-success rounded-2 d-flex align-items-center justify-content-center gap-1 shadow-sm flex-grow-1 flex-sm-grow-0 py-1 px-2"
-                  style={{ fontSize: "0.75rem", height: "28px" }}
-                  disabled={loading || filteredData.length === 0}
+                  className="btn btn-sm btn-outline-success rounded-2 d-flex align-items-center justify-content-center gap-1 shadow-sm flex-grow-1 flex-sm-grow-0 px-2"
+                  style={{ fontSize: "0.8rem", height: "34px" }}
+                  disabled={loading || data.length === 0}
                   onClick={handleExport}
                 >
-                  <Download size={13} />
+                  <Download size={14} />
                   <span className="d-none d-sm-inline">Export</span>
                 </button>
 
                 <button
                   type="button"
-                  className="btn btn-sm btn-primary rounded-2 d-flex align-items-center justify-content-center gap-1 shadow-sm flex-grow-1 flex-sm-grow-0 py-1 px-2"
-                  style={{ fontSize: "0.75rem", height: "28px" }}
+                  className="btn btn-sm btn-primary rounded-2 d-flex align-items-center justify-content-center gap-1 shadow-sm flex-grow-1 flex-sm-grow-0 px-2"
+                  style={{ fontSize: "0.8rem", height: "34px" }}
                   disabled={loading}
-                  onClick={loadSummaryData}
+                  onClick={() => {
+                    loadFinancialYears();
+                    loadSummaryData();
+                  }}
                 >
-                  <RefreshCw size={13} className={loading ? "spin" : ""} />
+                  <RefreshCw size={14} className={loading ? "spin-icon" : ""} />
                   <span className="d-none d-sm-inline">Refresh</span>
                 </button>
               </div>
@@ -273,9 +343,9 @@ const GstMonthlyRevenueSummary = () => {
 
       {/* ERROR DISPLAY */}
       {error && (
-        <div className="alert alert-danger mx-2 mx-sm-3 d-flex align-items-center justify-content-between rounded-3 shadow-sm border-0 p-3" role="alert">
+        <div className="alert alert-danger mx-2 mx-sm-3 d-flex align-items-center justify-content-between rounded-3 shadow-sm border-0 p-3 animate-fade-in" role="alert">
           <div className="small">{error}</div>
-          <button className="btn btn-outline-danger btn-sm text-nowrap ms-2" onClick={loadSummaryData}>
+          <button className="btn btn-outline-danger btn-sm text-nowrap ms-2" onClick={() => loadSummaryData()}>
             Retry
           </button>
         </div>
@@ -284,7 +354,7 @@ const GstMonthlyRevenueSummary = () => {
       {/* KPI METRIC CARDS */}
       <div className="px-2 px-sm-3 px-lg-4">
         <div className="row g-2 g-sm-3 mb-4">
-          <div className="col-12 col-sm-6 col-xl-3">
+          <div className="col-12 col-sm-6 col-xl-3 animate-card" style={{ animationDelay: "50ms" }}>
             <div className="card border-0 shadow-sm rounded-3 h-100 bg-white border-start border-4 border-secondary">
               <div className="card-body p-3">
                 <div className="d-flex align-items-center justify-content-between mb-2">
@@ -301,7 +371,7 @@ const GstMonthlyRevenueSummary = () => {
             </div>
           </div>
 
-          <div className="col-12 col-sm-6 col-xl-3">
+          <div className="col-12 col-sm-6 col-xl-3 animate-card" style={{ animationDelay: "100ms" }}>
             <div className="card border-0 shadow-sm rounded-3 h-100 bg-white border-start border-4 border-success">
               <div className="card-body p-3">
                 <div className="d-flex align-items-center justify-content-between mb-2">
@@ -318,7 +388,7 @@ const GstMonthlyRevenueSummary = () => {
             </div>
           </div>
 
-          <div className="col-12 col-sm-6 col-xl-3">
+          <div className="col-12 col-sm-6 col-xl-3 animate-card" style={{ animationDelay: "150ms" }}>
             <div className="card border-0 shadow-sm rounded-3 h-100 bg-white border-start border-4 border-primary">
               <div className="card-body p-3">
                 <div className="d-flex align-items-center justify-content-between mb-2">
@@ -335,7 +405,7 @@ const GstMonthlyRevenueSummary = () => {
             </div>
           </div>
 
-          <div className="col-12 col-sm-6 col-xl-3">
+          <div className="col-12 col-sm-6 col-xl-3 animate-card" style={{ animationDelay: "200ms" }}>
             <div className="card border-0 shadow-sm rounded-3 h-100 bg-white border-start border-4" style={{ borderColor: "#6f42c1" }}>
               <div className="card-body p-3">
                 <div className="d-flex align-items-center justify-content-between mb-2">
@@ -356,7 +426,7 @@ const GstMonthlyRevenueSummary = () => {
         </div>
 
         {/* DATA TABLE CONTAINER */}
-        <div className="card border-0 shadow-sm rounded-3 overflow-hidden bg-white mb-4">
+        <div className="card border-0 shadow-sm rounded-3 overflow-hidden bg-white mb-4 animate-card" style={{ animationDelay: "250ms" }}>
           <div className="card-header bg-white border-bottom py-3 px-3 px-sm-4 d-flex flex-row justify-content-between align-items-center gap-2">
             <h6 className="fw-bold text-dark mb-0 text-truncate">Monthly Revenue Breakdown</h6>
             <span className="badge bg-light text-secondary border font-monospace text-nowrap">
@@ -388,19 +458,23 @@ const GstMonthlyRevenueSummary = () => {
                       <p className="mt-2 text-secondary fw-semibold small mb-0">Loading revenue analytics...</p>
                     </td>
                   </tr>
-                ) : filteredData.length === 0 ? (
+                ) : data.length === 0 ? (
                   <tr>
                     <td colSpan="8" className="text-center py-5 text-muted">
                       No revenue data available for Financial Year <strong>{selectedFy}</strong>.
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((row) => {
+                  data.map((row, idx) => {
                     const cashPct = Number(row.cashRealizationPct) || 0;
                     const itcPct = Number(row.itcUtilizationPct) || 0;
 
                     return (
-                      <tr key={row.retPeriod}>
+                      <tr 
+                        key={row.retPeriod} 
+                        className="animate-row"
+                        style={{ animationDelay: `${Math.min(idx * 30, 300)}ms` }}
+                      >
                         <td className="px-3 fw-bold text-dark bg-light-subtle text-nowrap">
                           <span className="badge bg-dark text-white border me-1 me-sm-2 font-monospace px-1 px-sm-2 py-1">
                             {row.retPeriod}
@@ -438,8 +512,8 @@ const GstMonthlyRevenueSummary = () => {
                 )}
               </tbody>
 
-              {!loading && filteredData.length > 0 && (
-                <tfoot className="table-dark fw-bold border-top">
+              {!loading && data.length > 0 && (
+                <tfoot className="table-dark fw-bold border-top animate-row" style={{ animationDelay: "320ms" }}>
                   <tr>
                     <td className="px-3 py-3 text-uppercase text-white text-nowrap">Total</td>
                     <td className="px-2 py-3 text-end font-monospace text-light">

@@ -665,9 +665,9 @@ const GstinAnalysisPage = ({
             <div
               className="min-width-0"
               style={{ minWidth: 0 }}
-            >  
-              <div className="officer-subtitle fw-medium text-truncate"  style={{fontSize: "0.72rem",}}>
-                <h5 className="fw-bold text-dark mb-0 text-truncate">GSTR-3B Return Compliance &amp; AI Risk Assessment</h5> 
+            >
+              <div className="officer-subtitle fw-medium text-truncate" style={{ fontSize: "0.72rem", }}>
+                <h5 className="fw-bold text-dark mb-0 text-truncate">GSTR-3B Return Compliance &amp; AI Risk Assessment</h5>
               </div>
             </div>
 
@@ -2076,173 +2076,108 @@ const RecentHistory = ({
         ) : (
           <div className="table-responsive officer-history-table-wrapper">
 
-            <table className="table table-hover align-middle mb-0 officer-history-table">
-
+            <table
+              className="table table-hover align-middle mb-0 officer-history-table"
+              style={{ fontSize: "14px" }}
+            >
               {/* ==================================================
-                  TABLE HEADER
-                  ================================================== */}
-
-              <thead className="officer-thead">
+      TABLE HEADER
+      ================================================== */}
+              <thead
+                className="table-dark text-uppercase border-bottom"
+                style={{ fontSize: "0.75rem", letterSpacing: "0.5px" }}
+              >
                 <tr>
-
-                  <th className="officer-period-column">
-                    Period
-                  </th>
-
-                  <th className="text-end">
-                    Taxable Value
-                  </th>
-
-                  <th className="text-end">
-                    Output Tax
-                  </th>
-
-                  <th className="text-end">
-                    ITC Claimed
-                  </th>
-
-                  <th className="text-end">
-                    Cash Paid
-                  </th>
-
-                  <th className="text-center">
-                    Filing Delay
-                  </th>
-
-                  <th className="text-center">
-                    Filing Status
-                  </th>
-
+                  <th className="py-3 px-3 border-0 officer-period-column">Period</th>
+                  <th className="py-3 px-2 border-0 text-end">Taxable Value</th>
+                  <th className="py-3 px-2 border-0 text-end">Output Tax</th>
+                  <th className="py-3 px-2 border-0 text-end">ITC Claimed</th>
+                  <th className="py-3 px-2 border-0 text-end">Cash Paid</th>
+                  <th className="py-3 px-2 border-0 text-center">Filing Delay</th>
+                  <th className="py-3 px-2 border-0 text-center">Filing Status</th>
                 </tr>
               </thead>
 
               {/* ==================================================
-                  TABLE BODY
-                  ================================================== */}
-
+      TABLE BODY
+      ================================================== */}
               <tbody>
-
                 {rows.map((item, index) => {
-
-                  const delayDays = safeNumber(
-                    item.filingDelayDays
-                  );
-
-                  const filingStatus =
-                    item.filingStatus || "FILED";
+                  const delayDays = safeNumber(item.filingDelayDays);
+                  const filingStatus = item.filingStatus || "FILED";
 
                   return (
-                    <tr
-                      key={
-                        item.retPeriod || index
-                      }
+                    <tr key={item.retPeriod || index}>
+                      {/* PERIOD */}
+                      <td className="px-3 py-2 fw-bold officer-period-cell" style={{ color: "#212529" }}>
+                        <span className="d-block officer-period-value" style={{ fontSize: "14px" }}>
+                          {item.formattedPeriod || formatReturnPeriod(item.retPeriod)}
+                        </span>
+                        <small className="d-block text-muted" style={{ fontSize: "12px" }}>
+                          {item.retPeriod}
+                        </small>
+                      </td>
+
+                      {/* TAXABLE VALUE */}
+                      <td
+                      className="px-2 text-end font-monospace text-nowrap"
+                      style={{ color: "#0d6efd", fontWeight: 600, fontSize: "14px" }}
                     >
-
-                      {/* ------------------------------------------
-                          PERIOD
-                          ------------------------------------------ */}
-
-                      <td className="officer-period-cell">
-
-                        <span className="officer-period-value">
-                          {item.formattedPeriod ||
-                            formatReturnPeriod(
-                              item.retPeriod
-                            )}
-                        </span>
-
+                        {formatINR(item.taxableValue)}
                       </td>
 
-                      {/* ------------------------------------------
-                          TAXABLE VALUE
-                          ------------------------------------------ */}
-
-                      <td className="text-end officer-money-cell">
-                        {formatINR(
-                          item.taxableValue
-                        )}
+                      {/* OUTPUT TAX */}
+                      <td
+                      className="px-2 text-end font-monospace text-nowrap"
+                        style={{ color: "#3730a3", fontSize: "14px" }}
+                      >
+                        {formatINR(item.outputTax)}
                       </td>
 
-                      {/* ------------------------------------------
-                          OUTPUT TAX
-                          ------------------------------------------ */}
-
-                      <td className="text-end officer-money-cell">
-                        {formatINR(
-                          item.outputTax
-                        )}
+                      {/* ITC CLAIMED */}
+                      <td
+                      className="px-2 text-end font-monospace text-nowrap"
+                        style={{ color: "#198754", fontSize: "14px" }}
+                      >
+                        {formatINR(item.itcClaimed)}
                       </td>
 
-                      {/* ------------------------------------------
-                          ITC CLAIMED
-                          ------------------------------------------ */}
-
-                      <td className="text-end officer-money-cell officer-itc-value">
-                        {formatINR(
-                          item.itcClaimed
-                        )}
+                      {/* CASH PAID */}
+                      <td
+                      className="px-2 text-end font-monospace text-nowrap"
+                        style={{ color: "#059669", fontSize: "14px" }}
+                      >
+                        {formatINR(item.cashPaid)}
                       </td>
 
-                      {/* ------------------------------------------
-                          CASH PAID
-                          ------------------------------------------ */}
-
-                      <td className="text-end officer-money-cell officer-cash-value">
-                        {formatINR(
-                          item.cashPaid
-                        )}
-                      </td>
-
-                      {/* ------------------------------------------
-                          FILING DELAY
-                          ------------------------------------------ */}
-
-                      <td className="text-center">
-
+                      {/* FILING DELAY */}
+                      <td className="text-center fw-bold" style={{ fontSize: "14px" }}>
                         <span
-                          className={`officer-delay-badge ${getDelayBadgeClass(
+                          className={`officer-delay-badge fw-bold ${getDelayBadgeClass(
                             item.filingDelayDays
-                          )
-                            }`}
+                          )}`}
+                          style={{ fontSize: "13px" }}
                         >
-
-                          {delayDays > 0 && (
-                            <span className="officer-delay-dot" />
-                          )}
-
-                          {delayDays}{" "}
-
-                          {delayDays === 1
-                            ? "day"
-                            : "days"}
-
+                          {delayDays > 0 && <span className="officer-delay-dot" />}
+                          {delayDays} {delayDays === 1 ? "day" : "days"}
                         </span>
-
                       </td>
 
-                      {/* ------------------------------------------
-                          FILING STATUS
-                          ------------------------------------------ */}
-
-                      <td className="text-center">
-
+                      {/* FILING STATUS */}
+                      <td className="text-center fw-bold" style={{ fontSize: "14px" }}>
                         <span
-                          className={`officer-filing-badge ${getFilingBadgeClass(
+                          className={`officer-filing-badge fw-bold ${getFilingBadgeClass(
                             filingStatus
-                          )
-                            }`}
+                          )}`}
+                          style={{ fontSize: "13px" }}
                         >
                           {filingStatus}
                         </span>
-
                       </td>
-
                     </tr>
                   );
                 })}
-
               </tbody>
-
             </table>
 
           </div>
@@ -2279,275 +2214,171 @@ const HistoryTable = ({
       ) : (
         <div className="table-responsive officer-complete-history-wrapper">
 
-          <table className="table table-hover align-middle mb-0 officer-complete-history">
-
+          <table
+            className="table table-hover align-middle mb-0 officer-complete-history"
+            style={{ fontSize: "14px" }}
+          >
             {/* ==================================================
-                HEADER
-                ================================================== */}
-
-            <thead className="officer-thead">
+      HEADER
+      ================================================== */}
+            <thead
+              className="table-dark text-uppercase border-bottom"
+              style={{ fontSize: "0.75rem", letterSpacing: "0.5px" }}
+            >
               <tr>
-
-                <th className="officer-history-period-header">
-                  Return Period
-                </th>
-
-                <th className="text-end">
-                  Taxable Value
-                </th>
-
-                <th className="text-end">
-                  IGST
-                </th>
-
-                <th className="text-end">
-                  CGST
-                </th>
-
-                <th className="text-end">
-                  SGST
-                </th>
-
-                <th className="text-end">
-                  CESS
-                </th>
-
-                <th className="text-end officer-output-header">
-                  Output Tax
-                </th>
-
-                <th className="text-end">
-                  ITC Claimed
-                </th>
-
-                <th className="text-end">
-                  Cash Paid
-                </th>
-
-                <th className="text-end">
-                  RCM Tax
-                </th>
-
-                <th className="text-end">
-                  ITC Ratio
-                </th>
-
-                <th className="text-end">
-                  Cash Ratio
-                </th>
-
-                <th className="text-center">
-                  Delay
-                </th>
-
-                <th className="text-center">
-                  Status
-                </th>
-
+                <th className="py-3 px-3 border-0">Period</th>
+                <th className="py-3 px-2 border-0 text-end">Taxable Value</th>
+                <th className="py-3 px-2 border-0 text-end">IGST</th>
+                <th className="py-3 px-2 border-0 text-end">CGST</th>
+                <th className="py-3 px-2 border-0 text-end">SGST</th>
+                <th className="py-3 px-2 border-0 text-end">CESS</th>
+                <th className="py-3 px-2 border-0 text-end">Output Tax</th>
+                <th className="py-3 px-2 border-0 text-end">ITC Claimed</th>
+                <th className="py-3 px-2 border-0 text-end">Cash Paid</th>
+                <th className="py-3 px-2 border-0 text-end">RCM Tax</th>
+                <th className="py-3 px-2 border-0 text-end">ITC Ratio</th>
+                <th className="py-3 px-2 border-0 text-end">Cash Ratio</th>
+                <th className="py-3 px-2 border-0 text-center">Delay</th>
+                <th className="py-3 px-2 border-0 text-center">Status</th>
               </tr>
             </thead>
 
             {/* ==================================================
-                BODY
-                ================================================== */}
-
+      BODY
+      ================================================== */}
             <tbody>
-
               {history.map((item, index) => {
-
-                const delayDays = safeNumber(
-                  item.filingDelayDays
-                );
-
-                const filingStatus =
-                  item.filingStatus || "FILED";
+                const delayDays = safeNumber(item.filingDelayDays);
+                const filingStatus = item.filingStatus || "FILED";
 
                 return (
-                  <tr
-                    key={
-                      item.retPeriod || index
-                    }
-                  >
-
-                    {/* ==========================================
-                        RETURN PERIOD
-                        ========================================== */}
-
-                    <td className="officer-history-period-cell">
-
-                      <span className="officer-history-period">
-                        {item.formattedPeriod ||
-                          formatReturnPeriod(
-                            item.retPeriod
-                          )}
+                  <tr key={item.retPeriod || index}>
+                    {/* RETURN PERIOD */}
+                    <td className="px-3 py-2 fw-bold" style={{ color: "#212529" }}>
+                      <span className="d-block" style={{ fontSize: "14px" }}>
+                        {item.formattedPeriod || formatReturnPeriod(item.retPeriod)}
                       </span>
-
-                      <small className="officer-history-ret-period">
+                      <small className="d-block text-muted" style={{ fontSize: "12px" }}>
                         {item.retPeriod}
                       </small>
-
                     </td>
 
-                    {/* ==========================================
-                        TAXABLE VALUE
-                        ========================================== */}
-
-                    <td className="text-end officer-tax-cell officer-taxable">
-                      {formatINR(
-                        item.taxableValue
-                      )}
+                    {/* TAXABLE VALUE */}
+                    <td
+                      className="px-2 text-end font-monospace text-nowrap"
+                      style={{ color: "#0d6efd", fontWeight: 600, fontSize: "14px" }}
+                    >
+                      {formatINR(item.taxableValue ?? item.taxValue ?? item.taxvalues)}
                     </td>
 
-                    {/* ==========================================
-                        IGST
-                        ========================================== */}
-
-                    <td className="text-end officer-tax-cell officer-igst">
-                      {formatINR(
-                        item.igst
-                      )}
+                    {/* IGST */}
+                    <td
+                      className="px-2 text-end font-monospace fw-bold text-nowrap"
+                      style={{ color: "#6f42c1", fontSize: "14px" }}
+                    >
+                      {formatINR(item.igst)}
                     </td>
 
-                    {/* ==========================================
-                        CGST
-                        ========================================== */}
-
-                    <td className="text-end officer-tax-cell officer-cgst">
-                      {formatINR(
-                        item.cgst
-                      )}
+                    {/* CGST */}
+                    <td
+                      className="px-2 text-end font-monospace fw-bold text-nowrap"
+                      style={{ color: "#0d9488", fontSize: "14px" }}
+                    >
+                      {formatINR(item.cgst)}
                     </td>
 
-                    {/* ==========================================
-                        SGST
-                        ========================================== */}
-
-                    <td className="text-end officer-tax-cell officer-sgst">
-                      {formatINR(
-                        item.sgst
-                      )}
+                    {/* SGST */}
+                    <td
+                      className="px-2 text-end font-monospace fw-bold text-nowrap"
+                      style={{ color: "#0284c7", fontSize: "14px" }}
+                    >
+                      {formatINR(item.sgst)}
                     </td>
 
-                    {/* ==========================================
-                        CESS
-                        ========================================== */}
-
-                    <td className="text-end officer-tax-cell officer-cess">
-                      {formatINR(
-                        item.cess
-                      )}
+                    {/* CESS */}
+                    <td
+                      className="px-2 text-end font-monospace fw-bold text-nowrap"
+                      style={{ color: "#fd7e14", fontSize: "14px" }}
+                    >
+                      {formatINR(item.cess)}
                     </td>
 
-                    {/* ==========================================
-                        OUTPUT TAX
-                        ========================================== */}
-
-                    <td className="text-end officer-tax-cell officer-output-tax">
-                      {formatINR(
-                        item.outputTax
-                      )}
+                    {/* OUTPUT TAX */}
+                    <td
+                      className="px-2 text-end font-monospace fw-bold text-nowrap"
+                      style={{ color: "#3730a3", fontSize: "14px" }}
+                    >
+                      {formatINR(item.outputTax)}
                     </td>
 
-                    {/* ==========================================
-                        ITC
-                        ========================================== */}
-
-                    <td className="text-end officer-tax-cell officer-itc">
-                      {formatINR(
-                        item.itcClaimed
-                      )}
+                    {/* ITC CLAIMED */}
+                    <td
+                      className="px-2 text-end font-monospace fw-bold text-nowrap"
+                      style={{ color: "#198754", fontSize: "14px" }}
+                    >
+                      {formatINR(item.itcClaimed)}
                     </td>
 
-                    {/* ==========================================
-                        CASH PAID
-                        ========================================== */}
-
-                    <td className="text-end officer-tax-cell officer-cash">
-                      {formatINR(
-                        item.cashPaid
-                      )}
+                    {/* CASH PAID */}
+                    <td
+                      className="px-2 text-end font-monospace fw-bold text-nowrap"
+                      style={{ color: "#059669", fontSize: "14px" }}
+                    >
+                      {formatINR(item.cashPaid)}
                     </td>
 
-                    {/* ==========================================
-                        RCM TAX
-                        ========================================== */}
-
-                    <td className="text-end officer-tax-cell officer-rcm">
-                      {formatINR(
-                        item.rcmTax
-                      )}
+                    {/* RCM TAX */}
+                    <td
+                      className="px-2 text-end font-monospace fw-bold text-nowrap"
+                      style={{ color: "#d63384", fontSize: "14px" }}
+                    >
+                      {formatINR(item.rcmTax)}
                     </td>
 
-                    {/* ==========================================
-                        ITC RATIO
-                        ========================================== */}
-
-                    <td className="text-end officer-ratio-cell officer-itc-ratio">
-                      {formatPercentage(
-                        item.itcRatio
-                      )}
+                    {/* ITC RATIO */}
+                    <td
+                      className="px-2 text-end font-monospace fw-bold text-nowrap"
+                      style={{ color: "#0891b2", fontSize: "14px" }}
+                    >
+                      {formatPercentage(item.itcRatio)}
                     </td>
 
-                    {/* ==========================================
-                        CASH RATIO
-                        ========================================== */}
-
-                    <td className="text-end officer-ratio-cell officer-cash-ratio">
-                      {formatPercentage(
-                        item.cashRatio
-                      )}
+                    {/* CASH RATIO */}
+                    <td
+                      className="px-2 text-end font-monospace fw-bold text-nowrap"
+                      style={{ color: "#475569", fontSize: "14px" }}
+                    >
+                      {formatPercentage(item.cashRatio)}
                     </td>
 
-                    {/* ==========================================
-                        DELAY
-                        ========================================== */}
-
-                    <td className="text-center">
-
+                    {/* DELAY */}
+                    <td className="text-center fw-bold" style={{ fontSize: "14px" }}>
                       <span
-                        className={`officer-delay-badge ${getDelayBadgeClass(
+                        className={`officer-delay-badge fw-bold ${getDelayBadgeClass(
                           item.filingDelayDays
-                        )
-                          }`}
+                        )}`}
+                        style={{ fontSize: "13px" }}
                       >
-
-                        {delayDays > 0 && (
-                          <span className="officer-delay-dot" />
-                        )}
-
-                        {delayDays}{" "}
-
-                        {delayDays === 1
-                          ? "day"
-                          : "days"}
-
+                        {delayDays > 0 && <span className="officer-delay-dot" />}
+                        {delayDays} {delayDays === 1 ? "day" : "days"}
                       </span>
-
                     </td>
 
-                    {/* ==========================================
-                        STATUS
-                        ========================================== */}
-
-                    <td className="text-center">
-
+                    {/* STATUS */}
+                    <td className="text-center fw-bold" style={{ fontSize: "14px" }}>
                       <span
-                        className={`officer-filing-badge ${getFilingBadgeClass(
+                        className={`officer-filing-badge fw-bold ${getFilingBadgeClass(
                           filingStatus
-                        )
-                          }`}
+                        )}`}
+                        style={{ fontSize: "13px" }}
                       >
                         {filingStatus}
                       </span>
-
                     </td>
-
                   </tr>
                 );
               })}
-
             </tbody>
-
           </table>
 
         </div>
@@ -2743,8 +2574,8 @@ const TaxBreakdown = ({ history = [], totals = {} }) => {
                     <div className="officer-ratio-value">
                       {safeOutputTax > 0
                         ? formatPercentage(
-                            safeCash / safeOutputTax
-                          )
+                          safeCash / safeOutputTax
+                        )
                         : "0.00%"}
                     </div>
 
@@ -2760,8 +2591,8 @@ const TaxBreakdown = ({ history = [], totals = {} }) => {
                     <div className="officer-ratio-value">
                       {safeOutputTax > 0
                         ? formatPercentage(
-                            safeItc / safeOutputTax
-                          )
+                          safeItc / safeOutputTax
+                        )
                         : "0.00%"}
                     </div>
 

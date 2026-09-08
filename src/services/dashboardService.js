@@ -242,10 +242,24 @@ export const refreshDefaulterCache = async ({ signal } = {}) => {
  * @param {AbortSignal} [options.signal] - AbortSignal for request cancellation
  * @returns {Promise<Array<Object>>} Array of monthly revenue summary objects
  */
-export const fetchMonthlyRevenueSummary = async ({ periods = [], signal } = {}) => {
+// Fetch Financial Year list for the dropdown: GET /fin-year
+export const fetchFinancialYears = async (signal) => {
+  try {
+    const response = await dashboardClient.get("/gst/return-3b/fin-year", { signal });
+    // Returns array of strings e.g. ["2025-26", "2024-25"]
+    return response.data || [];
+  } catch (err) {
+    if (axios.isCancel(err)) return null;
+    console.error("Failed to fetch financial years:", err);
+    return [];
+  }
+};
+
+// Fetch Monthly Summary filtered by string Financial Year
+export const fetchMonthlyRevenueSummary = async (finYear, signal) => {
   try {
     const params = {
-      ...(periods.length > 0 && { periods: periods.join(",") }),
+      ...(finYear && finYear !== "ALL" && { finYear }), // Sends ?finYear=2025-26
     };
 
     const response = await dashboardClient.get("/gst/return-3b/monthly-summary", {
