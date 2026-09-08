@@ -62,14 +62,13 @@ pipeline {
 
                     docker run -d \
                       --name ${IMAGE_NAME} \
-                      -p 8085:80 \
+                      -p 8088:80 \
                       --restart unless-stopped \
                       ${IMAGE_NAME}:latest
                 """
             }
         }
     }
-
     post {
         always {
             echo 'Cleaning workspace...'
