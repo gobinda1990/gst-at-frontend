@@ -258,7 +258,7 @@ export const fetchPrediction = async (
 
     const response =
       await dashboardClient.post(
-        "/gst/analytics/return-3b/predict",
+        "/gst/return-3b/predict",
         {
           gstin: cleanGstin,
           forecastPeriods
@@ -438,7 +438,7 @@ export const fetchGstinAnalysis = async (
 
     const response =
       await dashboardClient.get(
-        `/gst/analytics/return-3b/${cleanGstin}`,
+        `/gst/return-3b/analytics/${cleanGstin}`,
         { signal }
       );
 
