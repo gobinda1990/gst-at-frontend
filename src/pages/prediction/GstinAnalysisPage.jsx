@@ -28,6 +28,8 @@ import {
   FaUserTie,
   FaChevronRight,
   FaExchangeAlt,
+  FaGlobeAmericas,
+  FaCoins,
 } from "react-icons/fa";
 
 import {
@@ -1097,7 +1099,7 @@ const GstinAnalysisPage = ({
 
                 <div className="min-width-0 flex-grow-1">
                   <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.7rem", letterSpacing: "0.5px" }}>
-                    Lifetime Taxable Value
+                    Taxable Value
                   </div>
                   <div className="fw-bold text-dark fs-4 lh-1 mb-1 font-monospace">
                     {formatINRCompact(analysis.lifetimeTaxableValue)}
@@ -1125,7 +1127,7 @@ const GstinAnalysisPage = ({
 
                 <div className="min-width-0 flex-grow-1">
                   <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.7rem", letterSpacing: "0.5px" }}>
-                    Lifetime Cash Paid
+                    Cash Paid
                   </div>
                   <div className="fw-bold text-dark fs-4 lh-1 mb-1 font-monospace">
                     {formatINRCompact(analysis.lifetimeCashPaid)}
@@ -2021,71 +2023,167 @@ const RatioBootstrapRow = ({
 };
 
 /* ============================================================
- * TAX COMPONENT CARDS
+ * TAX COMPONENT CARDS (HIGH-CONTRAST & DYNAMIC HEX STYLING)
  * ============================================================ */
 
-const TaxComponentCards = ({
-  totals,
-}) => {
-  const components = [
+const TaxComponentCards = ({ totals = {}, formatINR, formatINRCompact }) => {
+  // Configured with exact requested hex values and dynamic background tints
+  const taxConfig = [
     {
       label: "IGST",
-      value: totals.igst,
+      value: totals.igst || 0,
+      color: "#6f42c1",
+      bgTint: "#f3e8ff",
+      borderColor: "#d8b4fe",
+      icon: <FaGlobeAmericas size={14} />,
     },
     {
       label: "CGST",
-      value: totals.cgst,
+      value: totals.cgst || 0,
+      color: "#0d9488",
+      bgTint: "#ccfbf1",
+      borderColor: "#99f6e4",
+      icon: <FaBuilding size={14} />,
     },
     {
       label: "SGST",
-      value: totals.sgst,
+      value: totals.sgst || 0,
+      color: "#0284c7",
+      bgTint: "#e0f2fe",
+      borderColor: "#bae6fd",
+      icon: <FaLandmark size={14} />,
     },
     {
       label: "CESS",
-      value: totals.cess,
+      value: totals.cess || 0,
+      color: "#fd7e14",
+      bgTint: "#ffedd5",
+      borderColor: "#fed7aa",
+      icon: <FaCoins size={14} />,
     },
   ];
 
+  // Calculate total combined tax to compute share percentages
+  const grandTotal = taxConfig.reduce(
+    (acc, curr) => acc + (Number(curr.value) || 0),
+    0
+  );
+
   return (
     <div className="row g-2 g-sm-3 mb-3">
+      {taxConfig.map((item) => {
+        const numericVal = Number(item.value) || 0;
+        const sharePercent =
+          grandTotal > 0 ? (numericVal / grandTotal) * 100 : 0;
 
-      {components.map(
-        (component) => (
-          <div
-            className="col-6 col-lg-3"
-            key={
-              component.label
-            }
-          >
+        const formattedCompact =
+          typeof formatINRCompact === "function"
+            ? formatINRCompact(numericVal)
+            : `₹${numericVal.toLocaleString("en-IN")}`;
 
-            <div className="card border-0 shadow-sm rounded-3 h-100">
+        const formattedFull =
+          typeof formatINR === "function"
+            ? formatINR(numericVal)
+            : `₹${numericVal.toLocaleString("en-IN")}`;
 
-              <div className="card-body p-3">
+        return (
+          <div className="col-6 col-lg-3" key={item.label}>
+            <div
+              className="card border-0 shadow-sm rounded-4 h-100 position-relative overflow-hidden"
+              style={{
+                backgroundColor: item.bgTint,
+                border: `1px solid ${item.borderColor}`,
+              }}
+            >
+              <div className="card-body p-3.5 d-flex flex-column justify-content-between">
 
-                <div className="officer-label">
-                  {component.label}
+                {/* Header: Label & Icon Badge */}
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <span
+                    className="fw-bold text-uppercase"
+                    style={{
+                      fontSize: "0.72rem",
+                      letterSpacing: "0.6px",
+                      color: "#374151",
+                    }}
+                  >
+                    {item.label}
+                  </span>
+
+                  {/* Icon Badge using specific hex color */}
+                  <div
+                    className="rounded-3 d-flex align-items-center justify-content-center shadow-sm text-white"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      backgroundColor: item.color,
+                    }}
+                  >
+                    {item.icon}
+                  </div>
                 </div>
 
-                <div className="fw-bold font-monospace text-dark mt-1" style={{ fontSize: "1rem" }}>
-                  {formatINRCompact(
-                    component.value
-                  )}
+                {/* Body: Main Value Display */}
+                <div className="my-1">
+                  <div
+                    className="fw-bolder font-monospace lh-1"
+                    style={{ fontSize: "1.35rem", color: "#111827" }}
+                  >
+                    {formattedCompact}
+                  </div>
+                  <small
+                    className="fw-bold d-block text-truncate mt-1.5"
+                    style={{ fontSize: "0.75rem", color: "#4b5563" }}
+                    title={formattedFull}
+                  >
+                    {formattedFull}
+                  </small>
                 </div>
 
-                <small className="text-muted">
-                  {formatINR(
-                    component.value
-                  )}
-                </small>
+                {/* Footer: Share Bar & Percentage */}
+                <div className="mt-2">
+                  <div className="d-flex justify-content-between align-items-center mb-1">
+                    <span
+                      className="fw-semibold"
+                      style={{ fontSize: "0.68rem", color: "#4b5563" }}
+                    >
+                      Share
+                    </span>
+                    <span
+                      className="fw-bold font-monospace"
+                      style={{ fontSize: "0.72rem", color: "#111827" }}
+                    >
+                      {sharePercent.toFixed(1)}%
+                    </span>
+                  </div>
+
+                  {/* Inline Progress Track */}
+                  <div
+                    className="progress rounded-pill"
+                    style={{
+                      height: "5px",
+                      backgroundColor: "rgba(255, 255, 255, 0.7)",
+                    }}
+                  >
+                    <div
+                      className="progress-bar rounded-pill transition-all"
+                      role="progressbar"
+                      style={{
+                        width: `${Math.min(Math.max(sharePercent, 0), 100)}%`,
+                        backgroundColor: item.color,
+                      }}
+                      aria-valuenow={sharePercent}
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    />
+                  </div>
+                </div>
 
               </div>
-
             </div>
-
           </div>
-        )
-      )}
-
+        );
+      })}
     </div>
   );
 };
@@ -2468,256 +2566,354 @@ const TaxBreakdown = ({ history = [], totals = {} }) => {
       <div className="row g-3 mb-3">
 
         {/* =========================================================
-         * GST TAX COMPOSITION
-         * ========================================================= */}
-
+ * GST TAX COMPOSITION PANEL (MATCHED HEX COLOR THEME)
+ * ========================================================= */}
         <div className="col-12 col-xl-6">
+          <div className="card border shadow-sm rounded-3 h-100 bg-white">
 
-          <div className="card officer-tax-card h-100">
+            {/* Panel Header */}
+            <PanelHeader
+              icon={<FaBalanceScale style={{ color: "#0284c7" }} />}
+              title="GST Tax Composition"
+              subtitle="Aggregated tax components"
+            />
 
-            <div className="card-body p-0">
+            <div className="card-body p-3 d-flex flex-column justify-content-between gap-3">
 
-              <PanelHeader
-                icon={<FaBalanceScale />}
-                title="GST Tax Composition"
-                subtitle="Aggregated tax components"
-              />
+              {/* DYNAMIC TAX BREAKDOWN ROWS WITH EXACT HEX COLORS */}
+              {[
+                {
+                  label: "IGST",
+                  value: totals?.igst || 0,
+                  color: "#6f42c1",
+                  bgTint: "#f3e8ff",
+                  borderColor: "#d8b4fe",
+                },
+                {
+                  label: "CGST",
+                  value: totals?.cgst || 0,
+                  color: "#0d9488",
+                  bgTint: "#ccfbf1",
+                  borderColor: "#99f6e4",
+                },
+                {
+                  label: "SGST",
+                  value: totals?.sgst || 0,
+                  color: "#0284c7",
+                  bgTint: "#e0f2fe",
+                  borderColor: "#bae6fd",
+                },
+                {
+                  label: "CESS",
+                  value: totals?.cess || 0,
+                  color: "#fd7e14",
+                  bgTint: "#ffedd5",
+                  borderColor: "#fed7aa",
+                },
+              ].map((item) => {
+                const numericVal = Number(item.value) || 0;
+                const safeTotal = Number(safeOutputTax) || 0;
+                const sharePercent = safeTotal > 0 ? (numericVal / safeTotal) * 100 : 0;
+                const progressWidth = Math.min(Math.max(sharePercent, 0), 100).toFixed(1);
 
-              <div className="officer-tax-content">
+                return (
+                  <div
+                    key={item.label}
+                    className="p-3 rounded-3 border transition-all"
+                    style={{
+                      backgroundColor: item.bgTint,
+                      borderColor: item.borderColor,
+                    }}
+                  >
+                    {/* Header: Label, Share, and Formatted Value */}
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <div className="d-flex align-items-center gap-2">
 
-                <TaxBreakdownRow
-                  label="IGST"
-                  value={totals.igst}
-                  total={safeOutputTax}
-                  className="tax-row-igst"
-                />
+                        {/* Badge with exact theme background */}
+                        <span
+                          className="badge rounded-1 text-white fw-bold shadow-sm"
+                          style={{
+                            backgroundColor: item.color,
+                            fontSize: "0.75rem",
+                            padding: "5px 9px",
+                          }}
+                        >
+                          {item.label}
+                        </span>
 
-                <TaxBreakdownRow
-                  label="CGST"
-                  value={totals.cgst}
-                  total={safeOutputTax}
-                  className="tax-row-cgst"
-                />
+                        {/* Share Percentage */}
+                        <span
+                          className="fw-bold font-monospace"
+                          style={{ fontSize: "0.8rem", color: "#374151" }}
+                        >
+                          {sharePercent.toFixed(1)}%
+                        </span>
+                      </div>
 
-                <TaxBreakdownRow
-                  label="SGST"
-                  value={totals.sgst}
-                  total={safeOutputTax}
-                  className="tax-row-sgst"
-                />
+                      {/* Primary Value Display */}
+                      <div className="text-end">
+                        <span
+                          className="fw-bold font-monospace fs-6"
+                          style={{ color: "#111827" }}
+                        >
+                          {formatINR(numericVal)}
+                        </span>
+                      </div>
+                    </div>
 
-                <TaxBreakdownRow
-                  label="CESS"
-                  value={totals.cess}
-                  total={safeOutputTax}
-                  className="tax-row-cess"
-                />
-
-                {/* Total Output Tax */}
-
-                <div className="officer-tax-total">
-
-                  <div className="officer-tax-total-label">
-                    <span className="officer-tax-total-indicator" />
-                    <span>Total Output Tax</span>
+                    {/* Custom Progress Bar matching component hex */}
+                    <div
+                      className="progress rounded-pill"
+                      style={{
+                        height: "6px",
+                        backgroundColor: "rgba(255, 255, 255, 0.7)",
+                      }}
+                    >
+                      <div
+                        className="progress-bar rounded-pill"
+                        role="progressbar"
+                        style={{
+                          width: `${progressWidth}%`,
+                          backgroundColor: item.color,
+                        }}
+                        aria-valuenow={progressWidth}
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      />
+                    </div>
                   </div>
+                );
+              })}
 
-                  <strong className="officer-tax-total-value">
-                    {formatINR(safeOutputTax)}
-                  </strong>
-
+              {/* TOTAL SUMMARY BLOCK */}
+              <div
+                className="p-3 rounded-3 text-white d-flex align-items-center justify-content-between shadow-sm"
+                style={{ backgroundColor: "#1e293b" }}
+              >
+                <div className="d-flex align-items-center gap-2">
+                  <span
+                    className="rounded-circle d-inline-block"
+                    style={{
+                      width: "8px",
+                      height: "8px",
+                      backgroundColor: "#10b981",
+                    }}
+                  />
+                  <span
+                    className="text-uppercase fw-bold"
+                    style={{
+                      fontSize: "0.72rem",
+                      letterSpacing: "0.5px",
+                      color: "#94a3b8",
+                    }}
+                  >
+                    Total Output Tax
+                  </span>
                 </div>
 
+                <strong
+                  className="font-monospace fs-5 fw-bold"
+                  style={{ color: "#f8fafc" }}
+                >
+                  {formatINR(safeOutputTax || 0)}
+                </strong>
               </div>
 
             </div>
-
           </div>
-
         </div>
 
 
         {/* =========================================================
-         * PAYMENT & ITC
-         * ========================================================= */}
-
+ * PAYMENT & ITC PANEL (MODERN UI)
+ * ========================================================= */}
         <div className="col-12 col-xl-6">
+          <div className="card border-0 shadow-sm rounded-4 h-100 bg-white overflow-hidden">
 
-          <div className="card officer-payment-card h-100">
+            {/* Panel Header */}
+            <PanelHeader
+              icon={<FaMoneyBillWave className="text-primary" />}
+              title="Payment & ITC"
+              subtitle="Tax utilization indicators"
+            />
 
-            <div className="card-body p-0">
+            <div className="card-body p-3.5 d-flex flex-column justify-content-between gap-3">
 
-              <PanelHeader
-                icon={<FaMoneyBillWave />}
-                title="Payment & ITC"
-                subtitle="Tax utilization indicators"
-              />
+              {/* 1. MAIN PAYMENT & CLAIM METRICS */}
+              <div className="d-flex flex-column gap-2.5">
+                {[
+                  {
+                    label: "ITC Claimed",
+                    value: safeItc,
+                    icon: <FaFileInvoiceDollar size={15} />,
+                    badgeBg: "bg-primary text-white",
+                    borderColor: "#bfdbfe",
+                    bgColor: "#f0f9ff",
+                    valueColor: "text-primary",
+                  },
+                  {
+                    label: "Cash Paid",
+                    value: safeCash,
+                    icon: <FaMoneyBillWave size={15} />,
+                    badgeBg: "bg-success text-white",
+                    borderColor: "#bbf7d0",
+                    bgColor: "#f0fdf4",
+                    valueColor: "text-success",
+                  },
+                  {
+                    label: "RCM Tax",
+                    value: safeRcm,
+                    icon: <FaExchangeAlt size={15} />,
+                    badgeBg: "bg-warning text-dark",
+                    borderColor: "#fde68a",
+                    bgColor: "#fffbeb",
+                    valueColor: "text-dark",
+                  },
+                ].map((item) => {
+                  const numericVal = Number(item.value) || 0;
 
-              <div className="officer-payment-content">
+                  return (
+                    <div
+                      key={item.label}
+                      className="p-3 rounded-3 border d-flex align-items-center justify-content-between transition-all"
+                      style={{ backgroundColor: item.bgColor, borderColor: item.borderColor }}
+                    >
+                      <div className="d-flex align-items-center gap-3">
+                        <div
+                          className={`rounded-3 d-flex align-items-center justify-content-center shadow-xs ${item.badgeBg}`}
+                          style={{ width: 36, height: 36 }}
+                        >
+                          {item.icon}
+                        </div>
+                        <span
+                          className="text-uppercase fw-extrabold text-secondary"
+                          style={{ fontSize: "0.725rem", letterSpacing: "0.6px" }}
+                        >
+                          {item.label}
+                        </span>
+                      </div>
 
-                {/* ITC */}
-
-                <div className="officer-payment-item officer-itc-item">
-
-                  <div className="officer-payment-icon">
-                    <FaFileInvoiceDollar size={14} />
-                  </div>
-
-                  <div className="officer-payment-info">
-
-                    <div className="officer-payment-label">
-                      ITC Claimed
+                      <strong className={`fw-bold font-monospace fs-5 ${item.valueColor}`}>
+                        {formatINR(numericVal)}
+                      </strong>
                     </div>
-
-                    <div className="officer-payment-value">
-                      {formatINR(safeItc)}
-                    </div>
-
-                  </div>
-
-                </div>
-
-
-                {/* Cash */}
-
-                <div className="officer-payment-item officer-cash-item">
-
-                  <div className="officer-payment-icon">
-                    <FaMoneyBillWave size={14} />
-                  </div>
-
-                  <div className="officer-payment-info">
-
-                    <div className="officer-payment-label">
-                      Cash Paid
-                    </div>
-
-                    <div className="officer-payment-value">
-                      {formatINR(safeCash)}
-                    </div>
-
-                  </div>
-
-                </div>
-
-
-                {/* RCM */}
-
-                <div className="officer-payment-item officer-rcm-item">
-
-                  <div className="officer-payment-icon">
-                    <FaExchangeAlt size={14} />
-                  </div>
-
-                  <div className="officer-payment-info">
-
-                    <div className="officer-payment-label">
-                      RCM Tax
-                    </div>
-
-                    <div className="officer-payment-value">
-                      {formatINR(safeRcm)}
-                    </div>
-
-                  </div>
-
-                </div>
-
-
-                {/* Ratio indicators */}
-
-                <div className="officer-ratio-grid">
-
-                  <div className="officer-ratio-box officer-cash-ratio-box">
-
-                    <div className="officer-ratio-label">
-                      Cash / Output Tax
-                    </div>
-
-                    <div className="officer-ratio-value">
-                      {safeOutputTax > 0
-                        ? formatPercentage(
-                          safeCash / safeOutputTax
-                        )
-                        : "0.00%"}
-                    </div>
-
-                  </div>
-
-
-                  <div className="officer-ratio-box officer-itc-ratio-box">
-
-                    <div className="officer-ratio-label">
-                      ITC / Output Tax
-                    </div>
-
-                    <div className="officer-ratio-value">
-                      {safeOutputTax > 0
-                        ? formatPercentage(
-                          safeItc / safeOutputTax
-                        )
-                        : "0.00%"}
-                    </div>
-
-                  </div>
-
-                </div>
-
+                  );
+                })}
               </div>
 
+              {/* 2. RATIO UTILIZATION METRICS WITH HIGH-CONTRAST PROGRESS BARS */}
+              <div className="row g-2.5">
+                {[
+                  {
+                    label: "Cash / Output Tax",
+                    value: safeCash,
+                    progressBg: "bg-success",
+                    cardBg: "#f0fdf4",
+                    borderColor: "#bbf7d0",
+                    badgeText: "bg-success-subtle text-success-emphasis",
+                  },
+                  {
+                    label: "ITC / Output Tax",
+                    value: safeItc,
+                    progressBg: "bg-primary",
+                    cardBg: "#f0f9ff",
+                    borderColor: "#bfdbfe",
+                    badgeText: "bg-primary-subtle text-primary-emphasis",
+                  },
+                ].map((ratio) => {
+                  const outputTax = Number(safeOutputTax) || 0;
+                  const ratioValue = Number(ratio.value) || 0;
+                  const calculatedRatio = outputTax > 0 ? ratioValue / outputTax : 0;
+                  const percentFormatted =
+                    outputTax > 0
+                      ? typeof formatPercentage === "function"
+                        ? formatPercentage(calculatedRatio)
+                        : `${(calculatedRatio * 100).toFixed(2)}%`
+                      : "0.00%";
+
+                  const progressWidth = Math.min(Math.max(calculatedRatio * 100, 0), 100).toFixed(1);
+
+                  return (
+                    <div className="col-6" key={ratio.label}>
+                      <div
+                        className="p-3 rounded-3 border h-100 d-flex flex-column justify-content-between"
+                        style={{ backgroundColor: ratio.cardBg, borderColor: ratio.borderColor }}
+                      >
+                        <div>
+                          <div className="d-flex align-items-center justify-content-between mb-1.5">
+                            <span
+                              className="text-uppercase fw-bold text-dark text-truncate"
+                              style={{ fontSize: "0.65rem", letterSpacing: "0.5px" }}
+                            >
+                              {ratio.label}
+                            </span>
+                          </div>
+                          <div className="fw-bolder text-dark font-monospace fs-4 mb-2">
+                            {percentFormatted}
+                          </div>
+                        </div>
+
+                        {/* Micro Progress Bar Container */}
+                        <div>
+                          <div className="d-flex justify-content-between align-items-center mb-1">
+                            <span className="text-muted fw-semibold" style={{ fontSize: "0.625rem" }}>
+                              Utilization
+                            </span>
+                            <span className="fw-bold text-dark font-monospace" style={{ fontSize: "0.625rem" }}>
+                              {progressWidth}%
+                            </span>
+                          </div>
+                          <div className="progress rounded-pill bg-white border" style={{ height: "7px", borderColor: ratio.borderColor }}>
+                            <div
+                              className={`progress-bar rounded-pill ${ratio.progressBg}`}
+                              role="progressbar"
+                              style={{ width: `${progressWidth}%` }}
+                              aria-valuenow={progressWidth}
+                              aria-valuemin="0"
+                              aria-valuemax="100"
+                            />
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-
           </div>
-
         </div>
-
       </div>
-
-
       {/* ============================================================
        * MONTHLY TAX MOVEMENT
        * ============================================================ */}
 
       <div className="card officer-monthly-card">
-
         <div className="card-body p-0">
-
           <PanelHeader
             icon={<FaChartLine />}
             title="Monthly Tax Movement"
             subtitle="Output tax, ITC claimed and cash payment"
           />
-
           {history.length === 0 ? (
-
             <div className="officer-history-empty">
               <EmptyState message="No monthly tax movement available." />
             </div>
-
           ) : (
-
             <>
-
               {/* Chart */}
-
               <div className="officer-monthly-chart-wrapper">
-
                 <div className="officer-monthly-chart">
-
                   {history.map((item, index) => {
-
                     const outputTax = safeNumber(
                       item.outputTax
                     );
-
                     const itcClaimed = safeNumber(
                       item.itcClaimed
                     );
-
                     const cashPaid = safeNumber(
                       item.cashPaid
                     );
-
                     const maxValue = Math.max(
                       ...history.map((row) =>
                         Math.max(
@@ -3303,176 +3499,196 @@ const RiskGauge = ({
 };
 
 /* ============================================================
- * RISK SECTION
+ * MODERN RISK SECTION (HIGH-CONTRAST TEXT & VISUAL CLARITY)
  * ============================================================ */
 
-const RiskSection = ({
-  analysis,
-  alerts,
-  delayedReturns,
-  totalDelayDays,
-}) => {
-  const riskClass =
-    getRiskClass(
-      analysis.riskCategory
-    );
+const RiskSection = ({ analysis, alerts, delayedReturns }) => {
+  const riskClass = getRiskClass(analysis.riskCategory);
+  const returnsCount = Array.isArray(analysis.last6MonthsHistory)
+    ? analysis.last6MonthsHistory.length
+    : 0;
 
-  const returnsCount =
-    Array.isArray(
-      analysis.last6MonthsHistory
-    )
-      ? analysis.last6MonthsHistory
-        .length
-      : 0;
+  // High-Contrast Theme & Color Configuration
+  const getThemeConfig = (type) => {
+    switch (type) {
+      case "critical":
+      case "high":
+        return {
+          badgeBg: "#fde8e8",
+          badgeText: "#9b1c1c",
+          badgeBorder: "#f8b4b4",
+          border: "border-danger",
+          text: "text-danger",
+          glow: "rgba(224, 36, 36, 0.08)",
+        };
+      case "medium":
+        return {
+          badgeBg: "#fef3c7",
+          badgeText: "#92400e",
+          badgeBorder: "#fde68a",
+          border: "border-warning",
+          text: "text-warning-emphasis",
+          glow: "rgba(217, 119, 6, 0.08)",
+        };
+      default:
+        return {
+          badgeBg: "#def7ec",
+          badgeText: "#03543f",
+          badgeBorder: "#84e1bc",
+          border: "border-success",
+          text: "text-success",
+          glow: "rgba(14, 159, 110, 0.08)",
+        };
+    }
+  };
+
+  const riskTheme = getThemeConfig(riskClass);
+  const delayTheme =
+    delayedReturns > 0 ? getThemeConfig("high") : getThemeConfig("low");
 
   return (
     <div>
-
-      <div className="row g-3 mb-3">
-
-        <div className="col-12 col-lg-6">
-
+      <div className="row g-3 mb-4">
+        {/* Risk Assessment Gauge Card */}
+        <div className="col-12 col-lg-7">
           <div
-            className={`card border-0 shadow-sm rounded-3 h-100 border-start border-4 ${riskClass ===
-              "critical" ||
-              riskClass ===
-              "high"
-              ? "border-danger"
-              : riskClass ===
-                "medium"
-                ? "border-warning"
-                : "border-success"
-              }`}
+            className={`card border-0 shadow-sm rounded-4 h-100 border-start border-4 ${riskTheme.border} position-relative overflow-hidden`}
+            style={{
+              background: `linear-gradient(135deg, #ffffff 55%, ${riskTheme.glow} 100%)`,
+            }}
           >
-
-            <div className="card-body p-3">
-
+            <div className="card-body p-3.5 d-flex align-items-center justify-content-between">
               <div className="d-flex align-items-center gap-3">
-
                 <RiskGauge
-                  score={
-                    analysis.currentRiskScore
-                  }
-                  category={
-                    analysis.riskCategory
-                  }
+                  score={analysis.currentRiskScore}
+                  category={analysis.riskCategory}
                 />
 
-                <div>
+                <div className="d-flex flex-column justify-content-center">
+                  {/* High Contrast Header Label */}
+                  <span
+                    className="fw-bold text-uppercase mb-1"
+                    style={{
+                      fontSize: "0.7rem",
+                      letterSpacing: "0.6px",
+                      color: "#4b5563",
+                    }}
+                  >
+                    Risk Level Status
+                  </span>
 
-                  <div className="text-muted small">
-                    Current Risk Category
+                  {/* High Contrast Status Line */}
+                  <div className="d-flex align-items-center gap-2 mb-1">
+                    <strong
+                      className={`fs-3 fw-bolder lh-1 ${riskTheme.text}`}
+                      style={{ letterSpacing: "-0.3px" }}
+                    >
+                      {displayText(analysis.riskCategory, "LOW")}
+                    </strong>
+                    <span
+                      className="badge rounded-pill fw-bold border px-2.5 py-1"
+                      style={{
+                        fontSize: "0.65rem",
+                        backgroundColor: riskTheme.badgeBg,
+                        color: riskTheme.badgeText,
+                        borderColor: riskTheme.badgeBorder,
+                      }}
+                    >
+                      Active
+                    </span>
                   </div>
 
-                  <strong
-                    className={`d-block fs-5 ${riskClass ===
-                      "critical" ||
-                      riskClass ===
-                      "high"
-                      ? "text-danger"
-                      : riskClass ===
-                        "medium"
-                        ? "text-warning-emphasis"
-                        : "text-success"
-                      }`}
+                  {/* Dark Clear Numeric Score */}
+                  <div
+                    className="d-flex align-items-center gap-1.5"
+                    style={{ fontSize: "0.82rem" }}
                   >
-                    {displayText(
-                      analysis.riskCategory,
-                      "LOW"
-                    )}
-                  </strong>
-
-                  <small className="text-muted">
-                    Score{" "}
-                    {safeNumber(
-                      analysis.currentRiskScore
-                    ).toFixed(2)}{" "}
-                    of 10.00
-                  </small>
-
+                    <span className="fw-bold" style={{ color: "#111827" }}>
+                      {safeNumber(analysis.currentRiskScore).toFixed(2)}
+                    </span>
+                    <span className="fw-medium" style={{ color: "#6b7280" }}>
+                      / 10.00 Overall Score
+                    </span>
+                  </div>
                 </div>
-
               </div>
-
             </div>
-
           </div>
-
         </div>
 
-        <div className="col-6 col-lg-3">
-
-          <div className="card border-0 shadow-sm rounded-3 h-100">
-
-            <div className="card-body p-3">
-
-              <div className="text-muted small">
-                Delayed Returns
+        {/* Delayed Returns Metric Card */}
+        <div className="col-12 col-lg-5">
+          <div
+            className="card border-0 shadow-sm rounded-4 h-100 position-relative overflow-hidden"
+            style={{
+              background: `linear-gradient(135deg, #ffffff 55%, ${delayTheme.glow} 100%)`,
+            }}
+          >
+            <div className="card-body p-3.5 d-flex flex-column justify-content-between">
+              {/* Card Header & Status Badge */}
+              <div className="d-flex align-items-center justify-content-between">
+                <span
+                  className="fw-bold text-uppercase"
+                  style={{
+                    fontSize: "0.7rem",
+                    letterSpacing: "0.6px",
+                    color: "#4b5563",
+                  }}
+                >
+                  Compliance Window
+                </span>
+                <span
+                  className="badge rounded-pill fw-bold border px-2.5 py-1"
+                  style={{
+                    fontSize: "0.65rem",
+                    backgroundColor: delayTheme.badgeBg,
+                    color: delayTheme.badgeText,
+                    borderColor: delayTheme.badgeBorder,
+                  }}
+                >
+                  {delayedReturns > 0 ? "Action Needed" : "On Track"}
+                </span>
               </div>
 
-              <strong
-                className={`d-block fs-3 font-monospace mt-1 ${delayedReturns >
-                  0
-                  ? "text-danger"
-                  : "text-success"
-                  }`}
+              {/* Main Metric High-Contrast View */}
+              <div className="d-flex align-items-baseline gap-2 mt-2">
+                <strong
+                  className={`display-6 font-monospace fw-bolder lh-1 ${delayTheme.text}`}
+                >
+                  {delayedReturns}
+                </strong>
+                <span
+                  className="fw-bold"
+                  style={{ fontSize: "0.88rem", color: "#1f2937" }}
+                >
+                  Delayed Returns
+                </span>
+              </div>
+
+              {/* Table Baseline Summary */}
+              <div
+                className="pt-2 mt-2 border-top d-flex align-items-center justify-content-between"
+                style={{ fontSize: "0.78rem", borderColor: "#e5e7eb" }}
               >
-                {
-                  delayedReturns
-                }
-              </strong>
-
-              <small className="text-muted">
-                out of{" "}
-                {
-                  returnsCount
-                }{" "}
-                analysed
-              </small>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        <div className="col-6 col-lg-3">
-
-          <div className="card border-0 shadow-sm rounded-3 h-100">
-
-            <div className="card-body p-3">
-
-              <div className="text-muted small">
-                Total Delay
+                <span className="fw-medium" style={{ color: "#6b7280" }}>
+                  Analysis Window
+                </span>
+                <span
+                  className="fw-bold font-monospace"
+                  style={{ color: "#111827" }}
+                >
+                  {returnsCount} Months
+                </span>
               </div>
-
-              <strong className="d-block fs-3 font-monospace mt-1 text-warning-emphasis">
-                {
-                  totalDelayDays
-                }
-              </strong>
-
-              <small className="text-muted">
-                filing delay days
-              </small>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
 
-      <AlertsPanel
-        alerts={alerts}
-        onViewAll={() => { }}
-      />
-
+      <AlertsPanel alerts={alerts} onViewAll={() => { }} />
     </div>
   );
 };
-
 /* ============================================================
  * PREDICTION SECTION
  * ============================================================ */
