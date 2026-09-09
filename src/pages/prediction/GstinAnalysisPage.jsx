@@ -641,63 +641,55 @@ const GstinAnalysisPage = ({
 
   const searchSection = (
     <header
-      className="officer-topbar border-bottom mb-4 sticky-top shadow"
-      style={{ zIndex: 1000 }}
+      className="officer-topbar border-bottom sticky-top bg-white bg-opacity-95 backdrop-blur shadow-sm"
+      style={{
+        zIndex: 1000,
+        backdropFilter: "blur(8px)",
+        borderColor: "rgba(226, 232, 240, 0.8)",
+      }}
     >
-      <div className="container-fluid px-2 px-sm-3 px-lg-4 py-2 py-sm-3">
-
+      <div className="container-fluid px-3 px-lg-4 py-2.5 py-md-3">
         <div className="d-flex flex-column flex-xl-row justify-content-between align-items-stretch align-items-xl-center gap-3">
 
-          {/* PAGE TITLE */}
-
-          <div className="d-flex align-items-center gap-2 flex-shrink-0">
-
+          {/* PAGE BRANDING & TITLE */}
+          <div className="d-flex align-items-center gap-3 flex-shrink-0">
             <div
-              className="officer-logo-box rounded-2 d-flex align-items-center justify-content-center shadow-sm"
+              className="officer-logo-box rounded-3 d-flex align-items-center justify-content-center text-primary shadow-xs"
               style={{
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
+                backgroundColor: "rgba(13, 110, 253, 0.08)",
+                border: "1px solid rgba(13, 110, 253, 0.15)",
               }}
             >
-              <FaIdBadge size={18} />
+              <FaIdBadge size={20} />
             </div>
-
-            <div
-              className="min-width-0"
-              style={{ minWidth: 0 }}
-            >
-              <div className="officer-subtitle fw-medium text-truncate" style={{ fontSize: "0.72rem", }}>
-                <h5 className="fw-bold text-dark mb-0 text-truncate">GSTR-3B Return Compliance &amp; AI Risk Assessment</h5>
-              </div>
+            <div className="min-width-0">
+              <h5 className="fw-bold text-dark mb-0 text-truncate mt-1" style={{ fontSize: "1.05rem", letterSpacing: "-0.2px" }}>
+                GSTR-3B Return Compliance &amp; AI Risk Assessment
+              </h5>
             </div>
-
           </div>
 
-          {/* HEADER CONTROLS */}
-
-          <div className="d-flex flex-wrap align-items-center justify-content-xl-end gap-2">
-
+          {/* CONTROLS & ACTIONS */}
+          <div className="d-flex flex-wrap align-items-center justify-content-xl-end gap-2.5 flex-grow-1">
             <form
               onSubmit={handleAnalyze}
               noValidate
-              className="d-flex align-items-center"
+              className="d-flex align-items-center flex-grow-1"
+              style={{ maxWidth: "520px" }}
             >
               <div
-                className={`input-group input-group-sm ${inputError
-                  ? "border border-danger rounded-2"
-                  : ""
+                className={`input-group rounded-3 transition-all flex-grow-1 ${inputError
+                  ? "border border-danger shadow-sm"
+                  : "border shadow-xs"
                   }`}
                 style={{
-                  width:
-                    "min(360px, 100%)",
+                  backgroundColor: "#f8fafc",
                 }}
               >
-
-                <span className="input-group-text bg-light border-end-0 py-1 px-2">
-                  <FaSearch
-                    size={12}
-                    className="text-secondary"
-                  />
+                <span className="input-group-text bg-transparent border-0 py-1.5 ps-3 pe-2">
+                  <FaSearch size={14} className="text-secondary" />
                 </span>
 
                 <input
@@ -705,160 +697,105 @@ const GstinAnalysisPage = ({
                   type="text"
                   value={gstinInput}
                   onChange={handleGstinChange}
-                  placeholder="Enter 15-character GSTIN"
+                  placeholder="Enter 15-character GSTIN (e.g., 27AAAAA0000A1Z5)"
                   maxLength={GSTIN_LENGTH}
                   autoComplete="off"
                   spellCheck={false}
                   aria-label="GSTIN"
-                  aria-invalid={Boolean(
-                    inputError
-                  )}
-                  className="form-control border-start-0 border-end-0 py-1 px-2 shadow-none"
+                  aria-invalid={Boolean(inputError)}
+                  className="form-control bg-transparent border-0 py-1.5 px-2 shadow-none"
                   style={{
-                    height: "32px",
-                    fontSize: "0.85rem",
-                    fontFamily:
-                      "monospace",
-                    fontWeight: 700,
-                    textTransform:
-                      "uppercase",
+                    height: "38px",
+                    fontSize: "0.88rem",
+                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                    fontWeight: 600,
+                    letterSpacing: "0.6px",
+                    textTransform: "uppercase",
                   }}
                 />
 
-                <span className="input-group-text bg-white border-start-0 py-1 px-2">
-                  <small
-                    className={
-                      gstinInput.length ===
-                        GSTIN_LENGTH
-                        ? "text-success fw-bold"
-                        : "text-muted"
-                    }
-                    style={{
-                      fontSize: "0.7rem",
-                    }}
+                <span className="input-group-text bg-transparent border-0 py-1.5 pe-3 ps-1">
+                  <span
+                    className={`badge rounded-pill fw-semibold ${gstinInput.length === GSTIN_LENGTH
+                      ? "bg-success-subtle text-success"
+                      : "bg-secondary-subtle text-secondary"
+                      }`}
+                    style={{ fontSize: "0.7rem" }}
                   >
-                    {gstinInput.length}/
-                    {GSTIN_LENGTH}
-                  </small>
+                    {gstinInput.length}/{GSTIN_LENGTH}
+                  </span>
                 </span>
-
               </div>
 
               <button
                 type="submit"
-                className="btn btn-sm btn-primary rounded-2 d-flex align-items-center justify-content-center gap-1 shadow-sm ms-2 px-2"
+                className="btn btn-primary rounded-3 d-flex align-items-center justify-content-center gap-1.5 shadow-sm ms-2 px-3.5 fw-medium"
                 style={{
-                  fontSize: "0.8rem",
-                  height: "32px",
-                  whiteSpace:
-                    "nowrap",
+                  fontSize: "0.85rem",
+                  height: "38px",
+                  whiteSpace: "nowrap",
+                  transition: "all 0.2s ease",
                 }}
-                disabled={
-                  isBusy ||
-                  !gstinInput
-                }
+                disabled={isBusy || !gstinInput}
               >
                 {loading ? (
                   <>
-                    <FaSpinner
-                      className="spin"
-                      size={12}
-                    />
-                    <span className="d-none d-sm-inline">
-                      Analyzing...
-                    </span>
+                    <FaSpinner className="spin" size={13} />
+                    <span className="d-none d-sm-inline">Analyzing...</span>
                   </>
                 ) : (
                   <>
-                    <FaSearch size={12} />
-                    <span className="d-none d-sm-inline">
-                      Analyze
-                    </span>
+                    <FaSearch size={13} />
+                    <span className="d-none d-sm-inline">Analyze</span>
                   </>
                 )}
               </button>
             </form>
 
-            {/* RISK */}
-
-            {analysis && (
-              <RiskHeaderBadge
-                category={
-                  analysis.riskCategory
-                }
-                score={
-                  analysis.currentRiskScore
-                }
-              />
-            )}
-
-            {/* REFRESH */}
-
+            {/* REFRESH BUTTON */}
             {analysis && (
               <button
                 type="button"
-                className="btn btn-sm btn-primary rounded-2 d-flex align-items-center justify-content-center gap-1 shadow-sm px-2"
+                className="btn btn-light border rounded-3 d-flex align-items-center justify-content-center gap-1.5 shadow-xs px-3 text-secondary fw-medium"
                 style={{
-                  fontSize: "0.8rem",
-                  height: "32px",
+                  fontSize: "0.85rem",
+                  height: "38px",
+                  backgroundColor: "#ffffff",
                 }}
                 disabled={isBusy}
-                onClick={
-                  handleRefresh
-                }
+                onClick={handleRefresh}
               >
-                <FaSyncAlt
-                  size={12}
-                  className={
-                    loading
-                      ? "spin"
-                      : ""
-                  }
-                />
-
-                <span className="d-none d-sm-inline">
-                  Refresh
-                </span>
+                <FaSyncAlt size={12} className={loading ? "spin" : ""} />
+                <span className="d-none d-sm-inline">Refresh</span>
               </button>
             )}
 
-            {/* BACK */}
-
+            {/* BACK BUTTON */}
             {onBack && (
               <button
                 type="button"
-                className="btn btn-sm btn-outline-light rounded-2 px-2"
+                className="btn btn-outline-secondary rounded-3 px-3 fw-medium"
                 style={{
-                  height: "32px",
-                  fontSize: "0.8rem",
+                  height: "38px",
+                  fontSize: "0.85rem",
                 }}
                 onClick={onBack}
               >
                 ← Back
               </button>
             )}
-
           </div>
         </div>
 
-        {/* INPUT ERROR */}
-
+        {/* INPUT ERROR ALERT */}
         {inputError && (
-          <div className="mt-2 text-warning d-flex align-items-center gap-1">
-            <FaExclamationCircle
-              size={11}
-            />
-
-            <span
-              style={{
-                fontSize: "0.75rem",
-              }}
-            >
+          <div className="mt-2 text-danger d-flex align-items-center gap-1.5 ps-1">
+            <FaExclamationCircle size={13} />
+            <span style={{ fontSize: "0.78rem", fontWeight: 500 }}>
               {inputError}
             </span>
           </div>
         )}
-
       </div>
     </header>
   );
@@ -983,75 +920,78 @@ const GstinAnalysisPage = ({
       {searchSection}
 
       {/* ======================================================
-       * TAXPAYER PROFILE
-       * ====================================================== */}
-
+* TAXPAYER PROFILE
+* ====================================================== */}
       <div className="px-2 px-sm-3 px-lg-4">
-
-        <div className="card officer-profile-card mb-3">
+        <div className="card border-0 shadow-sm rounded-3 mb-4 overflow-hidden">
           <div className="card-body p-0">
-            <div className="row g-0 align-items-stretch">
+            <div className="row g-0">
 
-              {/* =====================================================
-          GSTIN
-          ===================================================== */}
-              <div className="col-12 col-lg-4">
-                <div className="officer-profile-item officer-gstin-section">
-
-                  <div className="officer-profile-icon officer-icon-navy">
-                    <FaBuilding size={17} />
+              {/* 1. GSTIN (Navy / Primary Theme) */}
+              <div className="col-12 col-sm-6 col-xl-3 p-3 p-md-4 bg-primary bg-opacity-10 border-end border-bottom border-xl-bottom-0">
+                <div className="d-flex align-items-start gap-3">
+                  <div
+                    className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 bg-primary text-white shadow-sm"
+                    style={{ width: 42, height: 42 }}
+                  >
+                    <FaBuilding size={18} />
                   </div>
 
-                  <div className="officer-profile-content">
-                    <div className="officer-profile-label">
+                  <div className="min-width-0 flex-grow-1">
+                    <div
+                      className="text-uppercase fw-bold text-muted mb-1"
+                      style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                    >
                       GST Identification Number
                     </div>
 
                     <div
-                      className="officer-profile-gstin"
+                      className="fw-bold text-dark text-truncate fs-6 mb-2 font-monospace"
                       title={displayText(analysis.gstin)}
+                      style={{ letterSpacing: "0.5px" }}
                     >
                       {displayText(analysis.gstin)}
                     </div>
 
-                    <div className="officer-profile-status">
+                    <div className="d-flex align-items-center gap-2">
                       <span
-                        className={`officer-status-badge ${String(analysis.status || "ACTIVE").toUpperCase() ===
-                          "ACTIVE"
-                          ? "officer-status-active"
-                          : "officer-status-warning"
+                        className={`badge rounded-2 fw-semibold px-2 py-1 d-inline-flex align-items-center gap-1 ${String(analysis.status || "ACTIVE").toUpperCase() === "ACTIVE"
+                          ? "bg-success text-white"
+                          : "bg-warning text-dark"
                           }`}
+                        style={{ fontSize: "0.72rem" }}
                       >
-                        <FaCheckCircle size={9} />
+                        <FaCheckCircle size={10} />
                         {displayText(analysis.status, "ACTIVE")}
                       </span>
-
-                      <span className="officer-status-caption">
-                        Registration Status
+                      <span className="text-muted small fw-medium" style={{ fontSize: "0.72rem" }}>
+                        Status
                       </span>
                     </div>
                   </div>
-
                 </div>
               </div>
 
-              {/* =====================================================
-          TAXPAYER
-          ===================================================== */}
-              <div className="col-12 col-sm-6 col-lg-3">
-                <div className="officer-profile-item">
-
-                  <div className="officer-profile-icon officer-icon-blue">
-                    <FaUserTie size={16} />
+              {/* 2. TAXPAYER (Secondary / Slate Theme) */}
+              <div className="col-12 col-sm-6 col-xl-3 p-3 p-md-4 bg-secondary bg-opacity-10 border-end border-bottom border-xl-bottom-0">
+                <div className="d-flex align-items-start gap-3">
+                  <div
+                    className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 bg-secondary text-white shadow-sm"
+                    style={{ width: 42, height: 42 }}
+                  >
+                    <FaUserTie size={17} />
                   </div>
 
-                  <div className="officer-profile-content">
-                    <div className="officer-profile-label">
+                  <div className="min-width-0 flex-grow-1">
+                    <div
+                      className="text-uppercase fw-bold text-muted mb-1"
+                      style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                    >
                       Taxpayer
                     </div>
 
                     <div
-                      className="officer-profile-main-value officer-value-truncate"
+                      className="fw-bold text-dark text-truncate fs-6 mb-1"
                       title={displayText(analysis.legalName)}
                     >
                       {displayText(analysis.legalName)}
@@ -1059,197 +999,284 @@ const GstinAnalysisPage = ({
 
                     {analysis.tradeName && (
                       <div
-                        className="officer-profile-sub-value officer-value-truncate"
+                        className="text-muted small text-truncate fw-medium"
                         title={displayText(analysis.tradeName)}
+                        style={{ fontSize: "0.78rem" }}
                       >
                         {displayText(analysis.tradeName)}
                       </div>
                     )}
                   </div>
-
                 </div>
               </div>
 
-              {/* =====================================================
-          JURISDICTION
-          ===================================================== */}
-              <div className="col-12 col-sm-6 col-lg-2">
-                <div className="officer-profile-item">
-
-                  <div className="officer-profile-icon officer-icon-slate">
-                    <FaLandmark size={15} />
+              {/* 3. JURISDICTION (Light / Neutral Theme) */}
+              <div className="col-12 col-sm-6 col-xl-3 p-3 p-md-4 bg-light border-end border-bottom border-sm-bottom-0">
+                <div className="d-flex align-items-start gap-3">
+                  <div
+                    className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 bg-dark text-white shadow-sm"
+                    style={{ width: 42, height: 42 }}
+                  >
+                    <FaLandmark size={16} />
                   </div>
 
-                  <div className="officer-profile-content">
-                    <div className="officer-profile-label">
+                  <div className="min-width-0 flex-grow-1">
+                    <div
+                      className="text-uppercase fw-bold text-muted mb-1"
+                      style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                    >
                       Jurisdiction
                     </div>
 
                     <div
-                      className="officer-profile-main-value officer-value-truncate"
+                      className="fw-bold text-dark text-truncate"
                       title={displayText(analysis.jurisdiction)}
+                      style={{ fontSize: "0.9rem" }}
                     >
                       {displayText(analysis.jurisdiction)}
                     </div>
                   </div>
-
                 </div>
               </div>
 
-              {/* =====================================================
-          RETURNS
-          ===================================================== */}
-              <div className="col-6 col-lg-1">
-                <div className="officer-stat-item">
-                  <div className="officer-profile-label">
-                    Returns
-                  </div>
-
-                  <div className="officer-stat-value">
-                    {history.length}
-                  </div>
-
-                  <div className="officer-stat-caption">
-                    Months
-                  </div>
-                </div>
-              </div>
-
-              {/* =====================================================
-          DELAYED RETURNS
-          ===================================================== */}
-              <div className="col-6 col-lg-2">
-                <div className="officer-stat-item officer-delay-stat">
-
-                  <div className="officer-profile-label">
-                    Delayed Returns
-                  </div>
-
+              {/* 4. METRICS / RETURNS LOGGED (Dark Slate Theme) */}
+              <div className="col-12 col-sm-6 col-xl-3 p-3 p-md-4 bg-dark bg-opacity-10 border-end border-bottom border-sm-bottom-0">
+                <div className="d-flex align-items-center gap-3 h-100">
                   <div
-                    className={`officer-stat-value ${delayedReturns > 0
-                      ? "officer-stat-danger"
-                      : "officer-stat-success"
-                      }`}
+                    className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 bg-dark text-white shadow-sm"
+                    style={{ width: 42, height: 42 }}
                   >
-                    {delayedReturns}
+                    <span className="fw-bold font-monospace" style={{ fontSize: "0.85rem" }}>
+                      3B
+                    </span>
                   </div>
 
-                  <div className="officer-stat-caption">
-                    {totalDelayDays} delay days
-                  </div>
+                  <div className="min-width-0 flex-grow-1">
+                    <div
+                      className="text-uppercase fw-bold text-muted mb-1"
+                      style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                    >
+                      Returns Logged
+                    </div>
 
+                    <div className="d-flex align-items-baseline gap-2">
+                      <span className="fw-bold text-dark fs-4 lh-1 font-monospace">
+                        {history.length}
+                      </span>
+                      <span className="text-muted fw-medium" style={{ fontSize: "0.78rem" }}>
+                        Months
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* ======================================================
+ * KPI CARDS
+ * ====================================================== */}
+
+      <div className="px-2 px-sm-3 px-lg-4">
+        <div className="row g-3 mb-4">
+
+          {/* =====================================================
+        LIFETIME TAXABLE VALUE (Navy / Indigo Theme)
+    ===================================================== */}
+          <div className="col-12 col-sm-6 col-xl-3">
+            <div className="card border-0 shadow-sm rounded-3 h-100 overflow-hidden bg-primary bg-opacity-10">
+              <div className="card-body p-3 p-md-4 d-flex align-items-start gap-3">
+                <div
+                  className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 bg-primary text-white shadow-sm"
+                  style={{ width: 42, height: 42 }}
+                >
+                  <FaChartLine size={18} />
+                </div>
+
+                <div className="min-width-0 flex-grow-1">
+                  <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.7rem", letterSpacing: "0.5px" }}>
+                    Lifetime Taxable Value
+                  </div>
+                  <div className="fw-bold text-dark fs-4 lh-1 mb-1 font-monospace">
+                    {formatINRCompact(analysis.lifetimeTaxableValue)}
+                  </div>
+                  <div className="text-muted small fw-medium text-truncate" style={{ fontSize: "0.75rem" }} title={formatINR(analysis.lifetimeTaxableValue)}>
+                    {formatINR(analysis.lifetimeTaxableValue)}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* =====================================================
+        LIFETIME CASH PAID (Teal Theme)
+    ===================================================== */}
+          <div className="col-12 col-sm-6 col-xl-3">
+            <div className="card border-0 shadow-sm rounded-3 h-100 overflow-hidden bg-success bg-opacity-10">
+              <div className="card-body p-3 p-md-4 d-flex align-items-start gap-3">
+                <div
+                  className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 bg-success text-white shadow-sm"
+                  style={{ width: 42, height: 42 }}
+                >
+                  <FaMoneyBillWave size={18} />
+                </div>
 
+                <div className="min-width-0 flex-grow-1">
+                  <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.7rem", letterSpacing: "0.5px" }}>
+                    Lifetime Cash Paid
+                  </div>
+                  <div className="fw-bold text-dark fs-4 lh-1 mb-1 font-monospace">
+                    {formatINRCompact(analysis.lifetimeCashPaid)}
+                  </div>
+                  <div className="text-muted small fw-medium text-truncate" style={{ fontSize: "0.75rem" }} title={formatINR(analysis.lifetimeCashPaid)}>
+                    {formatINR(analysis.lifetimeCashPaid)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
+          {/* =====================================================
+        ITC UTILIZED (Slate / Info Theme)
+    ===================================================== */}
+          <div className="col-12 col-sm-6 col-xl-3">
+            <div className="card border-0 shadow-sm rounded-3 h-100 overflow-hidden bg-secondary bg-opacity-10">
+              <div className="card-body p-3 p-md-4 d-flex align-items-start gap-3">
+                <div
+                  className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 bg-secondary text-white shadow-sm"
+                  style={{ width: 42, height: 42 }}
+                >
+                  <FaBalanceScale size={18} />
+                </div>
+
+                <div className="min-width-0 flex-grow-1">
+                  <div className="text-uppercase fw-bold text-muted mb-1" style={{ fontSize: "0.7rem", letterSpacing: "0.5px" }}>
+                    ITC Utilized
+                  </div>
+                  <div className="fw-bold text-dark fs-4 lh-1 mb-1 font-monospace">
+                    {formatINRCompact(analysis.lifetimeItcUtilized)}
+                  </div>
+                  <div className="text-muted small fw-medium text-truncate" style={{ fontSize: "0.75rem" }} title={formatINR(analysis.lifetimeItcUtilized)}>
+                    {formatINR(analysis.lifetimeItcUtilized)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* =====================================================
+    RISK SCORE (Dynamic Colors, ITC-Style Background)
+===================================================== */}
+          <div className="col-12 col-sm-6 col-xl-3">
+            {(() => {
+              const score = Number(analysis.currentRiskScore) || 0;
+              const isHigh = score >= 70;
+              const isMed = score >= 40 && score < 70;
+
+              const dynamicTextColor = isHigh
+                ? "text-danger"
+                : isMed
+                  ? "text-warning-emphasis"
+                  : "text-success";
+
+              const dynamicBgColor = isHigh
+                ? "bg-danger"
+                : isMed
+                  ? "bg-warning"
+                  : "bg-success";
+
+              const dynamicIconColor = isMed ? "text-dark" : "text-white";
+
+              return (
+                <div className="card border-0 shadow-sm rounded-3 h-100 overflow-hidden bg-secondary bg-opacity-10">
+                  <div className="card-body p-3 p-md-4 d-flex align-items-start gap-3">
+                    <div
+                      className={`rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm ${dynamicBgColor} ${dynamicIconColor}`}
+                      style={{ width: 42, height: 42 }}
+                    >
+                      <FaExclamationTriangle size={18} />
+                    </div>
+
+                    <div className="min-width-0 flex-grow-1">
+                      <div
+                        className="text-uppercase fw-bold text-muted mb-1"
+                        style={{ fontSize: "0.7rem", letterSpacing: "0.5px" }}
+                      >
+                        Risk Assessment
+                      </div>
+
+                      <div
+                        className={`fw-bold fs-4 lh-1 mb-1 font-monospace ${dynamicTextColor}`}
+                      >
+                        {analysis.currentRiskScore}
+                      </div>
+
+                      <div
+                        className={`small fw-semibold text-truncate ${dynamicTextColor}`}
+                        style={{ fontSize: "0.75rem" }}
+                      >
+                        {analysis.riskCategory ||
+                          (isHigh ? "High Risk" : isMed ? "Moderate Risk" : "Low Risk")}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
 
         </div>
-
       </div>
 
       {/* ======================================================
-       * KPI CARDS
-       * ====================================================== */}
+ * TABS (Modern Enterprise UI)
+ * ====================================================== */}
 
       <div className="px-2 px-sm-3 px-lg-4">
-
-        <div className="row g-2 g-sm-3 mb-4">
-
-          <div className="col-12 col-sm-6 col-xl-3"> <KpiCard title="Lifetime Taxable Value" value={formatINRCompact(analysis.lifetimeTaxableValue)} detail={formatINR(analysis.lifetimeTaxableValue)} icon={<FaChartLine />} accent="taxable-value" /> </div>
-
-          <div className="col-12 col-sm-6 col-xl-3"> <KpiCard title="Lifetime Cash Paid" value={formatINRCompact(analysis.lifetimeCashPaid)} detail={formatINR(analysis.lifetimeCashPaid)} icon={<FaMoneyBillWave />} accent="cash-paid" /> </div> <div className="col-12 col-sm-6 col-xl-3"> <KpiCard title="ITC Utilized" value={formatINRCompact(analysis.lifetimeItcUtilized)} detail={formatINR(analysis.lifetimeItcUtilized)} icon={<FaBalanceScale />} accent="itc-utilized" /> </div> <div className="col-12 col-sm-6 col-xl-3"> <RiskKpiCard score={analysis.currentRiskScore} category={analysis.riskCategory} /> </div>
-
-        </div>
-
-      </div>
-
-      {/* ======================================================
-       * TABS
-       * ====================================================== */}
-
-      <div className="px-2 px-sm-3 px-lg-4">
-
-        <div className="card border-0 shadow-sm rounded-3 mb-3">
-
+        <div className="card border-0 shadow-sm rounded-3 mb-4 bg-light">
           <div
-            className="d-flex flex-wrap align-items-center gap-1 p-2"
+            className="d-flex flex-wrap align-items-center gap-2 p-2"
             role="tablist"
             aria-label="GSTIN analysis sections"
           >
-
             <TabButton
-              active={
-                activeTab ===
-                "overview"
-              }
-              onClick={() =>
-                setActiveTab(
-                  "overview"
-                )
-              }
+              active={activeTab === "overview"}
+              onClick={() => setActiveTab("overview")}
               icon={<FaChartLine />}
               label="Overview"
             />
 
             <TabButton
-              active={
-                activeTab ===
-                "history"
-              }
-              onClick={() =>
-                setActiveTab(
-                  "history"
-                )
-              }
+              active={activeTab === "history"}
+              onClick={() => setActiveTab("history")}
               icon={<FaTable />}
               label="GSTR-3B History"
             />
 
             <TabButton
-              active={
-                activeTab === "tax"
-              }
-              onClick={() =>
-                setActiveTab("tax")
-              }
-              icon={
-                <FaFileInvoiceDollar />
-              }
+              active={activeTab === "tax"}
+              onClick={() => setActiveTab("tax")}
+              icon={<FaFileInvoiceDollar />}
               label="Tax Breakdown"
             />
 
             <TabButton
-              active={
-                activeTab === "risk"
-              }
-              onClick={() =>
-                setActiveTab("risk")
-              }
+              active={activeTab === "risk"}
+              onClick={() => setActiveTab("risk")}
               icon={<FaShieldAlt />}
               label="Risk & Alerts"
             />
 
             <TabButton
-              active={
-                activeTab ===
-                "prediction"
-              }
-              onClick={() =>
-                setActiveTab(
-                  "prediction"
-                )
-              }
+              active={activeTab === "prediction"}
+              onClick={() => setActiveTab("prediction")}
               icon={<FaChartLine />}
               label="AI Prediction"
             />
-
           </div>
-
         </div>
-
       </div>
 
       {/* ======================================================
@@ -1260,148 +1287,184 @@ const GstinAnalysisPage = ({
 
         {activeTab === "overview" && (
           <>
-
             <div className="row g-3 mb-3">
-
+              {/* =====================================================
+    TAX SUMMARY PANEL
+===================================================== */}
               <div className="col-12 col-xl-6">
-
                 <BootstrapPanel
-                  icon={
-                    <FaFileInvoiceDollar />
-                  }
+                  icon={<FaFileInvoiceDollar className="text-primary" />}
                   title="Tax Summary"
                   subtitle="Aggregated GSTR-3B values"
                 >
-
                   <div className="row g-2">
+                    {/* TAXABLE VALUE */}
+                    <div className="col-6 col-md-4">
+                      <div className="p-3 rounded-3 bg-primary bg-opacity-10 border border-primary-subtle h-100">
+                        <div
+                          className="text-uppercase fw-bold text-muted mb-1"
+                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                        >
+                          Taxable Value
+                        </div>
+                        <div className="fw-bold text-dark font-monospace fs-6">
+                          {formatINRCompact(totals.taxableValue)}
+                        </div>
+                      </div>
+                    </div>
 
-                    <SummaryBootstrapItem
-                      label="Taxable Value"
-                      value={formatINRCompact(
-                        totals.taxableValue
-                      )}
-                    />
+                    {/* OUTPUT TAX */}
+                    <div className="col-6 col-md-4">
+                      <div className="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary-subtle h-100">
+                        <div
+                          className="text-uppercase fw-bold text-muted mb-1"
+                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                        >
+                          Output Tax
+                        </div>
+                        <div className="fw-bold text-dark font-monospace fs-6">
+                          {formatINRCompact(totals.outputTax)}
+                        </div>
+                      </div>
+                    </div>
 
-                    <SummaryBootstrapItem
-                      label="Output Tax"
-                      value={formatINRCompact(
-                        totals.outputTax
-                      )}
-                    />
+                    {/* ITC CLAIMED */}
+                    <div className="col-6 col-md-4">
+                      <div className="p-3 rounded-3 bg-info bg-opacity-10 border border-info-subtle h-100">
+                        <div
+                          className="text-uppercase fw-bold text-muted mb-1"
+                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                        >
+                          ITC Claimed
+                        </div>
+                        <div className="fw-bold text-dark font-monospace fs-6">
+                          {formatINRCompact(totals.itc)}
+                        </div>
+                      </div>
+                    </div>
 
-                    <SummaryBootstrapItem
-                      label="ITC Claimed"
-                      value={formatINRCompact(
-                        totals.itc
-                      )}
-                    />
+                    {/* CASH PAID */}
+                    <div className="col-6 col-md-4">
+                      <div className="p-3 rounded-3 bg-success bg-opacity-10 border border-success-subtle h-100">
+                        <div
+                          className="text-uppercase fw-bold text-muted mb-1"
+                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                        >
+                          Cash Paid
+                        </div>
+                        <div className="fw-bold text-dark font-monospace fs-6">
+                          {formatINRCompact(totals.cash)}
+                        </div>
+                      </div>
+                    </div>
 
-                    <SummaryBootstrapItem
-                      label="Cash Paid"
-                      value={formatINRCompact(
-                        totals.cash
-                      )}
-                    />
+                    {/* RCM TAX */}
+                    <div className="col-6 col-md-4">
+                      <div className="p-3 rounded-3 bg-dark bg-opacity-10 border border-dark-subtle h-100">
+                        <div
+                          className="text-uppercase fw-bold text-muted mb-1"
+                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                        >
+                          RCM Tax
+                        </div>
+                        <div className="fw-bold text-dark font-monospace fs-6">
+                          {formatINRCompact(totals.rcm)}
+                        </div>
+                      </div>
+                    </div>
 
-                    <SummaryBootstrapItem
-                      label="RCM Tax"
-                      value={formatINRCompact(
-                        totals.rcm
-                      )}
-                    />
-
-                    <SummaryBootstrapItem
-                      label="Delayed Returns"
-                      value={delayedReturns}
-                      valueClass={
-                        delayedReturns >
-                          0
-                          ? "text-danger"
-                          : "text-success"
-                      }
-                    />
-
+                    {/* DELAYED RETURNS */}
+                    <div className="col-6 col-md-4">
+                      <div
+                        className={`p-3 rounded-3 border h-100 ${delayedReturns > 0
+                          ? "bg-warning bg-opacity-25 border-warning-subtle"
+                          : "bg-success bg-opacity-10 border-success-subtle"
+                          }`}
+                      >
+                        <div
+                          className="text-uppercase fw-bold text-muted mb-1"
+                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                        >
+                          Delayed Returns
+                        </div>
+                        <div
+                          className={`fw-bold font-monospace fs-6 ${delayedReturns > 0 ? "text-warning-emphasis" : "text-success"
+                            }`}
+                        >
+                          {delayedReturns}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-
                 </BootstrapPanel>
-
               </div>
-
+              {/* =====================================================
+    COMPLIANCE INDICATORS PANEL
+===================================================== */}
               <div className="col-12 col-xl-6">
-
                 <BootstrapPanel
-                  icon={<FaPercentage />}
+                  icon={<FaPercentage className="text-primary" />}
                   title="Compliance Indicators"
                   subtitle="Calculated from analysed returns"
                 >
+                  <div className="d-flex flex-column gap-2.5">
 
-                  <RatioBootstrapRow
-                    label="Average ITC Ratio"
-                    value={
-                      averageItcRatio
-                    }
-                  />
+                    {/* RATIO CARDS RENDERER */}
+                    {[
+                      {
+                        label: "Average ITC Ratio",
+                        value: averageItcRatio,
+                        theme: "info",
+                      },
+                      {
+                        label: "Average Cash Payment Ratio",
+                        value: averageCashRatio,
+                        theme: "success",
+                      },
+                    ].map(({ label, value, theme }) => {
+                      const percent = (Number(value) || 0) * 100;
+                      const formatted = percent.toFixed(2);
+                      const progressWidth = Math.min(Math.max(percent, 0), 100).toFixed(2);
 
-                  <RatioBootstrapRow
-                    label="Average Cash Payment Ratio"
-                    value={
-                      averageCashRatio
-                    }
-                  />
-
-                  <div className="d-flex align-items-center justify-content-between border-top pt-3 mt-3">
-
-                    <div>
-                      <div className="text-muted small">
-                        Total Filing Delay
-                      </div>
-
-                      <strong className="font-monospace">
-                        {
-                          totalDelayDays
-                        }{" "}
-                        days
-                      </strong>
-                    </div>
-
-                    <div
-                      className="bg-warning-subtle text-warning-emphasis rounded-circle d-flex align-items-center justify-content-center"
-                      style={{
-                        width: 38,
-                        height: 38,
-                      }}
-                    >
-                      <FaClock />
-                    </div>
+                      return (
+                        <div
+                          key={label}
+                          className={`p-3 rounded-3 bg-${theme}-subtle border border-${theme}-subtle`}
+                        >
+                          <div className="d-flex align-items-center justify-content-between mb-1.5">
+                            <span
+                              className="text-uppercase fw-bold text-secondary"
+                              style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                            >
+                              {label}
+                            </span>
+                            <span className="fw-bold text-dark font-monospace fs-6">
+                              {formatted}%
+                            </span>
+                          </div>
+                          <div className="progress" style={{ height: "6px" }}>
+                            <div
+                              className={`progress-bar bg-${theme}`}
+                              role="progressbar"
+                              style={{ width: `${progressWidth}%` }}
+                              aria-valuenow={formatted}
+                              aria-valuemin="0"
+                              aria-valuemax="100"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
 
                   </div>
-
                 </BootstrapPanel>
-
               </div>
-
             </div>
 
-            <TaxComponentCards
-              totals={totals}
-            />
-
-            <RecentHistory
-              history={history}
-              onViewAll={() =>
-                setActiveTab(
-                  "history"
-                )
-              }
-            />
-
-            <AlertsPanel
-              alerts={alerts}
-              onViewAll={() =>
-                setActiveTab("risk")
-              }
-            />
-
+            {/* SUB-COMPONENTS */}
+            <TaxComponentCards totals={totals} />
+            <RecentHistory history={history} onViewAll={() => setActiveTab("history")} />
+            <AlertsPanel alerts={alerts} onViewAll={() => setActiveTab("risk")} />
           </>
         )}
 
@@ -2120,15 +2183,15 @@ const RecentHistory = ({
 
                       {/* TAXABLE VALUE */}
                       <td
-                      className="px-2 text-end font-monospace text-nowrap"
-                      style={{ color: "#0d6efd", fontWeight: 600, fontSize: "14px" }}
-                    >
+                        className="px-2 text-end font-monospace text-nowrap"
+                        style={{ color: "#0d6efd", fontWeight: 600, fontSize: "14px" }}
+                      >
                         {formatINR(item.taxableValue)}
                       </td>
 
                       {/* OUTPUT TAX */}
                       <td
-                      className="px-2 text-end font-monospace text-nowrap"
+                        className="px-2 text-end font-monospace text-nowrap"
                         style={{ color: "#3730a3", fontSize: "14px" }}
                       >
                         {formatINR(item.outputTax)}
@@ -2136,7 +2199,7 @@ const RecentHistory = ({
 
                       {/* ITC CLAIMED */}
                       <td
-                      className="px-2 text-end font-monospace text-nowrap"
+                        className="px-2 text-end font-monospace text-nowrap"
                         style={{ color: "#198754", fontSize: "14px" }}
                       >
                         {formatINR(item.itcClaimed)}
@@ -2144,7 +2207,7 @@ const RecentHistory = ({
 
                       {/* CASH PAID */}
                       <td
-                      className="px-2 text-end font-monospace text-nowrap"
+                        className="px-2 text-end font-monospace text-nowrap"
                         style={{ color: "#059669", fontSize: "14px" }}
                       >
                         {formatINR(item.cashPaid)}
