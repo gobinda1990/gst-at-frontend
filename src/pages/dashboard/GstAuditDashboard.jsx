@@ -1,10 +1,11 @@
+
 import React, {
   useCallback,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
   useState,
-  useDeferredValue,
 } from "react";
 
 import {
@@ -41,7 +42,7 @@ import {
   fetchAllReturnPeriods,
 } from "../../services/dashboardService";
 
-import "./GstReturnDefaulterDashboard.css";
+import "./GstAuditDashboard.css";
 
 /* =========================================================
    CONFIGURATION
@@ -51,42 +52,39 @@ const DEFAULT_PAGE_SIZE = 10;
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
-// Used only when the metrics call can't tell us how many records actually
-// exist for the period (e.g. it errors, or the field is missing). This is
-// a safety ceiling, not the normal path — the normal path sizes the fetch
-// exactly to the known record count (see fetchAuditData below), so
-// datasets of any size (500k+, 1M+) are retrieved in full without a
-// hardcoded guess silently truncating them.
 const FALLBACK_SERVER_FETCH_SIZE = 750000;
 
-// Small buffer added on top of the known total, in case a handful of new
-// records land between the metrics call and the pipeline call.
 const FETCH_SIZE_BUFFER = 200;
+
+const MAX_REASON_LENGTH = 4000;
 
 const RISK_CONFIG = {
   CRITICAL: {
     label: "Critical",
     badge: "bg-danger-subtle text-danger border-danger-subtle",
     text: "text-danger",
-    border: "border-danger",
+    dot: "bg-danger",
   },
+
   HIGH: {
     label: "High",
     badge: "bg-warning-subtle text-warning-emphasis border-warning-subtle",
     text: "text-warning-emphasis",
-    border: "border-warning",
+    dot: "bg-warning",
   },
+
   MEDIUM: {
     label: "Medium",
     badge: "bg-info-subtle text-info-emphasis border-info-subtle",
     text: "text-info-emphasis",
-    border: "border-info",
+    dot: "bg-info",
   },
+
   LOW: {
     label: "Low",
     badge: "bg-success-subtle text-success border-success-subtle",
     text: "text-success",
-    border: "border-success",
+    dot: "bg-success",
   },
 };
 
@@ -94,10 +92,14 @@ const RISK_CONFIG = {
    GLOBAL HELPERS
 ========================================================= */
 
-const formatCurrency = (amount) => {
-  const value = Number(amount);
+const toNumber = (value, fallback = 0) => {
+  const number = Number(value);
 
-  if (!Number.isFinite(value)) return "₹0";
+  return Number.isFinite(number) ? number : fallback;
+};
+
+const formatCurrency = (amount) => {
+  const value = toNumber(amount);
 
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -107,38 +109,43 @@ const formatCurrency = (amount) => {
 };
 
 const formatNumber = (value) => {
-  const number = Number(value);
-
-  if (!Number.isFinite(number)) return "0";
+  const number = toNumber(value);
 
   return new Intl.NumberFormat("en-IN").format(number);
 };
 
 const formatPercent = (value) => {
-  const number = Number(value);
+  const number = toNumber(value);
 
-  if (!Number.isFinite(number)) return "0%";
+  if (!Number.isFinite(number)) {
+    return "0%";
+  }
 
   return `${number.toFixed(number % 1 === 0 ? 0 : 1)}%`;
 };
 
 const formatPeriodLabel = (item) => {
-  if (!item) return "";
-
-  const value = typeof item === "object" ? item.value : String(item);
-
-  if (!value || value.length !== 6) {
-    return value || "";
+  if (!item) {
+    return "";
   }
 
-  const month = Number(value.substring(0, 2));
-  const year = value.substring(2);
+  const value =
+    typeof item === "object"
+      ? String(item.value ?? "")
+      : String(item);
 
-  if (month < 1 || month > 12) {
+  if (!/^\d{6}$/.test(value)) {
     return value;
   }
 
-  const date = new Date(Number(year), month - 1, 1);
+  const month = Number(value.substring(0, 2));
+  const year = Number(value.substring(2));
+
+  if (month < 1 || month > 12 || year < 1900) {
+    return value;
+  }
+
+  const date = new Date(year, month - 1, 1);
 
   return date.toLocaleString("en-IN", {
     month: "short",
@@ -146,19 +153,27 @@ const formatPeriodLabel = (item) => {
   });
 };
 
-const getRiskCategory = (row) =>
-  String(row?.officerRiskCategory || row?.riskCategory || "MEDIUM").toUpperCase();
+const getRiskCategory = (row) => {
+  const category = String(
+    row?.officerRiskCategory ||
+    row?.riskCategory ||
+    "MEDIUM"
+  ).toUpperCase();
+
+  return RISK_CONFIG[category] ? category : "MEDIUM";
+};
 
 const getReason = (row) =>
   row?.asmt10Reason ||
   row?.groundReason ||
+  row?.scrutinyReason ||
   "Discrepancy identified during return scrutiny.";
 
 const getNoticeStatus = (row) => {
   if (
     row?.noticeIssued === true ||
     row?.asmt10Issued === true ||
-    row?.noticeStatus === "ISSUED"
+    String(row?.noticeStatus || "").toUpperCase() === "ISSUED"
   ) {
     return "ISSUED";
   }
@@ -166,37 +181,81 @@ const getNoticeStatus = (row) => {
   return "PENDING";
 };
 
-/**
- * Runs once per record when a fetch completes rather than on every
- * filter/search pass. At 500k+ rows, recomputing these on every keystroke
- * (as the previous version did inside the filter) is the single biggest
- * source of input lag — this makes filtering a set of cheap property
- * reads instead of a set of string/boolean derivations per row per pass.
- */
+const getReturnPeriod = (row) =>
+  row?.taxPeriod || row?.retPeriod || "";
+
+const getRiskScore = (row) =>
+  toNumber(
+    row?.riskScorePct ??
+    row?.finalRiskScore ??
+    row?.riskScore
+  );
+
+const getItcUtilization = (row) =>
+  toNumber(
+    row?.itcUtilizationPct ??
+    row?.itcUtilizationPercent
+  );
+
+const getExcessItc = (row) =>
+  toNumber(
+    row?.excessItc ??
+    row?.potentialExcessItc
+  );
+
+/* =========================================================
+   RECORD ENRICHMENT
+========================================================= */
+
 const enrichRecord = (row) => {
-  const delay = Number(row.filingDelayDays) || 0;
-  const score = Number(row.riskScorePct) || 0;
-  const itcRatio = Number(row.itcUtilizationPct) || 0;
+  const delay = Math.max(
+    0,
+    toNumber(row?.filingDelayDays)
+  );
+
+  const score = Math.max(
+    0,
+    Math.min(100, getRiskScore(row))
+  );
+
+  const itcRatio = Math.max(
+    0,
+    getItcUtilization(row)
+  );
+
+  const risk = getRiskCategory(row);
 
   return {
     ...row,
-    _risk: getRiskCategory(row),
+
+    _risk: risk,
+
     _reason: getReason(row),
+
     _noticeStatus: getNoticeStatus(row),
-    _gstinLower: String(row.gstin || "").toLowerCase(),
+
+    _gstinLower: String(
+      row?.gstin || ""
+    ).toLowerCase(),
+
     _delay: delay,
+
     _score: score,
+
     _itcRatio: itcRatio,
+
+    _period: getReturnPeriod(row),
+
+    _excessItc: getExcessItc(row),
   };
 };
 
-const csvEscape = (value) => {
-  return `"${String(value ?? "").replace(/"/g, '""')}"`;
-};
-
 /* =========================================================
-   CSV EXPORT
+   CSV
 ========================================================= */
+
+const csvEscape = (value) =>
+  `"${String(value ?? "").replace(/"/g, '""')}"`;
 
 const buildCSV = (data) => {
   const headers = [
@@ -216,29 +275,37 @@ const buildCSV = (data) => {
 
   const rows = data.map((row) => [
     csvEscape(row.gstin),
-    csvEscape(formatPeriodLabel(row.taxPeriod || row.retPeriod)),
-    csvEscape(row._risk || getRiskCategory(row)),
-    row.riskScorePct || 0,
-    row.totalOutputTax || 0,
-    row.eligibleItc || 0,
-    row.utilizedItc || 0,
-    row.itcUtilizationPct || 0,
-    row.excessItc || 0,
-    row.filingDelayDays || 0,
-    csvEscape(row._noticeStatus || getNoticeStatus(row)),
-    csvEscape(row._reason || getReason(row)),
+    csvEscape(
+      formatPeriodLabel(row._period)
+    ),
+    csvEscape(row._risk),
+    row._score,
+    toNumber(row.totalOutputTax),
+    toNumber(row.eligibleItc),
+    toNumber(row.utilizedItc),
+    row._itcRatio,
+    row._excessItc,
+    row._delay,
+    csvEscape(row._noticeStatus),
+    csvEscape(row._reason),
   ]);
 
-  return [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+  return [
+    headers.join(","),
+    ...rows.map((row) => row.join(",")),
+  ].join("\n");
 };
 
-// Exporting hundreds of thousands of rows builds a multi-megabyte string;
-// doing that synchronously inside a click handler can freeze the tab for
-// a moment. Deferring the build one tick lets the "Preparing export..."
-// toast actually paint first, so the UI doesn't look frozen while it works.
-const exportToCSVAsync = (data, filename, onDone, onError) => {
+const exportToCSVAsync = (
+  data,
+  filename,
+  onDone,
+  onError
+) => {
   if (!Array.isArray(data) || data.length === 0) {
-    onError?.("There are no records available for export.");
+    onError?.(
+      "There are no records available for export."
+    );
     return;
   }
 
@@ -246,24 +313,36 @@ const exportToCSVAsync = (data, filename, onDone, onError) => {
     try {
       const csv = buildCSV(data);
 
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const blob = new Blob(
+        ["\uFEFF", csv],
+        {
+          type: "text/csv;charset=utf-8;",
+        }
+      );
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const url =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
 
       link.href = url;
       link.download = filename;
 
       document.body.appendChild(link);
       link.click();
-
       document.body.removeChild(link);
 
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
 
       onDone?.(data.length);
-    } catch (err) {
-      onError?.(err?.message || "Failed to build the export file.");
+    } catch (error) {
+      onError?.(
+        error?.message ||
+        "Failed to build the export file."
+      );
     }
   }, 0);
 };
@@ -272,64 +351,95 @@ const exportToCSVAsync = (data, filename, onDone, onError) => {
    TOAST
 ========================================================= */
 
-const Toast = React.memo(({ toast, onClose }) => {
-  if (!toast) return null;
+const Toast = React.memo(
+  ({ toast, onClose }) => {
+    if (!toast) {
+      return null;
+    }
 
-  const isError = toast.type === "error";
+    const isError =
+      toast.type === "error";
 
-  return (
-    <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 2000 }}>
+    return (
       <div
-        className={`toast show border-0 shadow-lg ${
-          isError ? "bg-danger" : "bg-dark"
-        } text-white`}
-        role="alert"
-        style={{ minWidth: 330 }}
+        className="position-fixed top-0 end-0 p-3"
+        style={{ zIndex: 3000 }}
       >
-        <div className="d-flex align-items-start p-3">
-          {isError ? (
-            <AlertCircle size={20} className="me-2 mt-1" />
-          ) : (
-            <CheckCircle2 size={20} className="me-2 mt-1" />
-          )}
+        <div
+          className={`toast show border-0 shadow-lg ${isError
+            ? "bg-danger"
+            : "bg-dark"
+            } text-white`}
+          role="alert"
+          style={{ minWidth: 330 }}
+        >
+          <div className="d-flex align-items-start p-3">
+            {isError ? (
+              <AlertCircle
+                size={20}
+                className="me-2 mt-1"
+              />
+            ) : (
+              <CheckCircle2
+                size={20}
+                className="me-2 mt-1"
+              />
+            )}
 
-          <div className="flex-grow-1">
-            <div className="fw-semibold">
-              {isError ? "Operation Failed" : "Success"}
+            <div className="flex-grow-1">
+              <div className="fw-semibold">
+                {isError
+                  ? "Operation Failed"
+                  : "Success"}
+              </div>
+
+              <div className="small opacity-75 mt-1">
+                {toast.message}
+              </div>
             </div>
 
-            <div className="small opacity-75 mt-1">{toast.message}</div>
+            <button
+              type="button"
+              className="btn btn-sm text-white p-0 ms-3"
+              onClick={onClose}
+              aria-label="Close notification"
+            >
+              <X size={16} />
+            </button>
           </div>
-
-          <button
-            type="button"
-            className="btn btn-sm text-white p-0 ms-3"
-            onClick={onClose}
-            aria-label="Close notification"
-          >
-            <X size={16} />
-          </button>
         </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 /* =========================================================
    PERIOD SELECTOR
 ========================================================= */
 
 const SearchablePeriodSelect = React.memo(
-  ({ options = [], value, onChange, loading }) => {
-    const [open, setOpen] = useState(false);
-    const [search, setSearch] = useState("");
-    const containerRef = useRef(null);
+  ({
+    options = [],
+    value,
+    onChange,
+    loading,
+  }) => {
+    const [open, setOpen] =
+      useState(false);
+
+    const [search, setSearch] =
+      useState("");
+
+    const containerRef =
+      useRef(null);
 
     useEffect(() => {
       const handleOutside = (event) => {
         if (
           containerRef.current &&
-          !containerRef.current.contains(event.target)
+          !containerRef.current.contains(
+            event.target
+          )
         ) {
           setOpen(false);
         }
@@ -341,71 +451,124 @@ const SearchablePeriodSelect = React.memo(
         }
       };
 
-      document.addEventListener("mousedown", handleOutside);
-      document.addEventListener("keydown", handleKeyDown);
+      document.addEventListener(
+        "mousedown",
+        handleOutside
+      );
+
+      document.addEventListener(
+        "keydown",
+        handleKeyDown
+      );
 
       return () => {
-        document.removeEventListener("mousedown", handleOutside);
-        document.removeEventListener("keydown", handleKeyDown);
+        document.removeEventListener(
+          "mousedown",
+          handleOutside
+        );
+
+        document.removeEventListener(
+          "keydown",
+          handleKeyDown
+        );
       };
     }, []);
 
-    const selectedLabel = useMemo(() => {
-      const selected = options.find((item) => {
-        const val = typeof item === "object" ? item.value : String(item);
+    const selectedLabel =
+      useMemo(() => {
+        const selected =
+          options.find((item) => {
+            const itemValue =
+              typeof item === "object"
+                ? String(item.value)
+                : String(item);
 
-        return val === value;
-      });
+            return itemValue === value;
+          });
 
-      return selected ? formatPeriodLabel(selected) : value || "Select period";
-    }, [options, value]);
+        return selected
+          ? formatPeriodLabel(selected)
+          : value || "Select period";
+      }, [options, value]);
 
-    const filteredOptions = useMemo(() => {
-      const query = search.trim().toLowerCase();
+    const filteredOptions =
+      useMemo(() => {
+        const query =
+          search.trim().toLowerCase();
 
-      if (!query) return options;
+        if (!query) {
+          return options;
+        }
 
-      return options.filter((item) => {
-        const val = typeof item === "object" ? String(item.value) : String(item);
+        return options.filter(
+          (item) => {
+            const itemValue =
+              typeof item === "object"
+                ? String(item.value)
+                : String(item);
 
-        const label = formatPeriodLabel(item);
+            const label =
+              formatPeriodLabel(item);
 
-        return val.toLowerCase().includes(query) || label.toLowerCase().includes(query);
-      });
-    }, [options, search]);
+            return (
+              itemValue
+                .toLowerCase()
+                .includes(query) ||
+              label
+                .toLowerCase()
+                .includes(query)
+            );
+          }
+        );
+      }, [options, search]);
 
     return (
-      <div ref={containerRef} className="position-relative" style={{ minWidth: 210 }}>
+      <div
+        ref={containerRef}
+        className="position-relative"
+        style={{ minWidth: 210 }}
+      >
         <button
           type="button"
           disabled={loading}
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={() =>
+            setOpen((previous) => !previous)
+          }
           className="btn btn-light border d-flex align-items-center justify-content-between w-100 rounded-2 px-3 py-2"
         >
           <span className="d-flex align-items-center gap-2 text-truncate">
-            <Calendar size={16} className="text-primary flex-shrink-0" />
+            <Calendar
+              size={16}
+              className="text-primary flex-shrink-0"
+            />
 
             <span className="text-truncate fw-semibold">
-              {loading ? "Loading..." : selectedLabel}
+              {loading
+                ? "Loading..."
+                : selectedLabel}
             </span>
           </span>
 
           {loading ? (
-            <Loader2 size={15} className="spin ms-2" />
+            <Loader2
+              size={15}
+              className="spin ms-2"
+            />
           ) : (
             <ChevronDown
               size={15}
-              className="ms-2"
-              style={{ transform: open ? "rotate(180deg)" : "none" }}
+              className="ms-2 period-chevron"
+              style={{
+                transform: open
+                  ? "rotate(180deg)"
+                  : "none",
+              }}
             />
           )}
         </button>
 
         {open && !loading && (
-          <div
-            className="position-absolute bg-white border rounded-3 shadow-lg p-2 mt-1"
-            style={{ zIndex: 1100, width: 260, left: 0 }}
-          >
+          <div className="period-dropdown position-absolute bg-white border rounded-3 shadow-lg p-2 mt-1">
             <div className="input-group input-group-sm mb-2">
               <span className="input-group-text bg-light border-0">
                 <Search size={14} />
@@ -417,40 +580,67 @@ const SearchablePeriodSelect = React.memo(
                 className="form-control bg-light border-0 shadow-none"
                 placeholder="Search period..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
               />
             </div>
 
-            <div className="overflow-auto" style={{ maxHeight: 230 }}>
-              {filteredOptions.length === 0 ? (
+            <div
+              className="overflow-auto"
+              style={{ maxHeight: 230 }}
+            >
+              {filteredOptions.length ===
+                0 ? (
                 <div className="text-center text-muted small py-4">
                   No period found
                 </div>
               ) : (
-                filteredOptions.map((item) => {
-                  const val = typeof item === "object" ? item.value : String(item);
+                filteredOptions.map(
+                  (item) => {
+                    const itemValue =
+                      typeof item ===
+                        "object"
+                        ? String(
+                          item.value
+                        )
+                        : String(item);
 
-                  const selected = val === value;
+                    const selected =
+                      itemValue === value;
 
-                  return (
-                    <button
-                      key={val}
-                      type="button"
-                      className={`dropdown-item rounded-2 d-flex justify-content-between align-items-center py-2 ${
-                        selected ? "active" : ""
-                      }`}
-                      onClick={() => {
-                        onChange(val);
-                        setOpen(false);
-                        setSearch("");
-                      }}
-                    >
-                      <span>{formatPeriodLabel(item)}</span>
+                    return (
+                      <button
+                        key={itemValue}
+                        type="button"
+                        className={`dropdown-item rounded-2 d-flex justify-content-between align-items-center py-2 ${selected
+                          ? "active"
+                          : ""
+                          }`}
+                        onClick={() => {
+                          onChange(
+                            itemValue
+                          );
 
-                      {selected && <CheckCircle2 size={14} />}
-                    </button>
-                  );
-                })
+                          setOpen(false);
+                          setSearch("");
+                        }}
+                      >
+                        <span>
+                          {formatPeriodLabel(
+                            item
+                          )}
+                        </span>
+
+                        {selected && (
+                          <CheckCircle2
+                            size={14}
+                          />
+                        )}
+                      </button>
+                    );
+                  }
+                )
               )}
             </div>
           </div>
@@ -460,91 +650,187 @@ const SearchablePeriodSelect = React.memo(
   }
 );
 
+const KpiCard = ({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  variant = "primary",
+  loading = false,
+}) => {
+  const themes = {
+    primary: {
+      background: "#eef4ff",
+      border: "#c7d7fe",
+      accent: "#2563eb",
+      iconBackground: "#2563eb",
+      valueColor: "#123b63",
+      subtitleColor: "#52657a",
+    },
+
+    danger: {
+      background: "#fff1f2",
+      border: "#fecdd3",
+      accent: "#dc2626",
+      iconBackground: "#dc2626",
+      valueColor: "#991b1b",
+      subtitleColor: "#6b4f55",
+    },
+
+    warning: {
+      background: "#fff7ed",
+      border: "#fed7aa",
+      accent: "#ea580c",
+      iconBackground: "#f97316",
+      valueColor: "#9a3412",
+      subtitleColor: "#705b4e",
+    },
+
+    info: {
+      background: "#ecfeff",
+      border: "#a5f3fc",
+      accent: "#0891b2",
+      iconBackground: "#0891b2",
+      valueColor: "#155e75",
+      subtitleColor: "#526b73",
+    },
+
+    success: {
+      background: "#f0fdf4",
+      border: "#bbf7d0",
+      accent: "#16a34a",
+      iconBackground: "#16a34a",
+      valueColor: "#166534",
+      subtitleColor: "#52675a",
+    },
+  };
+
+  const theme =
+    themes[variant] || themes.primary;
+
+  return (
+    <div
+      className="gst-kpi-card"
+      style={{
+        "--kpi-bg": theme.background,
+        "--kpi-border": theme.border,
+        "--kpi-accent": theme.accent,
+        "--kpi-icon-bg": theme.iconBackground,
+        "--kpi-value": theme.valueColor,
+        "--kpi-subtitle": theme.subtitleColor,
+      }}
+    >
+      <div className="gst-kpi-card-body">
+
+        {/* Accent bar */}
+        <div className="gst-kpi-accent-bar" />
+
+        {/* Icon */}
+        <div className="gst-kpi-icon">
+          {loading ? (
+            <Loader2
+              size={18}
+              className="spin"
+            />
+          ) : (
+            <Icon size={18} strokeWidth={2.2} />
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="gst-kpi-content">
+
+          <div className="gst-kpi-title">
+            {title}
+          </div>
+
+          {loading ? (
+            <div className="gst-kpi-loading-value">
+              Loading...
+            </div>
+          ) : (
+            <div
+              className="gst-kpi-value"
+              title={String(value)}
+            >
+              {formatNumber(value)}
+            </div>
+          )}
+
+          <div
+            className="gst-kpi-subtitle"
+            title={subtitle}
+          >
+            {subtitle}
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
 /* =========================================================
-   KPI CARD
+   RISK BADGE
 ========================================================= */
 
-const KpiCard = React.memo(
-  ({ title, value, subtitle, icon: Icon, variant = "primary", loading }) => {
-    const styles = {
-      primary: { border: "border-primary", icon: "bg-primary-subtle text-primary" },
-      danger: { border: "border-danger", icon: "bg-danger-subtle text-danger" },
-      warning: {
-        border: "border-warning",
-        icon: "bg-warning-subtle text-warning-emphasis",
-      },
-      info: { border: "border-info", icon: "bg-info-subtle text-info-emphasis" },
-      success: { border: "border-success", icon: "bg-success-subtle text-success" },
-      dark: { border: "border-dark", icon: "bg-dark-subtle text-dark" },
-    };
+const RiskBadge = React.memo(
+  ({ category, score }) => {
+    const normalized =
+      RISK_CONFIG[category]
+        ? category
+        : "MEDIUM";
 
-    const style = styles[variant] || styles.primary;
+    const config =
+      RISK_CONFIG[normalized];
 
     return (
-      <div
-        className={`card h-100 border-0 border-start border-4 ${style.border} shadow-sm rounded-3`}
-      >
-        <div className="card-body p-3">
-          <div className="d-flex justify-content-between align-items-start">
-            <div className="min-w-0">
-              <div className="text-uppercase text-muted fw-bold small">{title}</div>
+      <div className="d-inline-flex flex-column align-items-start">
+        <span
+          className={`badge border rounded-2 px-2 py-1 ${config.badge}`}
+        >
+          {config.label}
+        </span>
 
-              <div className="fs-3 fw-bold text-dark mt-1">
-                {loading ? (
-                  <span className="placeholder-glow">
-                    <span className="placeholder col-7" style={{ height: 30 }} />
-                  </span>
-                ) : (
-                  formatNumber(value)
-                )}
-              </div>
-
-              {subtitle && <div className="small text-muted mt-1">{subtitle}</div>}
-            </div>
-
-            <div className={`rounded-3 p-2 ${style.icon}`}>
-              <Icon size={21} />
-            </div>
-          </div>
-        </div>
+        <span
+          className={`small fw-semibold mt-1 ${config.text}`}
+        >
+          Score: {formatPercent(score)}
+        </span>
       </div>
     );
   }
 );
 
 /* =========================================================
-   RISK BADGE
-========================================================= */
-
-const RiskBadge = React.memo(({ category, score }) => {
-  const config = RISK_CONFIG[category] || RISK_CONFIG.MEDIUM;
-
-  return (
-    <div className="d-inline-flex flex-column align-items-start">
-      <span className={`badge border rounded-2 px-2 py-1 ${config.badge}`}>
-        {config.label}
-      </span>
-
-      <span className={`small fw-semibold mt-1 ${config.text}`}>
-        Score: {formatPercent(score)}
-      </span>
-    </div>
-  );
-});
-
-/* =========================================================
    NOTICE MODAL
 ========================================================= */
 
 const NoticeModal = React.memo(
-  ({ show, record, onClose, onSubmit, submitting }) => {
-    const [reason, setReason] = useState("");
-    const [section, setSection] = useState("Section 61");
+  ({
+    show,
+    record,
+    onClose,
+    onSubmit,
+    submitting,
+  }) => {
+    const [reason, setReason] =
+      useState("");
+
+    const [section, setSection] =
+      useState("Section 61");
 
     useEffect(() => {
-      if (!record) return;
+      if (!record) {
+        return;
+      }
 
-      setReason(record._reason || getReason(record));
+      setReason(
+        record._reason ||
+        getReason(record)
+      );
+
       setSection("Section 61");
     }, [record]);
 
@@ -552,26 +838,45 @@ const NoticeModal = React.memo(
       return null;
     }
 
-    const riskCategory = record._risk || getRiskCategory(record);
+    const riskCategory =
+      record._risk ||
+      getRiskCategory(record);
+
+    const period =
+      record._period ||
+      getReturnPeriod(record);
+
+    const excessItc =
+      record._excessItc ??
+      getExcessItc(record);
 
     return (
       <div
         className="modal fade show d-block"
         role="dialog"
         aria-modal="true"
-        style={{ backgroundColor: "rgba(15, 23, 42, 0.65)" }}
+        style={{
+          backgroundColor:
+            "rgba(15, 23, 42, 0.65)",
+        }}
       >
-        <div className="modal-dialog modal-dialog-centered modal-lg">
+        <div className="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
           <div className="modal-content border-0 shadow-lg rounded-3 overflow-hidden">
             <div className="modal-header bg-dark text-white px-4 py-3">
               <div className="d-flex align-items-center gap-2">
-                <FileCheck2 size={20} className="text-warning" />
+                <FileCheck2
+                  size={20}
+                  className="text-warning"
+                />
 
                 <div>
-                  <h5 className="modal-title fw-bold mb-0">Issue ASMT-10 Notice</h5>
+                  <h5 className="modal-title fw-bold mb-0">
+                    Issue ASMT-10 Notice
+                  </h5>
 
                   <div className="small opacity-75 mt-1">
-                    Return scrutiny / discrepancy workflow
+                    Return scrutiny /
+                    discrepancy workflow
                   </div>
                 </div>
               </div>
@@ -581,43 +886,54 @@ const NoticeModal = React.memo(
                 className="btn-close btn-close-white"
                 onClick={onClose}
                 disabled={submitting}
+                aria-label="Close"
               />
             </div>
 
             <div className="modal-body bg-light p-4">
               <div className="row g-3 mb-4">
                 <div className="col-md-6">
-                  <div className="bg-white border rounded-3 p-3">
+                  <div className="bg-white border rounded-3 p-3 h-100">
                     <div className="small text-muted text-uppercase fw-bold">
                       GSTIN
                     </div>
 
                     <div className="font-monospace fw-bold fs-6 mt-1">
-                      {record.gstin}
+                      {record.gstin ||
+                        "-"}
                     </div>
                   </div>
                 </div>
 
                 <div className="col-md-3">
-                  <div className="bg-white border rounded-3 p-3">
+                  <div className="bg-white border rounded-3 p-3 h-100">
                     <div className="small text-muted text-uppercase fw-bold">
                       Period
                     </div>
 
                     <div className="fw-bold mt-1">
-                      {formatPeriodLabel(record.taxPeriod || record.retPeriod)}
+                      {formatPeriodLabel(
+                        period
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="col-md-3">
-                  <div className="bg-white border rounded-3 p-3">
+                  <div className="bg-white border rounded-3 p-3 h-100">
                     <div className="small text-muted text-uppercase fw-bold">
                       Risk
                     </div>
 
                     <div className="mt-1">
-                      <RiskBadge category={riskCategory} score={record.riskScorePct} />
+                      <RiskBadge
+                        category={
+                          riskCategory
+                        }
+                        score={getRiskScore(
+                          record
+                        )}
+                      />
                     </div>
                   </div>
                 </div>
@@ -626,99 +942,154 @@ const NoticeModal = React.memo(
               <div className="row g-3 mb-3">
                 <div className="col-md-3">
                   <div className="bg-white border rounded-3 p-3">
-                    <div className="small text-muted">Output Tax</div>
+                    <div className="small text-muted">
+                      Output Tax
+                    </div>
 
                     <div className="fw-bold mt-1">
-                      {formatCurrency(record.totalOutputTax)}
+                      {formatCurrency(
+                        record.totalOutputTax
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="col-md-3">
                   <div className="bg-white border rounded-3 p-3">
-                    <div className="small text-muted">Eligible ITC</div>
+                    <div className="small text-muted">
+                      Eligible ITC
+                    </div>
 
                     <div className="fw-bold mt-1">
-                      {formatCurrency(record.eligibleItc)}
+                      {formatCurrency(
+                        record.eligibleItc
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="col-md-3">
                   <div className="bg-white border rounded-3 p-3">
-                    <div className="small text-muted">Utilized ITC</div>
+                    <div className="small text-muted">
+                      Utilized ITC
+                    </div>
 
                     <div className="fw-bold mt-1">
-                      {formatCurrency(record.utilizedItc)}
+                      {formatCurrency(
+                        record.utilizedItc
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="col-md-3">
                   <div className="bg-white border rounded-3 p-3">
-                    <div className="small text-muted">Excess ITC</div>
+                    <div className="small text-muted">
+                      Potential Excess
+                    </div>
 
                     <div
-                      className={`fw-bold mt-1 ${
-                        Number(record.excessItc) > 0 ? "text-danger" : "text-success"
-                      }`}
+                      className={`fw-bold mt-1 ${excessItc > 0
+                        ? "text-danger"
+                        : "text-success"
+                        }`}
                     >
-                      {formatCurrency(record.excessItc)}
+                      {formatCurrency(
+                        excessItc
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
+              <div className="alert alert-info border-0 small">
+                <strong>Analytical caution:</strong>{" "}
+                Potential excess ITC is a
+                scrutiny signal generated
+                from return data. It should
+                be verified against applicable
+                records and statutory
+                provisions before issuing a
+                notice.
+              </div>
+
               <div className="mb-3">
-                <label className="form-label small fw-bold">
+                <label
+                  className="form-label small fw-bold"
+                  htmlFor="notice-section"
+                >
                   Statutory provision
                 </label>
 
                 <select
+                  id="notice-section"
                   className="form-select"
                   value={section}
-                  onChange={(e) => setSection(e.target.value)}
+                  onChange={(event) =>
+                    setSection(
+                      event.target.value
+                    )
+                  }
                   disabled={submitting}
                 >
                   <option value="Section 61">
-                    Section 61 - Scrutiny of Returns
+                    Section 61 - Scrutiny of
+                    Returns
                   </option>
 
                   <option value="Section 73">
-                    Section 73 - Determination of Tax
+                    Section 73 - Determination
+                    of Tax
                   </option>
 
                   <option value="Section 74">
-                    Section 74 - Fraud / Wilful Misstatement
+                    Section 74 - Fraud /
+                    Wilful Misstatement
                   </option>
                 </select>
               </div>
 
               <div className="mb-2">
-                <label className="form-label small fw-bold">
+                <label
+                  className="form-label small fw-bold"
+                  htmlFor="scrutiny-reason"
+                >
                   Scrutiny findings / grounds
                 </label>
 
                 <textarea
-                  rows={5}
+                  id="scrutiny-reason"
+                  rows={6}
                   className="form-control"
                   value={reason}
-                  onChange={(e) => setReason(e.target.value)}
+                  onChange={(event) =>
+                    setReason(
+                      event.target.value
+                    )
+                  }
                   disabled={submitting}
-                  maxLength={4000}
+                  maxLength={
+                    MAX_REASON_LENGTH
+                  }
                 />
 
                 <div className="text-end text-muted small mt-1">
-                  {reason.length}/4000
+                  {reason.length}/
+                  {MAX_REASON_LENGTH}
                 </div>
               </div>
 
               <div className="alert alert-warning d-flex gap-2 align-items-start small mb-0">
-                <AlertTriangle size={17} className="flex-shrink-0 mt-1" />
+                <AlertTriangle
+                  size={17}
+                  className="flex-shrink-0 mt-1"
+                />
 
                 <div>
-                  Please verify the taxpayer, return period and scrutiny grounds
-                  before dispatching the notice.
+                  Please verify the taxpayer,
+                  return period and scrutiny
+                  grounds before dispatching
+                  the notice.
                 </div>
               </div>
             </div>
@@ -736,19 +1107,27 @@ const NoticeModal = React.memo(
               <button
                 type="button"
                 className="btn btn-primary rounded-2 d-flex align-items-center gap-2 px-4"
-                disabled={submitting || !reason.trim()}
+                disabled={
+                  submitting ||
+                  !reason.trim()
+                }
                 onClick={() =>
                   onSubmit({
-                    gstin: record.gstin,
-                    retPeriod: record.taxPeriod || record.retPeriod,
+                    gstin:
+                      record.gstin,
+                    retPeriod: period,
                     section,
-                    reason: reason.trim(),
+                    reason:
+                      reason.trim(),
                   })
                 }
               >
                 {submitting ? (
                   <>
-                    <Loader2 size={16} className="spin" />
+                    <Loader2
+                      size={16}
+                      className="spin"
+                    />
                     Dispatching...
                   </>
                 ) : (
@@ -767,7 +1146,7 @@ const NoticeModal = React.memo(
 );
 
 /* =========================================================
-   ADVANCED FILTER PANEL
+   ADVANCED FILTERS
 ========================================================= */
 
 const AdvancedFilters = React.memo(
@@ -781,7 +1160,9 @@ const AdvancedFilters = React.memo(
     setNoticeStatus,
     onReset,
   }) => {
-    if (!show) return null;
+    if (!show) {
+      return null;
+    }
 
     return (
       <div className="border-top bg-light px-3 py-3">
@@ -797,8 +1178,12 @@ const AdvancedFilters = React.memo(
               max="100"
               className="form-control form-control-sm"
               value={minRiskScore}
-              onChange={(e) => setMinRiskScore(e.target.value)}
-              placeholder="e.g. 70"
+              onChange={(event) =>
+                setMinRiskScore(
+                  event.target.value
+                )
+              }
+              placeholder="0 - 100"
             />
           </div>
 
@@ -812,7 +1197,11 @@ const AdvancedFilters = React.memo(
               min="0"
               className="form-control form-control-sm"
               value={maxDelay}
-              onChange={(e) => setMaxDelay(e.target.value)}
+              onChange={(event) =>
+                setMaxDelay(
+                  event.target.value
+                )
+              }
               placeholder="Days"
             />
           </div>
@@ -825,11 +1214,23 @@ const AdvancedFilters = React.memo(
             <select
               className="form-select form-select-sm"
               value={noticeStatus}
-              onChange={(e) => setNoticeStatus(e.target.value)}
+              onChange={(event) =>
+                setNoticeStatus(
+                  event.target.value
+                )
+              }
             >
-              <option value="ALL">All Status</option>
-              <option value="PENDING">Notice Pending</option>
-              <option value="ISSUED">Notice Issued</option>
+              <option value="ALL">
+                All Status
+              </option>
+
+              <option value="PENDING">
+                Notice Pending
+              </option>
+
+              <option value="ISSUED">
+                Notice Issued
+              </option>
             </select>
           </div>
 
@@ -839,7 +1240,10 @@ const AdvancedFilters = React.memo(
               className="btn btn-sm btn-outline-danger w-100"
               onClick={onReset}
             >
-              <FilterX size={14} className="me-1" />
+              <FilterX
+                size={14}
+                className="me-1"
+              />
               Reset Filters
             </button>
           </div>
@@ -850,313 +1254,326 @@ const AdvancedFilters = React.memo(
 );
 
 /* =========================================================
-   TOP LOADING BAR
+   LOADING BAR
 ========================================================= */
 
-const TopLoadingBar = React.memo(({ active }) => {
-  if (!active) return null;
+const TopLoadingBar = React.memo(
+  ({ active }) => {
+    if (!active) {
+      return null;
+    }
 
-  return (
-    <>
-      <div
-        style={{
-          height: 3,
-          width: "100%",
-          background: "#e7ecf3",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            height: "100%",
-            width: "40%",
-            background: "linear-gradient(90deg, #0d6efd, #6ea8fe)",
-            borderRadius: 2,
-            animation: "topbar-slide 1.1s ease-in-out infinite",
-          }}
-        />
+    return (
+      <div className="gst-loading-bar">
+        <div className="gst-loading-bar-progress" />
       </div>
-
-      <style>{`
-        @keyframes topbar-slide {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(350%); }
-        }
-      `}</style>
-    </>
-  );
-});
+    );
+  }
+);
 
 /* =========================================================
-   SKELETON ROW
+   SKELETON
 ========================================================= */
 
-const SkeletonRow = React.memo(() => (
-  <tr>
-    <td className="ps-3">
-      <span className="placeholder-glow d-inline-block" style={{ width: "70%" }}>
-        <span className="placeholder col-12 rounded-1" style={{ height: 14 }} />
-      </span>
-      <span className="placeholder-glow d-inline-block mt-2" style={{ width: "45%" }}>
-        <span className="placeholder col-12 rounded-1" style={{ height: 10 }} />
-      </span>
-    </td>
+const SkeletonRow = React.memo(
+  () => (
+    <tr className="skeleton-row">
+      <td className="ps-3">
+        <span className="placeholder-glow d-inline-block w-75">
+          <span
+            className="placeholder col-12 rounded-1"
+            style={{ height: 14 }}
+          />
+        </span>
 
-    <td className="text-end">
-      <span className="placeholder-glow d-inline-block" style={{ width: "70%" }}>
-        <span className="placeholder col-12 rounded-1" style={{ height: 14 }} />
-      </span>
-    </td>
+        <span className="placeholder-glow d-inline-block mt-2 w-50">
+          <span
+            className="placeholder col-12 rounded-1"
+            style={{ height: 10 }}
+          />
+        </span>
+      </td>
 
-    <td className="text-end">
-      <span className="placeholder-glow d-inline-block" style={{ width: "70%" }}>
-        <span className="placeholder col-12 rounded-1" style={{ height: 14 }} />
-      </span>
-    </td>
-
-    <td className="text-end">
-      <span className="placeholder-glow d-inline-block" style={{ width: "70%" }}>
-        <span className="placeholder col-12 rounded-1" style={{ height: 14 }} />
-      </span>
-    </td>
-
-    <td className="text-end">
-      <span className="placeholder-glow d-inline-block" style={{ width: "65%" }}>
-        <span className="placeholder col-12 rounded-1" style={{ height: 14 }} />
-      </span>
-    </td>
-
-    <td className="text-center">
-      <span className="placeholder-glow d-inline-block" style={{ width: 75 }}>
-        <span className="placeholder col-12 rounded-1" style={{ height: 14 }} />
-      </span>
-    </td>
-
-    <td>
-      <span className="placeholder-glow d-inline-block" style={{ width: 80 }}>
-        <span className="placeholder col-12 rounded-pill" style={{ height: 20 }} />
-      </span>
-      <span className="placeholder-glow d-inline-block mt-1" style={{ width: 60 }}>
-        <span className="placeholder col-12 rounded-1" style={{ height: 10 }} />
-      </span>
-    </td>
-
-    <td className="text-center">
-      <span className="placeholder-glow d-inline-block" style={{ width: 84 }}>
-        <span className="placeholder col-12 rounded-pill" style={{ height: 22 }} />
-      </span>
-    </td>
-
-    <td>
-      <span className="placeholder-glow d-inline-block" style={{ width: "90%" }}>
-        <span className="placeholder col-12 rounded-1" style={{ height: 14 }} />
-      </span>
-    </td>
-
-    <td className="pe-3 text-end">
-      <span className="placeholder-glow d-inline-block" style={{ width: 80 }}>
-        <span className="placeholder col-12 rounded-2" style={{ height: 30 }} />
-      </span>
-    </td>
-  </tr>
-));
+      {Array.from({
+        length: 9,
+      }).map((_, index) => (
+        <td
+          key={index}
+          className={
+            index === 4 ||
+              index === 6
+              ? "text-center"
+              : "text-end"
+          }
+        >
+          <span className="placeholder-glow d-inline-block w-75">
+            <span
+              className="placeholder col-12 rounded-1"
+              style={{
+                height:
+                  index === 6
+                    ? 22
+                    : 14,
+              }}
+            />
+          </span>
+        </td>
+      ))}
+    </tr>
+  )
+);
 
 /* =========================================================
    TABLE ROW
 ========================================================= */
 
-const ScrutinyRow = React.memo(({ row, onNotice, onView }) => {
-  const riskCategory = row._risk || getRiskCategory(row);
+const ScrutinyRow = ({
+  row,
+  onNotice,
+  onView,
+}) => {
+  const risk = row._risk || getRiskCategory(row);
+  const riskConfig =
+    RISK_CONFIG[risk] || RISK_CONFIG.MEDIUM;
 
-  const reason = row._reason || getReason(row);
+  const reason =
+    row._reason || getReason(row);
 
-  const noticeStatus = row._noticeStatus || getNoticeStatus(row);
+  const noticeStatus =
+    row._noticeStatus || getNoticeStatus(row);
 
-  const delay = row._delay ?? 0;
+  const delay = Number(row._delay ?? row.filingDelayDays ?? 0);
 
-  const itcRatio = row._itcRatio ?? 0;
+  const score = Number(
+    row._score ??
+    row.riskScorePct ??
+    row.finalRiskScore ??
+    0
+  );
+
+  const itcRatio = Number(
+    row._itcRatio ??
+    row.itcUtilizationPct ??
+    row.itcUtilizationPercent ??
+    0
+  );
+
+  const period =
+    row._period ||
+    row.retPeriod ||
+    "";
 
   return (
-    <tr>
-      <td className="ps-3">
-        <div className="fw-bold font-monospace text-dark">
+    <tr className="gst-data-row">
+
+      {/* Taxpayer */}
+      <td className="taxpayer-cell text-center">
+
+        <div className="gstin-value">
           {row.gstin || "-"}
         </div>
 
-        <div className="small text-muted mt-1">
-          {formatPeriodLabel(row.taxPeriod || row.retPeriod)}
-        </div>
-      </td>
-
-      <td className="text-end">
-        <div className="fw-semibold font-monospace">
-          {formatCurrency(row.totalOutputTax)}
+        <div className="period-value">
+          {formatPeriodLabel(period)}
         </div>
 
-        <div className="small text-muted">Output liability</div>
       </td>
 
-      <td className="text-end">
-        <div className="fw-semibold font-monospace">
-          {formatCurrency(row.eligibleItc)}
-        </div>
-
-        <div className="small text-muted">Eligible ITC</div>
+      {/* Output Tax */}
+      <td className="amount-cell text-end">
+        {formatCurrency(row.totalOutputTax)}
       </td>
 
-      <td className="text-end">
-        <div className="fw-semibold font-monospace">
-          {formatCurrency(row.utilizedItc)}
-        </div>
-
-        <div className="small text-muted">ITC utilized</div>
+      {/* Eligible ITC */}
+      <td className="amount-cell text-end">
+        {formatCurrency(row.eligibleItc)}
       </td>
 
-      <td className="text-end">
+      {/* Utilized ITC */}
+      <td className="amount-cell text-end">
+        {formatCurrency(row.utilizedItc)}
+      </td>
+
+      {/* Excess ITC */}
+      <td className="amount-cell text-end">
+
         <span
           className={
-            Number(row.excessItc) > 0
-              ? "fw-bold text-danger"
-              : "text-muted"
+            Number(row.excessItc || 0) > 0
+              ? "excess-itc-value"
+              : "normal-itc-value"
           }
         >
           {formatCurrency(row.excessItc)}
         </span>
+
       </td>
 
-      <td className="text-center">
-        <div
-          className={`fw-bold ${
-            itcRatio >= 99
-              ? "text-danger"
-              : itcRatio >= 90
-              ? "text-warning-emphasis"
-              : "text-dark"
-          }`}
-        >
+      {/* ITC Ratio */}
+      <td className="ratio-cell text-center">
+
+        <div className="ratio-value">
           {formatPercent(itcRatio)}
         </div>
 
-        <div
-          className="progress mt-1"
-          style={{
-            width: 75,
-            height: 5,
-            margin: "0 auto",
-          }}
-        >
+        <div className="ratio-progress">
           <div
-            className={`progress-bar ${
-              itcRatio >= 99
-                ? "bg-danger"
-                : itcRatio >= 90
-                ? "bg-warning"
-                : "bg-primary"
-            }`}
+            className="ratio-progress-bar"
             style={{
-              width: `${Math.min(Math.max(itcRatio, 0), 100)}%`,
+              width: `${Math.min(
+                Math.max(itcRatio, 0),
+                100
+              )}%`,
             }}
           />
         </div>
+
       </td>
 
-      <td>
-        <RiskBadge
-          category={riskCategory}
-          score={row.riskScorePct}
-        />
+      {/* Risk */}
+      <td className="risk-cell text-center">
+
+        <span
+          className={`risk-badge ${riskConfig.badge}`}
+        >
+          {riskConfig.label}
+        </span>
+
+        <div className="risk-score">
+          {formatPercent(score)} risk
+        </div>
+
       </td>
 
-      <td className="text-center">
+      {/* Filing */}
+      <td className="filing-cell text-center">
+
         {delay > 0 ? (
-          <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-2">
-            <Clock3 size={12} className="me-1" />
+
+          <span className="filing-delay-badge">
+            <Clock3 size={13} />
             {delay} days
           </span>
+
         ) : (
-          <span className="badge bg-success-subtle text-success border border-success-subtle rounded-2">
-            <CheckCircle2 size={12} className="me-1" />
+
+          <span className="filing-on-time-badge">
+            <CheckCircle2 size={13} />
             On time
           </span>
+
         )}
+
       </td>
 
-      <td>
+      {/* Scrutiny Ground */}
+      <td className="scrutiny-cell">
+
         <div
-          className="small text-secondary"
-          style={{
-            maxWidth: 230,
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
+          className="scrutiny-reason"
           title={reason}
         >
           {reason}
         </div>
+
       </td>
 
-      <td className="pe-3 text-end">
-        <div className="d-flex justify-content-end gap-1">
+      {/* Action */}
+      <td className="action-cell text-center">
+
+        <div className="d-flex justify-content-center align-items-center gap-1">
+
           <button
             type="button"
-            className="btn btn-sm btn-light border"
-            title="View details"
+            className="btn btn-sm btn-outline-primary action-btn"
             onClick={() => onView(row)}
+            title="View taxpayer details"
+            aria-label={`View ${row.gstin}`}
           >
             <Eye size={14} />
+            <span>View</span>
           </button>
 
           {noticeStatus === "ISSUED" ? (
-            <span className="btn btn-sm btn-success disabled">
-              <CheckCircle2 size={14} className="me-1" />
-              Issued
-            </span>
-          ) : (
+
             <button
               type="button"
-              className="btn btn-sm btn-primary d-flex align-items-center gap-1"
-              onClick={() => onNotice(row)}
+              className="btn btn-sm btn-success action-btn"
+              disabled
+              title="ASMT-10 notice already issued"
             >
-              <Send size={13} />
-              Notice
+              <FileCheck2 size={14} />
+              <span>Issued</span>
             </button>
+
+          ) : (
+
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-danger action-btn"
+              onClick={() => onNotice(row)}
+              title="Issue ASMT-10 notice"
+              aria-label={`Issue notice for ${row.gstin}`}
+            >
+              <Send size={14} />
+              <span>Notice</span>
+            </button>
+
           )}
+
         </div>
+
       </td>
+
     </tr>
   );
-});
+};
 
 /* =========================================================
-   PAGINATION BAR
+   PAGINATION
 ========================================================= */
 
-/**
- * Builds a compact list of page numbers to render, always including the
- * first and last page, the pages immediately around the current page, and
- * "…" placeholders for any gaps in between.
- */
-const buildPageWindow = (current, total) => {
+const buildPageWindow = (
+  current,
+  total
+) => {
+  if (total <= 1) {
+    return [1];
+  }
+
   const pages = [];
 
-  const windowSize = 1;
+  const start = Math.max(
+    1,
+    current - 1
+  );
 
-  const start = Math.max(1, current - windowSize);
-  const end = Math.min(total, current + windowSize);
+  const end = Math.min(
+    total,
+    current + 1
+  );
 
   if (start > 1) {
     pages.push(1);
-    if (start > 2) pages.push("ellipsis-start");
+
+    if (start > 2) {
+      pages.push("ellipsis-start");
+    }
   }
 
-  for (let page = start; page <= end; page += 1) {
+  for (
+    let page = start;
+    page <= end;
+    page += 1
+  ) {
     pages.push(page);
   }
 
   if (end < total) {
-    if (end < total - 1) pages.push("ellipsis-end");
+    if (end < total - 1) {
+      pages.push("ellipsis-end");
+    }
+
     pages.push(total);
   }
 
@@ -1173,28 +1590,63 @@ const PaginationBar = React.memo(
     onPageSizeChange,
     disabled,
   }) => {
-    const currentPage = pageNumber + 1;
+    const currentPage =
+      pageNumber + 1;
 
-    const rangeStart = totalRecords === 0 ? 0 : pageNumber * pageSize + 1;
-    const rangeEnd = Math.min((pageNumber + 1) * pageSize, totalRecords);
+    const rangeStart =
+      totalRecords === 0
+        ? 0
+        : pageNumber * pageSize + 1;
 
-    const pageWindow = useMemo(
-      () => buildPageWindow(currentPage, totalPages),
-      [currentPage, totalPages]
+    const rangeEnd = Math.min(
+      (pageNumber + 1) *
+      pageSize,
+      totalRecords
     );
+
+    const pageWindow =
+      useMemo(
+        () =>
+          buildPageWindow(
+            currentPage,
+            totalPages
+          ),
+        [
+          currentPage,
+          totalPages,
+        ]
+      );
 
     return (
       <div className="d-flex flex-column flex-lg-row justify-content-between align-items-center gap-3">
-        <div className="d-flex align-items-center gap-3">
+        <div className="d-flex flex-wrap align-items-center gap-3">
           <div className="small text-muted">
-            Showing <strong className="text-dark">{formatNumber(rangeStart)}</strong>
+            Showing{" "}
+            <strong className="text-dark">
+              {formatNumber(
+                rangeStart
+              )}
+            </strong>
             {"–"}
-            <strong className="text-dark">{formatNumber(rangeEnd)}</strong> of{" "}
-            <strong className="text-dark">{formatNumber(totalRecords)}</strong> records
+            <strong className="text-dark">
+              {formatNumber(
+                rangeEnd
+              )}
+            </strong>{" "}
+            of{" "}
+            <strong className="text-dark">
+              {formatNumber(
+                totalRecords
+              )}
+            </strong>{" "}
+            records
           </div>
 
           <div className="d-flex align-items-center gap-2">
-            <label className="small text-muted mb-0" htmlFor="page-size-select">
+            <label
+              className="small text-muted mb-0"
+              htmlFor="page-size-select"
+            >
               Rows per page
             </label>
 
@@ -1204,90 +1656,182 @@ const PaginationBar = React.memo(
               style={{ width: 80 }}
               value={pageSize}
               disabled={disabled}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              onChange={(event) =>
+                onPageSizeChange(
+                  Number(
+                    event.target.value
+                  )
+                )
+              }
             >
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
+              {PAGE_SIZE_OPTIONS.map(
+                (size) => (
+                  <option
+                    key={size}
+                    value={size}
+                  >
+                    {size}
+                  </option>
+                )
+              )}
             </select>
           </div>
         </div>
 
         <nav aria-label="Scrutiny queue pagination">
           <ul className="pagination pagination-sm mb-0 flex-wrap justify-content-center">
-            <li className={`page-item ${pageNumber === 0 || disabled ? "disabled" : ""}`}>
+            <li
+              className={`page-item ${pageNumber === 0 ||
+                disabled
+                ? "disabled"
+                : ""
+                }`}
+            >
               <button
                 type="button"
                 className="page-link d-flex align-items-center"
                 aria-label="First page"
-                onClick={() => onPageChange(0)}
+                disabled={
+                  pageNumber === 0 ||
+                  disabled
+                }
+                onClick={() =>
+                  onPageChange(0)
+                }
               >
-                <ChevronsLeft size={14} />
+                <ChevronsLeft
+                  size={14}
+                />
               </button>
             </li>
 
-            <li className={`page-item ${pageNumber === 0 || disabled ? "disabled" : ""}`}>
+            <li
+              className={`page-item ${pageNumber === 0 ||
+                disabled
+                ? "disabled"
+                : ""
+                }`}
+            >
               <button
                 type="button"
                 className="page-link d-flex align-items-center"
                 aria-label="Previous page"
-                onClick={() => onPageChange(Math.max(0, pageNumber - 1))}
+                disabled={
+                  pageNumber === 0 ||
+                  disabled
+                }
+                onClick={() =>
+                  onPageChange(
+                    Math.max(
+                      0,
+                      pageNumber - 1
+                    )
+                  )
+                }
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft
+                  size={14}
+                />
               </button>
             </li>
 
-            {pageWindow.map((page) =>
-              typeof page === "number" ? (
-                <li
-                  key={page}
-                  className={`page-item ${page === currentPage ? "active" : ""}`}
-                >
-                  <button
-                    type="button"
-                    className="page-link"
-                    disabled={disabled}
-                    onClick={() => onPageChange(page - 1)}
+            {pageWindow.map(
+              (page) =>
+                typeof page ===
+                  "number" ? (
+                  <li
+                    key={page}
+                    className={`page-item ${page ===
+                      currentPage
+                      ? "active"
+                      : ""
+                      }`}
                   >
-                    {page}
-                  </button>
-                </li>
-              ) : (
-                <li key={page} className="page-item disabled">
-                  <span className="page-link">…</span>
-                </li>
-              )
+                    <button
+                      type="button"
+                      className="page-link"
+                      disabled={
+                        disabled
+                      }
+                      onClick={() =>
+                        onPageChange(
+                          page - 1
+                        )
+                      }
+                    >
+                      {page}
+                    </button>
+                  </li>
+                ) : (
+                  <li
+                    key={page}
+                    className="page-item disabled"
+                  >
+                    <span className="page-link">
+                      …
+                    </span>
+                  </li>
+                )
             )}
 
             <li
-              className={`page-item ${
-                pageNumber >= totalPages - 1 || disabled ? "disabled" : ""
-              }`}
+              className={`page-item ${pageNumber >=
+                totalPages - 1 ||
+                disabled
+                ? "disabled"
+                : ""
+                }`}
             >
               <button
                 type="button"
                 className="page-link d-flex align-items-center"
                 aria-label="Next page"
-                onClick={() => onPageChange(Math.min(totalPages - 1, pageNumber + 1))}
+                disabled={
+                  pageNumber >=
+                  totalPages - 1 ||
+                  disabled
+                }
+                onClick={() =>
+                  onPageChange(
+                    Math.min(
+                      totalPages - 1,
+                      pageNumber + 1
+                    )
+                  )
+                }
               >
-                <ChevronRight size={14} />
+                <ChevronRight
+                  size={14}
+                />
               </button>
             </li>
 
             <li
-              className={`page-item ${
-                pageNumber >= totalPages - 1 || disabled ? "disabled" : ""
-              }`}
+              className={`page-item ${pageNumber >=
+                totalPages - 1 ||
+                disabled
+                ? "disabled"
+                : ""
+                }`}
             >
               <button
                 type="button"
                 className="page-link d-flex align-items-center"
                 aria-label="Last page"
-                onClick={() => onPageChange(totalPages - 1)}
+                disabled={
+                  pageNumber >=
+                  totalPages - 1 ||
+                  disabled
+                }
+                onClick={() =>
+                  onPageChange(
+                    totalPages - 1
+                  )
+                }
               >
-                <ChevronsRight size={14} />
+                <ChevronsRight
+                  size={14}
+                />
               </button>
             </li>
           </ul>
@@ -1302,273 +1846,512 @@ const PaginationBar = React.memo(
 ========================================================= */
 
 export default function GstAuditDashboard() {
-  const [periods, setPeriods] = useState([]);
+  const [periods, setPeriods] =
+    useState([]);
 
-  const [selectedPeriod, setSelectedPeriod] = useState("");
+  const [selectedPeriod, setSelectedPeriod] =
+    useState("");
 
-  const [data, setData] = useState([]);
+  const [data, setData] =
+    useState([]);
 
-  const [metrics, setMetrics] = useState(null);
+  const [metrics, setMetrics] =
+    useState(null);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [loadingLabel, setLoadingLabel] = useState("");
+  const [loadingLabel, setLoadingLabel] =
+    useState("");
 
-  const [periodsLoading, setPeriodsLoading] = useState(false);
+  const [periodsLoading, setPeriodsLoading] =
+    useState(false);
 
-  const [error, setError] = useState(null);
+  const [error, setError] =
+    useState(null);
 
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] =
+    useState("");
 
-  const [riskFilter, setRiskFilter] = useState("ALL");
+  const [riskFilter, setRiskFilter] =
+    useState("ALL");
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] =
+    useState(false);
 
-  const [minRiskScore, setMinRiskScore] = useState("");
+  const [minRiskScore, setMinRiskScore] =
+    useState("");
 
-  const [maxDelay, setMaxDelay] = useState("");
+  const [maxDelay, setMaxDelay] =
+    useState("");
 
-  const [noticeStatus, setNoticeStatus] = useState("ALL");
+  const [noticeStatus, setNoticeStatus] =
+    useState("ALL");
 
-  // Pagination is handled entirely client-side over the full, filtered
-  // record set so it always reflects "all records" rather than just
-  // whatever page the server last returned.
-  const [pageNumber, setPageNumber] = useState(0);
+  const [pageNumber, setPageNumber] =
+    useState(0);
 
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pageSize, setPageSize] =
+    useState(DEFAULT_PAGE_SIZE);
 
-  const [modalRecord, setModalRecord] = useState(null);
+  const [modalRecord, setModalRecord] =
+    useState(null);
 
-  const [detailRecord, setDetailRecord] = useState(null);
+  const [detailRecord, setDetailRecord] =
+    useState(null);
 
-  const [submittingNotice, setSubmittingNotice] = useState(false);
+  const [submittingNotice, setSubmittingNotice] =
+    useState(false);
 
-  const [toast, setToast] = useState(null);
+  const [toast, setToast] =
+    useState(null);
 
-  const [exporting, setExporting] = useState(false);
+  const [exporting, setExporting] =
+    useState(false);
 
-  // Text/number inputs are deferred so typing itself never blocks on
-  // filtering 500k+ rows — the input stays instantly responsive, and the
-  // (potentially expensive) filtered list recomputes a frame or two later.
-  const deferredSearchTerm = useDeferredValue(searchTerm);
-  const deferredMinRiskScore = useDeferredValue(minRiskScore);
-  const deferredMaxDelay = useDeferredValue(maxDelay);
+  const deferredSearchTerm =
+    useDeferredValue(searchTerm);
+
+  const deferredMinRiskScore =
+    useDeferredValue(minRiskScore);
+
+  const deferredMaxDelay =
+    useDeferredValue(maxDelay);
 
   const isFilterPending =
-    searchTerm !== deferredSearchTerm ||
-    minRiskScore !== deferredMinRiskScore ||
-    maxDelay !== deferredMaxDelay;
+    searchTerm !==
+    deferredSearchTerm ||
+    minRiskScore !==
+    deferredMinRiskScore ||
+    maxDelay !==
+    deferredMaxDelay;
 
-  // Tracks the in-flight fetch so switching periods quickly (or unmounting)
-  // cancels the previous request instead of letting a stale response land
-  // after a newer one.
-  const fetchControllerRef = useRef(null);
+  const fetchControllerRef =
+    useRef(null);
 
   /* =====================================================
      LOAD PERIODS
   ===================================================== */
 
   useEffect(() => {
-    const controller = new AbortController();
+    const controller =
+      new AbortController();
 
-    const loadPeriods = async () => {
-      setPeriodsLoading(true);
+    const loadPeriods =
+      async () => {
+        setPeriodsLoading(true);
 
-      try {
-        const response = await fetchAllReturnPeriods({
-          signal: controller.signal,
-        });
+        try {
+          const response =
+            await fetchAllReturnPeriods(
+              {
+                signal:
+                  controller.signal,
+              }
+            );
 
-        if (Array.isArray(response) && response.length > 0) {
-          setPeriods(response);
+          if (
+            Array.isArray(response) &&
+            response.length > 0
+          ) {
+            setPeriods(response);
 
-          const first = typeof response[0] === "object" ? response[0].value : response[0];
+            const first =
+              typeof response[0] ===
+                "object"
+                ? response[0].value
+                : response[0];
 
-          setSelectedPeriod(first);
+            setSelectedPeriod(
+              String(first)
+            );
+          }
+        } catch (err) {
+          if (
+            err?.name !==
+            "AbortError" &&
+            err?.name !==
+            "CanceledError"
+          ) {
+            console.error(
+              "Failed to load return periods",
+              err
+            );
+
+            setError(
+              err?.response?.data
+                ?.message ||
+              err?.message ||
+              "Unable to load return periods."
+            );
+          }
+        } finally {
+          if (
+            !controller.signal
+              .aborted
+          ) {
+            setPeriodsLoading(
+              false
+            );
+          }
         }
-      } catch (err) {
-        if (err?.name !== "AbortError") {
-          console.error("Failed to load return periods", err);
-        }
-      } finally {
-        setPeriodsLoading(false);
-      }
-    };
+      };
 
     loadPeriods();
 
-    return () => controller.abort();
+    return () =>
+      controller.abort();
   }, []);
 
   /* =====================================================
      FETCH DASHBOARD
-     Strategy for large datasets (500k+ records):
-       1. Fetch metrics first — it's cheap and tells us the real total
-          record count for the period (totalScrutinyCount).
-       2. Size the pipeline fetch exactly to that count (+ small buffer),
-          instead of guessing a static page size that could either
-          truncate a large dataset or over-fetch a small one.
-       3. Fall back to a generous static ceiling only if the metrics
-          response doesn't include a usable count.
-     Pagination and search/filtering then run entirely client-side over
-     that complete set (see displayedRecords / paginatedRecords below).
   ===================================================== */
 
-  const fetchAuditData = useCallback(
-    async (period, forceRefresh = false) => {
-      if (!period) return;
-
-      // Cancel any still-in-flight request for a previous period/refresh.
-      if (fetchControllerRef.current) {
-        fetchControllerRef.current.abort();
-      }
-
-      const controller = new AbortController();
-      fetchControllerRef.current = controller;
-
-      setLoading(true);
-      setError(null);
-      setLoadingLabel("Loading scrutiny data...");
-
-      try {
-        if (forceRefresh) {
-          await refreshDashboardCache({ signal: controller.signal });
+  const fetchAuditData =
+    useCallback(
+      async (
+        period,
+        forceRefresh = false
+      ) => {
+        if (!period) {
+          return;
         }
 
-        const metricsRes = await fetchDashboardMetrics({
-          retPeriod: period,
-          forceRefresh,
-          signal: controller.signal,
-        });
+        if (
+          fetchControllerRef.current
+        ) {
+          fetchControllerRef.current.abort();
+        }
 
-        if (controller.signal.aborted) return;
+        const controller =
+          new AbortController();
 
-        setMetrics(metricsRes || null);
+        fetchControllerRef.current =
+          controller;
 
-        const expectedTotal = Number(metricsRes?.totalScrutinyCount);
+        setLoading(true);
+        setError(null);
+        setLoadingLabel(
+          "Loading scrutiny data..."
+        );
 
-        const fetchSize =
-          Number.isFinite(expectedTotal) && expectedTotal > 0
-            ? expectedTotal + FETCH_SIZE_BUFFER
-            : FALLBACK_SERVER_FETCH_SIZE;
+        try {
+          if (forceRefresh) {
+            setLoadingLabel(
+              "Refreshing dashboard cache..."
+            );
 
-        if (Number.isFinite(expectedTotal) && expectedTotal > 0) {
+            await refreshDashboardCache(
+              {
+                signal:
+                  controller.signal,
+              }
+            );
+          }
+
+          if (
+            controller.signal.aborted
+          ) {
+            return;
+          }
+
           setLoadingLabel(
-            `Loading ${new Intl.NumberFormat("en-IN").format(
+            "Loading dashboard metrics..."
+          );
+
+          const metricsRes =
+            await fetchDashboardMetrics(
+              {
+                retPeriod: period,
+                forceRefresh,
+                signal:
+                  controller.signal,
+              }
+            );
+
+          if (
+            controller.signal.aborted
+          ) {
+            return;
+          }
+
+          setMetrics(
+            metricsRes || null
+          );
+
+          const expectedTotal =
+            Number(
+              metricsRes?.totalScrutinyCount
+            );
+
+          const hasValidTotal =
+            Number.isFinite(
               expectedTotal
-            )} records...`
+            ) &&
+            expectedTotal > 0;
+
+          const fetchSize =
+            hasValidTotal
+              ? Math.ceil(
+                expectedTotal +
+                FETCH_SIZE_BUFFER
+              )
+              : FALLBACK_SERVER_FETCH_SIZE;
+
+          setLoadingLabel(
+            hasValidTotal
+              ? `Loading ${formatNumber(
+                expectedTotal
+              )} records...`
+              : "Loading scrutiny records..."
           );
-        }
 
-        const pipelineRes = await fetchScrutinyPipeline({
-          retPeriod: period,
-          page: 0,
-          size: fetchSize,
-          riskCategory: "ALL",
-          signal: controller.signal,
-        });
+          const pipelineRes =
+            await fetchScrutinyPipeline(
+              {
+                retPeriod: period,
+                page: 0,
+                size: fetchSize,
+                riskCategory: "ALL",
+                signal:
+                  controller.signal,
+              }
+            );
 
-        if (controller.signal.aborted) return;
+          if (
+            controller.signal.aborted
+          ) {
+            return;
+          }
 
-        const records =
-          pipelineRes?.content || (Array.isArray(pipelineRes) ? pipelineRes : []);
+          const records =
+            pipelineRes?.content ||
+            (Array.isArray(
+              pipelineRes
+            )
+              ? pipelineRes
+              : []);
 
-        // Enrich once here, not on every filter pass — see enrichRecord().
-        setData(records.map(enrichRecord));
-      } catch (err) {
-        if (err?.name !== "CanceledError" && err?.name !== "AbortError") {
+          const enriched =
+            records.map(
+              enrichRecord
+            );
+
+          setData(enriched);
+
+          if (
+            hasValidTotal &&
+            records.length <
+            expectedTotal
+          ) {
+            setToast({
+              type: "error",
+              message:
+                `The server returned ${formatNumber(
+                  records.length
+                )} of approximately ${formatNumber(
+                  expectedTotal
+                )} expected records. Please refresh and check backend pagination.`,
+            });
+          }
+        } catch (err) {
+          if (
+            err?.name ===
+            "CanceledError" ||
+            err?.name ===
+            "AbortError" ||
+            controller.signal.aborted
+          ) {
+            return;
+          }
+
+          console.error(
+            "GST scrutiny data loading failed",
+            err
+          );
+
           setError(
-            err?.response?.data?.message ||
-              err?.message ||
-              "Unable to load GST scrutiny data."
+            err?.response?.data
+              ?.message ||
+            err?.message ||
+            "Unable to load GST scrutiny data."
           );
+
+          setData([]);
+        } finally {
+          if (
+            !controller.signal
+              .aborted
+          ) {
+            setLoading(false);
+            setLoadingLabel("");
+          }
         }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-          setLoadingLabel("");
-        }
-      }
-    },
-    []
-  );
+      },
+      []
+    );
+
+  /* =====================================================
+     PERIOD CHANGE
+  ===================================================== */
 
   useEffect(() => {
-    if (!selectedPeriod) return;
+    if (!selectedPeriod) {
+      return;
+    }
 
-    fetchAuditData(selectedPeriod);
+    setPageNumber(0);
+    setData([]);
+    setMetrics(null);
+
+    fetchAuditData(
+      selectedPeriod
+    );
 
     return () => {
-      if (fetchControllerRef.current) {
+      if (
+        fetchControllerRef.current
+      ) {
         fetchControllerRef.current.abort();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPeriod]);
-
-  /* =====================================================
-     CLIENT SIDE FILTER (over the full, precomputed record set)
-  ===================================================== */
-
-  const displayedRecords = useMemo(() => {
-    const query = deferredSearchTerm.trim().toLowerCase();
-
-    const minScore = deferredMinRiskScore === "" ? null : Number(deferredMinRiskScore);
-    const maxDelayValue = deferredMaxDelay === "" ? null : Number(deferredMaxDelay);
-
-    // Fast path: nothing to filter, skip the loop over the full array.
-    if (
-      !query &&
-      riskFilter === "ALL" &&
-      minScore === null &&
-      maxDelayValue === null &&
-      noticeStatus === "ALL"
-    ) {
-      return data;
-    }
-
-    return data.filter((row) => {
-      if (query && !row._gstinLower.includes(query)) {
-        return false;
-      }
-
-      if (riskFilter !== "ALL" && row._risk !== riskFilter) {
-        return false;
-      }
-
-      if (minScore !== null && row._score < minScore) {
-        return false;
-      }
-
-      if (maxDelayValue !== null && row._delay > maxDelayValue) {
-        return false;
-      }
-
-      if (noticeStatus !== "ALL" && row._noticeStatus !== noticeStatus) {
-        return false;
-      }
-
-      return true;
-    });
   }, [
-    data,
-    deferredSearchTerm,
-    riskFilter,
-    deferredMinRiskScore,
-    deferredMaxDelay,
-    noticeStatus,
+    selectedPeriod,
+    fetchAuditData,
   ]);
 
   /* =====================================================
-     CLIENT SIDE PAGINATION (over displayedRecords)
+     CLIENT FILTERING
   ===================================================== */
 
-  const totalElements = displayedRecords.length;
+  const displayedRecords =
+    useMemo(() => {
+      const query =
+        deferredSearchTerm
+          .trim()
+          .toLowerCase();
 
-  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
+      const parsedMinScore =
+        deferredMinRiskScore ===
+          ""
+          ? null
+          : Number(
+            deferredMinRiskScore
+          );
 
-  // Reset to page 1 whenever the filtered set or page size changes so the
-  // user never lands on a page that no longer exists.
+      const parsedMaxDelay =
+        deferredMaxDelay ===
+          ""
+          ? null
+          : Number(
+            deferredMaxDelay
+          );
+
+      const minScore =
+        Number.isFinite(
+          parsedMinScore
+        )
+          ? Math.max(
+            0,
+            Math.min(
+              100,
+              parsedMinScore
+            )
+          )
+          : null;
+
+      const maxDelayValue =
+        Number.isFinite(
+          parsedMaxDelay
+        )
+          ? Math.max(
+            0,
+            parsedMaxDelay
+          )
+          : null;
+
+      if (
+        !query &&
+        riskFilter === "ALL" &&
+        minScore === null &&
+        maxDelayValue ===
+        null &&
+        noticeStatus === "ALL"
+      ) {
+        return data;
+      }
+
+      return data.filter(
+        (row) => {
+          if (
+            query &&
+            !row._gstinLower.includes(
+              query
+            )
+          ) {
+            return false;
+          }
+
+          if (
+            riskFilter !== "ALL" &&
+            row._risk !==
+            riskFilter
+          ) {
+            return false;
+          }
+
+          if (
+            minScore !== null &&
+            row._score <
+            minScore
+          ) {
+            return false;
+          }
+
+          if (
+            maxDelayValue !==
+            null &&
+            row._delay >
+            maxDelayValue
+          ) {
+            return false;
+          }
+
+          if (
+            noticeStatus !==
+            "ALL" &&
+            row._noticeStatus !==
+            noticeStatus
+          ) {
+            return false;
+          }
+
+          return true;
+        }
+      );
+    }, [
+      data,
+      deferredSearchTerm,
+      riskFilter,
+      deferredMinRiskScore,
+      deferredMaxDelay,
+      noticeStatus,
+    ]);
+
+  /* =====================================================
+     PAGINATION
+  ===================================================== */
+
+  const totalElements =
+    displayedRecords.length;
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      totalElements / pageSize
+    )
+  );
+
   useEffect(() => {
     setPageNumber(0);
   }, [
@@ -1581,201 +2364,337 @@ export default function GstAuditDashboard() {
     selectedPeriod,
   ]);
 
-  // Clamp defensively in case totalPages shrinks for any other reason.
   useEffect(() => {
-    setPageNumber((current) => Math.min(current, totalPages - 1));
+    setPageNumber(
+      (current) =>
+        Math.min(
+          current,
+          totalPages - 1
+        )
+    );
   }, [totalPages]);
 
-  const paginatedRecords = useMemo(() => {
-    const start = pageNumber * pageSize;
+  const paginatedRecords =
+    useMemo(() => {
+      const start =
+        pageNumber * pageSize;
 
-    return displayedRecords.slice(start, start + pageSize);
-  }, [displayedRecords, pageNumber, pageSize]);
+      return displayedRecords.slice(
+        start,
+        start + pageSize
+      );
+    }, [
+      displayedRecords,
+      pageNumber,
+      pageSize,
+    ]);
 
   /* =====================================================
-     RESET FILTERS
+     FILTER RESET
   ===================================================== */
 
-  const resetFilters = useCallback(() => {
-    setSearchTerm("");
-    setRiskFilter("ALL");
-    setMinRiskScore("");
-    setMaxDelay("");
-    setNoticeStatus("ALL");
-    setPageNumber(0);
-  }, []);
+  const resetFilters =
+    useCallback(() => {
+      setSearchTerm("");
+      setRiskFilter("ALL");
+      setMinRiskScore("");
+      setMaxDelay("");
+      setNoticeStatus("ALL");
+      setPageNumber(0);
+    }, []);
 
   /* =====================================================
      NOTICE
   ===================================================== */
 
-  const openNotice = useCallback((record) => {
-    setModalRecord(record);
-  }, []);
+  const openNotice =
+    useCallback((record) => {
+      setModalRecord(record);
+    }, []);
 
-  const viewRecord = useCallback((record) => {
-    setDetailRecord(record);
-  }, []);
+  const viewRecord =
+    useCallback((record) => {
+      setDetailRecord(record);
+    }, []);
 
-  const dispatchNotice = useCallback(
-    async (payload) => {
-      setSubmittingNotice(true);
+  const dispatchNotice =
+    useCallback(
+      async (payload) => {
+        setSubmittingNotice(true);
 
-      try {
-        await issueAsmt10Notice({
-          gstin: payload.gstin,
-          retPeriod: payload.retPeriod,
-          groundReason: payload.reason,
-        });
+        try {
+          await issueAsmt10Notice({
+            gstin:
+              payload.gstin,
 
-        setModalRecord(null);
+            retPeriod:
+              payload.retPeriod,
 
-        setToast({
-          type: "success",
-          message: `ASMT-10 notice dispatched successfully for ${payload.gstin}.`,
-        });
+            groundReason:
+              payload.reason,
+          });
 
-        await fetchAuditData(selectedPeriod);
-      } catch (err) {
-        setToast({
-          type: "error",
-          message:
-            err?.response?.data?.message || err?.message || "Failed to issue ASMT-10 notice.",
-        });
-      } finally {
-        setSubmittingNotice(false);
-      }
-    },
-    [fetchAuditData, selectedPeriod]
-  );
+          setModalRecord(null);
+
+          setToast({
+            type: "success",
+            message:
+              `ASMT-10 notice dispatched successfully for ${payload.gstin}.`,
+          });
+
+          await fetchAuditData(
+            selectedPeriod
+          );
+        } catch (err) {
+          setToast({
+            type: "error",
+            message:
+              err?.response?.data
+                ?.message ||
+              err?.message ||
+              "Failed to issue ASMT-10 notice.",
+          });
+        } finally {
+          setSubmittingNotice(false);
+        }
+      },
+      [
+        fetchAuditData,
+        selectedPeriod,
+      ]
+    );
 
   /* =====================================================
-     KPI VALUES
+     KPI
   ===================================================== */
 
-  const totalCount = metrics?.totalScrutinyCount ?? data.length;
+  const totalCount =
+    metrics?.totalScrutinyCount ??
+    data.length;
 
   const criticalCount =
-    metrics?.criticalCount ?? data.filter((row) => row._risk === "CRITICAL").length;
+    metrics?.criticalCount ??
+    data.filter(
+      (row) =>
+        row._risk === "CRITICAL"
+    ).length;
 
-  const highCount = metrics?.highCount ?? data.filter((row) => row._risk === "HIGH").length;
+  const highCount =
+    metrics?.highCount ??
+    data.filter(
+      (row) =>
+        row._risk === "HIGH"
+    ).length;
 
   const mediumCount =
-    metrics?.mediumCount ?? data.filter((row) => row._risk === "MEDIUM").length;
+    metrics?.mediumCount ??
+    data.filter(
+      (row) =>
+        row._risk === "MEDIUM"
+    ).length;
 
-  const pendingNoticeCount =
-    metrics?.pendingNoticeCount ??
-    data.filter((row) => row._noticeStatus === "PENDING").length;
+  const lowCount =
+    metrics?.lowCount ??
+    data.filter(
+      (row) =>
+        row._risk === "LOW"
+    ).length;
 
   /* =====================================================
      EXPORT
   ===================================================== */
 
-  const handleExport = useCallback(() => {
-    if (displayedRecords.length === 0) {
+  const handleExport =
+    useCallback(() => {
+      if (
+        displayedRecords.length ===
+        0
+      ) {
+        setToast({
+          type: "error",
+          message:
+            "There are no records available for export.",
+        });
+
+        return;
+      }
+
+      setExporting(true);
+
       setToast({
-        type: "error",
-        message: "There are no records available for export.",
+        type: "success",
+        message:
+          `Preparing export of ${formatNumber(
+            displayedRecords.length
+          )} records...`,
       });
 
-      return;
-    }
+      exportToCSVAsync(
+        displayedRecords,
+        `GST_Scrutiny_${selectedPeriod}.csv`,
+        (count) => {
+          setExporting(false);
 
-    setExporting(true);
+          setToast({
+            type: "success",
+            message:
+              `Exported ${formatNumber(
+                count
+              )} records.`,
+          });
+        },
+        (message) => {
+          setExporting(false);
 
-    setToast({
-      type: "success",
-      message: `Preparing export of ${formatNumber(
-        displayedRecords.length
-      )} records...`,
-    });
-
-    exportToCSVAsync(
+          setToast({
+            type: "error",
+            message,
+          });
+        }
+      );
+    }, [
       displayedRecords,
-      `GST_Scrutiny_${selectedPeriod}.csv`,
-      (count) => {
-        setExporting(false);
-        setToast({
-          type: "success",
-          message: `Exported ${formatNumber(count)} records.`,
-        });
-      },
-      (message) => {
-        setExporting(false);
-        setToast({ type: "error", message });
-      }
-    );
-  }, [displayedRecords, selectedPeriod]);
+      selectedPeriod,
+    ]);
+
+  /* =====================================================
+     DETAIL MODAL DATA
+  ===================================================== */
+
+  const detailRisk =
+    detailRecord
+      ? detailRecord._risk ||
+      getRiskCategory(
+        detailRecord
+      )
+      : "MEDIUM";
+
+  const detailReason =
+    detailRecord
+      ? detailRecord._reason ||
+      getReason(detailRecord)
+      : "";
+
+  const detailNoticeStatus =
+    detailRecord
+      ? detailRecord._noticeStatus ||
+      getNoticeStatus(
+        detailRecord
+      )
+      : "PENDING";
 
   /* =====================================================
      UI
   ===================================================== */
 
   return (
-    <div className="min-vh-100" style={{ background: "#f4f6f9" }}>
+    <div className="gst-audit-dashboard min-vh-100">
       {/* =================================================
           OFFICE HEADER
       ================================================= */}
 
-      <header
-        className="bg-white border-bottom"
-        style={{ position: "sticky", top: 0, zIndex: 1000 }}
-      >
+      <header className="gst-office-header bg-white border-bottom">
         <div className="container-fluid px-3 px-lg-4 py-3">
           <div className="d-flex flex-column flex-xl-row justify-content-between align-items-start align-items-xl-center gap-3">
             <div>
               <div className="d-flex align-items-center gap-2">
-                <div
-                  className="bg-primary text-white rounded-2 d-flex align-items-center justify-content-center"
-                  style={{ width: 38, height: 38 }}
-                >
-                  <ShieldAlert size={20} />
+                <div className="gst-header-icon">
+                  <ShieldAlert
+                    size={20}
+                  />
                 </div>
 
                 <div>
-                 <h5 className="mb-0 fw-bold text-dark text-nowrap">Taxpayer Risk &amp; Compliance Monitoring</h5>
+                  <h5 className="fw-bold text-dark mb-0 text-truncate">
+                    GST Return Scrutiny &
+                    ITC Risk Analysis
+                  </h5>
                 </div>
               </div>
             </div>
 
             <div className="d-flex flex-wrap align-items-center justify-content-end gap-2 w-100 w-xl-auto">
-              <div className="flex-grow-1 flex-xl-grow-0" style={{ minWidth: 180 }}>
+              <div
+                className="flex-grow-1 flex-xl-grow-0"
+                style={{
+                  minWidth: 210,
+                }}
+              >
                 <SearchablePeriodSelect
                   options={periods}
-                  value={selectedPeriod}
-                  loading={periodsLoading}
-                  onChange={(value) => {
-                    setSelectedPeriod(value);
-                  }}
+                  value={
+                    selectedPeriod
+                  }
+                  loading={
+                    periodsLoading
+                  }
+                  onChange={(
+                    value
+                  ) =>
+                    setSelectedPeriod(
+                      value
+                    )
+                  }
                 />
               </div>
 
               <button
                 type="button"
-                className="btn btn-outline-success rounded-2 d-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-xl-grow-0"
-                disabled={loading || exporting || displayedRecords.length === 0}
-                onClick={handleExport}
+                className="btn btn-outline-success rounded-2 d-flex align-items-center justify-content-center gap-2"
+                disabled={
+                  loading ||
+                  exporting ||
+                  displayedRecords.length ===
+                  0
+                }
+                onClick={
+                  handleExport
+                }
               >
                 {exporting ? (
-                  <Loader2 size={15} className="spin" />
+                  <Loader2
+                    size={15}
+                    className="spin"
+                  />
                 ) : (
-                  <Download size={15} />
+                  <Download
+                    size={15}
+                  />
                 )}
                 Export
               </button>
 
               <button
                 type="button"
-                className="btn btn-primary rounded-2 d-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-xl-grow-0"
-                disabled={loading || !selectedPeriod}
-                onClick={() => fetchAuditData(selectedPeriod, true)}
+                className="btn btn-primary rounded-2 d-flex align-items-center justify-content-center gap-2"
+                disabled={
+                  loading ||
+                  !selectedPeriod
+                }
+                onClick={() =>
+                  fetchAuditData(
+                    selectedPeriod,
+                    true
+                  )
+                }
               >
-                <RefreshCw size={15} className={loading ? "spin" : ""} />
+                <RefreshCw
+                  size={15}
+                  className={
+                    loading
+                      ? "spin"
+                      : ""
+                  }
+                />
                 Refresh
               </button>
             </div>
           </div>
         </div>
+
+        <TopLoadingBar
+          active={loading}
+        />
       </header>
 
       <main className="container-fluid px-3 px-lg-4 py-4">
@@ -1784,135 +2703,259 @@ export default function GstAuditDashboard() {
         ================================================= */}
 
         {error && (
-          <div className="alert alert-danger border-0 shadow-sm d-flex align-items-start gap-2 rounded-3">
-            <AlertTriangle size={18} className="mt-1" />
+          <div className="alert alert-danger shadow-sm d-flex align-items-start gap-2 rounded-3">
+            <AlertTriangle
+              size={18}
+              className="mt-1"
+            />
 
             <div className="flex-grow-1">
-              <div className="fw-bold">Unable to load dashboard</div>
+              <div className="fw-bold">
+                Unable to load
+                dashboard
+              </div>
 
-              <div className="small">{error}</div>
+              <div className="small">
+                {error}
+              </div>
             </div>
 
-            <button type="button" className="btn-close" onClick={() => setError(null)} />
+            <button
+              type="button"
+              className="btn-close"
+              onClick={() =>
+                setError(null)
+              }
+              aria-label="Close error"
+            />
           </div>
         )}
 
         {/* =================================================
-            LOADING STATUS (visible while fetching 500k+ rows)
+            LOADING
         ================================================= */}
 
-        {loading && loadingLabel && (
-          <div className="alert alert-info border-0 shadow-sm d-flex align-items-center gap-2 rounded-3 py-2">
-            <Loader2 size={16} className="spin" />
-            <div className="small fw-semibold">{loadingLabel}</div>
-          </div>
-        )}
+        {loading &&
+          loadingLabel && (
+            <div className="alert alert-info shadow-sm d-flex align-items-center gap-2 rounded-3 py-2">
+              <Loader2
+                size={16}
+                className="spin"
+              />
 
-        {/* =================================================
-            KPI GRID
-        ================================================= */}
-
-        <div className="row g-3 mb-4">
-          <div className="col-6 col-md-3">
-            <KpiCard
-              title="Total Cases"
-              value={totalCount}
-              subtitle="Scrutiny queue"
-              icon={FileText}
-              variant="primary"
-              loading={loading}
-            />
-          </div>
-
-          <div className="col-6 col-md-3">
-            <KpiCard
-              title="Critical"
-              value={criticalCount}
-              subtitle="Immediate attention"
-              icon={ShieldAlert}
-              variant="danger"
-              loading={loading}
-            />
-          </div>
-
-          <div className="col-6 col-md-3">
-            <KpiCard
-              title="High Risk"
-              value={highCount}
-              subtitle="Officer review"
-              icon={AlertTriangle}
-              variant="warning"
-              loading={loading}
-            />
-          </div>
-
-          <div className="col-6 col-md-3">
-            <KpiCard
-              title="Medium Risk"
-              value={mediumCount}
-              subtitle="Monitor"
-              icon={SlidersHorizontal}
-              variant="info"
-              loading={loading}
-            />
-          </div>
-        </div>
-
-        {/* =================================================
-            RISK SUMMARY BAR
-        ================================================= */}
-
-        <div className="card border-0 shadow-sm rounded-3 mb-4">
-          <div className="card-body py-3">
-            <div className="d-flex flex-column flex-md-row align-items-md-center gap-3">
-              <div className="fw-bold text-dark small text-uppercase">Risk distribution</div>
-
-              <div className="flex-grow-1">
-                <div className="progress" style={{ height: 10 }}>
-                  <div
-                    className="progress-bar bg-danger"
-                    style={{
-                      width: `${totalCount ? (criticalCount / totalCount) * 100 : 0}%`,
-                    }}
-                  />
-
-                  <div
-                    className="progress-bar bg-warning"
-                    style={{ width: `${totalCount ? (highCount / totalCount) * 100 : 0}%` }}
-                  />
-
-                  <div
-                    className="progress-bar bg-info"
-                    style={{
-                      width: `${totalCount ? (mediumCount / totalCount) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="d-flex gap-3 small">
-                <span>
-                  <span className="text-danger fw-bold">{formatNumber(criticalCount)}</span>{" "}
-                  Critical
-                </span>
-
-                <span>
-                  <span className="text-warning-emphasis fw-bold">
-                    {formatNumber(highCount)}
-                  </span>{" "}
-                  High
-                </span>
-
-                <span>
-                  <span className="text-info-emphasis fw-bold">
-                    {formatNumber(mediumCount)}
-                  </span>{" "}
-                  Medium
-                </span>
+              <div className="small fw-semibold">
+                {loadingLabel}
               </div>
             </div>
-          </div>
-        </div>
+          )}
+
+      {/* =========================================================
+    KPI GRID — OFFICE / GST SCRUTINY
+========================================================= */}
+
+<div className="px-2 px-sm-3 px-lg-4">
+  <div className="row g-3 mb-4">
+
+    {/* Total Cases */}
+    <div className="col-12 col-sm-6 col-xl-3">
+      <KpiCard
+        title="Total Cases"
+        value={totalCount}
+        subtitle="Scrutiny queue"
+        icon={FileText}
+        variant="primary"
+        loading={loading}
+      />
+    </div>
+
+    {/* Critical */}
+    <div className="col-12 col-sm-6 col-xl-3">
+      <KpiCard
+        title="Critical"
+        value={criticalCount}
+        subtitle="Immediate attention"
+        icon={ShieldAlert}
+        variant="danger"
+        loading={loading}
+      />
+    </div>
+
+    {/* High Risk */}
+    <div className="col-12 col-sm-6 col-xl-3">
+      <KpiCard
+        title="High Risk"
+        value={highCount}
+        subtitle="Officer review"
+        icon={AlertTriangle}
+        variant="warning"
+        loading={loading}
+      />
+    </div>
+
+    {/* Medium Risk */}
+    <div className="col-12 col-sm-6 col-xl-3">
+      <KpiCard
+        title="Medium Risk"
+        value={mediumCount}
+        subtitle="Monitor"
+        icon={SlidersHorizontal}
+        variant="info"
+        loading={loading}
+      />
+    </div>
+
+  </div>
+</div>
+
+       {/* =========================================================
+    RISK DISTRIBUTION — COMPACT MODERN OFFICE UI
+========================================================= */}
+
+<div className="gst-risk-card mb-4">
+
+  <div className="gst-risk-header">
+
+    <div className="gst-risk-title-wrap">
+      <div className="gst-risk-title">
+        Risk Distribution
+      </div>
+
+      <span className="gst-risk-total">
+        {formatNumber(totalCount)} total cases
+      </span>
+    </div>
+
+    <div className="gst-risk-total-percent">
+      100%
+    </div>
+
+  </div>
+
+  {/* Distribution Bar */}
+  <div
+    className="gst-risk-bar"
+    role="progressbar"
+    aria-label="Risk distribution"
+    aria-valuemin="0"
+    aria-valuemax="100"
+  >
+
+    <div
+      className="gst-risk-segment critical"
+      style={{
+        width: `${
+          totalCount
+            ? (criticalCount / totalCount) * 100
+            : 0
+        }%`,
+      }}
+      title={`Critical: ${formatNumber(criticalCount)}`}
+    />
+
+    <div
+      className="gst-risk-segment high"
+      style={{
+        width: `${
+          totalCount
+            ? (highCount / totalCount) * 100
+            : 0
+        }%`,
+      }}
+      title={`High: ${formatNumber(highCount)}`}
+    />
+
+    <div
+      className="gst-risk-segment medium"
+      style={{
+        width: `${
+          totalCount
+            ? (mediumCount / totalCount) * 100
+            : 0
+        }%`,
+      }}
+      title={`Medium: ${formatNumber(mediumCount)}`}
+    />
+
+    <div
+      className="gst-risk-segment low"
+      style={{
+        width: `${
+          totalCount
+            ? (lowCount / totalCount) * 100
+            : 0
+        }%`,
+      }}
+      title={`Low: ${formatNumber(lowCount)}`}
+    />
+
+  </div>
+
+  {/* Risk Summary */}
+  <div className="gst-risk-summary">
+
+    {/* Critical */}
+    <div className="gst-risk-item critical-item">
+      <span className="gst-risk-dot critical-dot" />
+
+      <div className="gst-risk-item-content">
+        <span className="gst-risk-label">
+          Critical
+        </span>
+
+        <strong>
+          {formatNumber(criticalCount)}
+        </strong>
+      </div>
+    </div>
+
+    {/* High */}
+    <div className="gst-risk-item high-item">
+      <span className="gst-risk-dot high-dot" />
+
+      <div className="gst-risk-item-content">
+        <span className="gst-risk-label">
+          High
+        </span>
+
+        <strong>
+          {formatNumber(highCount)}
+        </strong>
+      </div>
+    </div>
+
+    {/* Medium */}
+    <div className="gst-risk-item medium-item">
+      <span className="gst-risk-dot medium-dot" />
+
+      <div className="gst-risk-item-content">
+        <span className="gst-risk-label">
+          Medium
+        </span>
+
+        <strong>
+          {formatNumber(mediumCount)}
+        </strong>
+      </div>
+    </div>
+
+    {/* Low */}
+    <div className="gst-risk-item low-item">
+      <span className="gst-risk-dot low-dot" />
+
+      <div className="gst-risk-item-content">
+        <span className="gst-risk-label">
+          Low
+        </span>
+
+        <strong>
+          {formatNumber(lowCount)}
+        </strong>
+      </div>
+    </div>
+
+  </div>
+
+</div>
 
         {/* =================================================
             SCRUTINY QUEUE
@@ -1922,23 +2965,40 @@ export default function GstAuditDashboard() {
           {/* Toolbar */}
 
           <div className="card-header bg-white border-bottom p-3">
-            <div className="d-flex flex-column flex-xl-row justify-content-between align-items-start align-items-xl-center gap-3">
-              <div>
-                <h5 className="fw-bold text-dark mb-0 text-truncate">Review taxpayer discrepancies</h5>
+            <div className="d-flex align-items-center justify-content-between gap-3 flex-nowrap">
+
+              {/* Left: Title + Count */}
+              <div className="flex-shrink-0 text-nowrap">
+                <h5 className="fw-bold text-dark mb-0">
+                  Review taxpayer discrepancies
+                </h5>
+
+                <div className="small text-muted mt-1">
+                  {formatNumber(totalElements)} matching records
+                </div>
               </div>
 
-              <div className="d-flex flex-wrap align-items-center justify-content-end gap-2 w-100">
-                {/* Search */}
+              {/* Right: Search + Filters */}
+              <div className="d-flex align-items-center justify-content-end gap-2 flex-nowrap ms-auto">
 
+                {/* Search */}
                 <div
-                  className="input-group input-group-sm flex-grow-1 flex-xl-grow-0 position-relative"
-                  style={{ minWidth: 200, maxWidth: 320 }}
+                  className="input-group input-group-sm"
+                  style={{
+                    width: "280px",
+                  }}
                 >
                   <span className="input-group-text bg-white">
                     {isFilterPending ? (
-                      <Loader2 size={14} className="text-muted spin" />
+                      <Loader2
+                        size={14}
+                        className="text-muted spin"
+                      />
                     ) : (
-                      <Search size={14} className="text-muted" />
+                      <Search
+                        size={14}
+                        className="text-muted"
+                      />
                     )}
                   </span>
 
@@ -1947,9 +3007,10 @@ export default function GstAuditDashboard() {
                     className="form-control"
                     placeholder="Search GSTIN..."
                     value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                    }}
+                    onChange={(event) =>
+                      setSearchTerm(event.target.value)
+                    }
+                    aria-label="Search GSTIN"
                   />
 
                   {searchTerm && (
@@ -1957,6 +3018,7 @@ export default function GstAuditDashboard() {
                       type="button"
                       className="btn btn-light border"
                       onClick={() => setSearchTerm("")}
+                      aria-label="Clear search"
                     >
                       <X size={13} />
                     </button>
@@ -1964,167 +3026,229 @@ export default function GstAuditDashboard() {
                 </div>
 
                 {/* Risk */}
-
                 <select
-                  className="form-select form-select-sm flex-grow-1 flex-xl-grow-0"
-                  style={{ minWidth: 120, maxWidth: 155 }}
-                  value={riskFilter}
-                  onChange={(e) => {
-                    setRiskFilter(e.target.value);
+                  className="form-select form-select-sm"
+                  style={{
+                    width: "135px",
+                    flexShrink: 0,
                   }}
+                  value={riskFilter}
+                  onChange={(event) =>
+                    setRiskFilter(event.target.value)
+                  }
+                  aria-label="Risk filter"
                 >
                   <option value="ALL">All risk</option>
-
                   <option value="CRITICAL">Critical</option>
-
                   <option value="HIGH">High</option>
-
                   <option value="MEDIUM">Medium</option>
+                  <option value="LOW">Low</option>
                 </select>
 
+                {/* Filters */}
                 <button
                   type="button"
-                  className={`btn btn-sm d-flex align-items-center gap-1 ${
-                    showAdvanced ? "btn-primary" : "btn-outline-secondary"
-                  }`}
-                  onClick={() => setShowAdvanced((prev) => !prev)}
+                  className={`btn btn-sm d-flex align-items-center gap-1 flex-shrink-0 ${showAdvanced
+                    ? "btn-primary"
+                    : "btn-outline-secondary"
+                    }`}
+                  onClick={() =>
+                    setShowAdvanced((previous) => !previous)
+                  }
                 >
                   <Filter size={14} />
                   Filters
                 </button>
+
               </div>
             </div>
           </div>
 
-          <TopLoadingBar active={loading} />
-
           <AdvancedFilters
-            show={showAdvanced}
-            minRiskScore={minRiskScore}
-            setMinRiskScore={setMinRiskScore}
-            maxDelay={maxDelay}
-            setMaxDelay={setMaxDelay}
-            noticeStatus={noticeStatus}
-            setNoticeStatus={setNoticeStatus}
-            onReset={resetFilters}
+            show={
+              showAdvanced
+            }
+            minRiskScore={
+              minRiskScore
+            }
+            setMinRiskScore={
+              setMinRiskScore
+            }
+            maxDelay={
+              maxDelay
+            }
+            setMaxDelay={
+              setMaxDelay
+            }
+            noticeStatus={
+              noticeStatus
+            }
+            setNoticeStatus={
+              setNoticeStatus
+            }
+            onReset={
+              resetFilters
+            }
           />
 
-          {/* Active filter information */}
+          {/* Active filters */}
 
           {(searchTerm ||
-            riskFilter !== "ALL" ||
+            riskFilter !==
+            "ALL" ||
             minRiskScore ||
             maxDelay ||
-            noticeStatus !== "ALL") && (
-            <div className="px-3 py-2 bg-light border-bottom d-flex flex-wrap align-items-center gap-2">
-              <span className="small fw-bold text-muted">Active filters:</span>
-
-              {searchTerm && (
-                <span className="badge bg-white text-dark border">
-                  GSTIN: {searchTerm}
+            noticeStatus !==
+            "ALL") && (
+              <div className="px-3 py-2 bg-light border-bottom d-flex flex-wrap align-items-center gap-2">
+                <span className="small fw-bold text-muted">
+                  Active filters:
                 </span>
-              )}
 
-              {riskFilter !== "ALL" && (
-                <span className="badge bg-white text-dark border">Risk: {riskFilter}</span>
-              )}
+                {searchTerm && (
+                  <span className="badge bg-white text-dark border">
+                    GSTIN:{" "}
+                    {searchTerm}
+                  </span>
+                )}
 
-              {minRiskScore && (
-                <span className="badge bg-white text-dark border">
-                  Risk ≥ {minRiskScore}
+                {riskFilter !==
+                  "ALL" && (
+                    <span className="badge bg-white text-dark border">
+                      Risk:{" "}
+                      {riskFilter}
+                    </span>
+                  )}
+
+                {minRiskScore && (
+                  <span className="badge bg-white text-dark border">
+                    Risk ≥{" "}
+                    {minRiskScore}
+                  </span>
+                )}
+
+                {maxDelay && (
+                  <span className="badge bg-white text-dark border">
+                    Delay ≤{" "}
+                    {maxDelay}{" "}
+                    days
+                  </span>
+                )}
+
+                {noticeStatus !==
+                  "ALL" && (
+                    <span className="badge bg-white text-dark border">
+                      Notice:{" "}
+                      {noticeStatus}
+                    </span>
+                  )}
+
+                <span className="badge bg-primary-subtle text-primary border border-primary-subtle">
+                  {formatNumber(
+                    totalElements
+                  )}{" "}
+                  match
+                  {totalElements ===
+                    1
+                    ? ""
+                    : "es"}
                 </span>
-              )}
 
-              {maxDelay && (
-                <span className="badge bg-white text-dark border">
-                  Delay ≤ {maxDelay} days
-                </span>
-              )}
-
-              {noticeStatus !== "ALL" && (
-                <span className="badge bg-white text-dark border">
-                  Notice: {noticeStatus}
-                </span>
-              )}
-
-              <span className="badge bg-primary-subtle text-primary border border-primary-subtle">
-                {formatNumber(totalElements)} match{totalElements === 1 ? "" : "es"}
-              </span>
-
-              <button
-                type="button"
-                className="btn btn-link btn-sm text-danger p-0 ms-1"
-                onClick={resetFilters}
-              >
-                Clear all
-              </button>
-            </div>
-          )}
+                <button
+                  type="button"
+                  className="btn btn-link btn-sm text-danger p-0 ms-1"
+                  onClick={
+                    resetFilters
+                  }
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
 
           {/* Table */}
 
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
+          <div className="table-responsive gst-table-wrapper">
+            <table className="table table-hover align-middle mb-0 gst-office-table">
+
               <thead>
                 <tr className="official-table-header">
-                  <th className="ps-3 text-uppercase small fw-bold text-muted">Taxpayer</th>
 
-                  <th className="text-end text-uppercase small fw-bold text-muted">
+                  <th className="text-center taxpayer-column">
+                    Taxpayer
+                  </th>
+
+                  <th className="text-center amount-column">
                     Output Tax
                   </th>
 
-                  <th className="text-end text-uppercase small fw-bold text-muted">
+                  <th className="text-center amount-column">
                     Eligible ITC
                   </th>
 
-                  <th className="text-end text-uppercase small fw-bold text-muted">
+                  <th className="text-center amount-column">
                     Utilized ITC
                   </th>
 
-                  <th className="text-end text-uppercase small fw-bold text-muted">
+                  <th className="text-center amount-column">
                     Excess ITC
                   </th>
 
-                  <th className="text-center text-uppercase small fw-bold text-muted">
+                  <th className="text-center ratio-column">
                     ITC Ratio
                   </th>
 
-                  <th className="text-uppercase small fw-bold text-muted">Risk</th>
+                  <th className="text-center risk-column">
+                    Risk
+                  </th>
 
-                  <th className="text-center text-uppercase small fw-bold text-muted">
+                  <th className="text-center filing-column">
                     Filing
                   </th>
 
-                  <th className="text-uppercase small fw-bold text-muted">
+                  <th className="text-center scrutiny-column">
                     Scrutiny Ground
                   </th>
 
-                  <th className="pe-3 text-end text-uppercase small fw-bold text-muted">
+                  <th className="text-center action-column">
                     Action
                   </th>
+
                 </tr>
               </thead>
 
               <tbody>
+
+                {/* Loading */}
                 {loading && data.length === 0 ? (
+
                   Array.from({ length: pageSize }).map((_, index) => (
-                    <SkeletonRow key={`skeleton-${index}`} />
+                    <SkeletonRow
+                      key={`skeleton-${index}`}
+                    />
                   ))
+
                 ) : paginatedRecords.length === 0 ? (
+
+                  /* Empty State */
                   <tr>
-                    <td colSpan={10} className="py-5">
-                      <div className="d-flex flex-column align-items-center justify-content-center text-center">
-                        <div
-                          className="bg-light text-muted rounded-circle d-flex align-items-center justify-content-center mb-3"
-                          style={{ width: 56, height: 56 }}
-                        >
-                          <FilterX size={26} />
+                    <td
+                      colSpan={10}
+                      className="gst-empty-cell"
+                    >
+                      <div className="gst-empty-state">
+
+                        <div className="empty-state-icon">
+                          <FilterX size={25} />
                         </div>
 
-                        <div className="fw-bold text-dark">No scrutiny records found</div>
+                        <div className="empty-state-title">
+                          No scrutiny records found
+                        </div>
 
-                        <div className="small text-muted mt-1">
-                          Try changing the period or filters.
+                        <div className="empty-state-description">
+                          No taxpayer records match the selected
+                          period or applied filters.
                         </div>
 
                         <button
@@ -2134,162 +3258,365 @@ export default function GstAuditDashboard() {
                         >
                           Reset filters
                         </button>
+
                       </div>
                     </td>
                   </tr>
+
                 ) : (
+
+                  /* Data */
                   paginatedRecords.map((row, index) => (
+
                     <ScrutinyRow
-                      key={row.id || `${row.gstin}-${row.taxPeriod || row.retPeriod}-${index}`}
+                      key={
+                        row.serialNo ||
+                        `${row.gstin}-${row._period}-${index}`
+                      }
                       row={row}
                       onNotice={openNotice}
                       onView={viewRecord}
                     />
+
                   ))
+
                 )}
+
               </tbody>
+
             </table>
           </div>
 
-          {/* Footer / Pagination */}
+          {/* Footer */}
 
           <div className="card-footer bg-white border-top p-3">
             <PaginationBar
-              pageNumber={pageNumber}
-              totalPages={totalPages}
-              totalRecords={totalElements}
-              pageSize={pageSize}
-              onPageChange={setPageNumber}
-              onPageSizeChange={setPageSize}
-              disabled={loading}
+              pageNumber={
+                pageNumber
+              }
+              totalPages={
+                totalPages
+              }
+              totalRecords={
+                totalElements
+              }
+              pageSize={
+                pageSize
+              }
+              onPageChange={
+                setPageNumber
+              }
+              onPageSizeChange={(
+                size
+              ) => {
+                setPageSize(
+                  size
+                );
+                setPageNumber(
+                  0
+                );
+              }}
+              disabled={
+                loading
+              }
             />
           </div>
         </section>
       </main>
 
       {/* =================================================
-          DETAILS MODAL
+          DETAIL MODAL
       ================================================= */}
 
       {detailRecord && (
         <div
           className="modal fade show d-block"
-          style={{ background: "rgba(15,23,42,.65)" }}
+          style={{
+            background:
+              "rgba(15,23,42,.65)",
+          }}
           role="dialog"
           aria-modal="true"
         >
-          <div className="modal-dialog modal-dialog-centered modal-lg">
+          <div className="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
             <div className="modal-content border-0 rounded-3 shadow-lg">
               <div className="modal-header">
                 <div>
-                  <h5 className="fw-bold mb-1">Taxpayer Scrutiny Details</h5>
+                  <h5 className="fw-bold mb-1">
+                    Taxpayer Scrutiny
+                    Details
+                  </h5>
 
-                  <div className="small text-muted">{detailRecord.gstin}</div>
+                  <div className="small text-muted font-monospace">
+                    {
+                      detailRecord.gstin
+                    }
+                  </div>
                 </div>
 
                 <button
                   type="button"
                   className="btn-close"
-                  onClick={() => setDetailRecord(null)}
+                  onClick={() =>
+                    setDetailRecord(
+                      null
+                    )
+                  }
+                  aria-label="Close"
                 />
               </div>
 
               <div className="modal-body bg-light">
                 <div className="row g-3">
                   <div className="col-md-6">
-                    <div className="bg-white border rounded-3 p-3">
-                      <div className="small text-muted">GSTIN</div>
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        GSTIN
+                      </div>
 
-                      <div className="font-monospace fw-bold mt-1">{detailRecord.gstin}</div>
+                      <div className="font-monospace fw-bold mt-1">
+                        {
+                          detailRecord.gstin
+                        }
+                      </div>
                     </div>
                   </div>
 
-                  <div className="col-md-6">
-                    <div className="bg-white border rounded-3 p-3">
-                      <div className="small text-muted">Return Period</div>
+                  <div className="col-md-3">
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        Return Period
+                      </div>
 
                       <div className="fw-bold mt-1">
-                        {formatPeriodLabel(detailRecord.taxPeriod || detailRecord.retPeriod)}
+                        {formatPeriodLabel(
+                          getReturnPeriod(
+                            detailRecord
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-md-3">
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        Risk
+                      </div>
+
+                      <div className="mt-1">
+                        <RiskBadge
+                          category={
+                            detailRisk
+                          }
+                          score={getRiskScore(
+                            detailRecord
+                          )}
+                        />
                       </div>
                     </div>
                   </div>
 
                   <div className="col-md-4">
-                    <div className="bg-white border rounded-3 p-3">
-                      <div className="small text-muted">Output Tax</div>
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        Output Tax
+                      </div>
 
                       <div className="fw-bold mt-1">
-                        {formatCurrency(detailRecord.totalOutputTax)}
+                        {formatCurrency(
+                          detailRecord.totalOutputTax
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="col-md-4">
-                    <div className="bg-white border rounded-3 p-3">
-                      <div className="small text-muted">Eligible ITC</div>
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        Eligible ITC
+                      </div>
 
                       <div className="fw-bold mt-1">
-                        {formatCurrency(detailRecord.eligibleItc)}
+                        {formatCurrency(
+                          detailRecord.eligibleItc
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="col-md-4">
-                    <div className="bg-white border rounded-3 p-3">
-                      <div className="small text-muted">Utilized ITC</div>
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        Utilized ITC
+                      </div>
 
                       <div className="fw-bold mt-1">
-                        {formatCurrency(detailRecord.utilizedItc)}
+                        {formatCurrency(
+                          detailRecord.utilizedItc
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="col-md-4">
-                    <div className="bg-white border rounded-3 p-3">
-                      <div className="small text-muted">Excess ITC</div>
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        Excess ITC
+                      </div>
 
-                      <div className="fw-bold text-danger mt-1">
-                        {formatCurrency(detailRecord.excessItc)}
+                      <div
+                        className={`fw-bold mt-1 ${getExcessItc(
+                          detailRecord
+                        ) > 0
+                          ? "text-danger"
+                          : "text-success"
+                          }`}
+                      >
+                        {formatCurrency(
+                          getExcessItc(
+                            detailRecord
+                          )
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="col-md-4">
-                    <div className="bg-white border rounded-3 p-3">
-                      <div className="small text-muted">Filing Delay</div>
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        Filing Delay
+                      </div>
 
                       <div className="fw-bold mt-1">
-                        {Number(detailRecord.filingDelayDays) || 0} days
+                        {formatNumber(
+                          detailRecord.filingDelayDays
+                        )}{" "}
+                        days
                       </div>
                     </div>
                   </div>
 
                   <div className="col-md-4">
-                    <div className="bg-white border rounded-3 p-3">
-                      <div className="small text-muted">ITC Utilization</div>
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        ITC Utilization
+                      </div>
 
                       <div className="fw-bold mt-1">
-                        {formatPercent(detailRecord.itcUtilizationPct)}
+                        {formatPercent(
+                          getItcUtilization(
+                            detailRecord
+                          )
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="col-md-4">
-                    <div className="bg-white border rounded-3 p-3">
-                      <div className="small text-muted">Notice Status</div>
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        RCM Tax
+                      </div>
 
                       <div className="fw-bold mt-1">
-                        {detailRecord._noticeStatus || getNoticeStatus(detailRecord)}
+                        {formatCurrency(
+                          detailRecord.rcmTotalTax
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-md-4">
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        Rule Risk
+                      </div>
+
+                      <div className="fw-bold mt-1">
+                        {formatPercent(
+                          detailRecord.ruleRiskScore
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-md-4">
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        XGBoost Risk
+                      </div>
+
+                      <div className="fw-bold mt-1">
+                        {formatPercent(
+                          detailRecord.xgbRiskScore
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-md-4">
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        DL4J Anomaly
+                      </div>
+
+                      <div className="fw-bold mt-1">
+                        {formatPercent(
+                          detailRecord.dl4jAnomalyScore
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-md-4">
+                    <div className="detail-box">
+                      <div className="detail-label">
+                        Notice Status
+                      </div>
+
+                      <div className="mt-1">
+                        {detailNoticeStatus ===
+                          "ISSUED" ? (
+                          <span className="badge bg-success-subtle text-success border border-success-subtle">
+                            <CheckCircle2
+                              size={12}
+                              className="me-1"
+                            />
+                            Issued
+                          </span>
+                        ) : (
+                          <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                            Pending
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="col-12">
-                    <div className="bg-white border rounded-3 p-3">
-                      <div className="small text-muted mb-2">Scrutiny Grounds</div>
+                    <div className="detail-box">
+                      <div className="detail-label mb-2">
+                        Discrepancy Status
+                      </div>
 
-                      <div className="text-dark small">
-                        {detailRecord._reason || getReason(detailRecord)}
+                      <span className="badge bg-light text-dark border">
+                        {
+                          detailRecord.discrepancyStatus ||
+                          "NO_DISCREPANCY"
+                        }
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="col-12">
+                    <div className="detail-box">
+                      <div className="detail-label mb-2">
+                        Scrutiny Grounds
+                      </div>
+
+                      <div className="text-dark small detail-reason">
+                        {detailReason}
                       </div>
                     </div>
                   </div>
@@ -2300,24 +3627,34 @@ export default function GstAuditDashboard() {
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setDetailRecord(null)}
+                  onClick={() =>
+                    setDetailRecord(
+                      null
+                    )
+                  }
                 >
                   Close
                 </button>
 
-                {(detailRecord._noticeStatus || getNoticeStatus(detailRecord)) !== "ISSUED" && (
-                  <button
-                    type="button"
-                    className="btn btn-primary d-flex align-items-center gap-2"
-                    onClick={() => {
-                      setDetailRecord(null);
-                      openNotice(detailRecord);
-                    }}
-                  >
-                    <Send size={14} />
-                    Issue Notice
-                  </button>
-                )}
+                {detailNoticeStatus !==
+                  "ISSUED" && (
+                    <button
+                      type="button"
+                      className="btn btn-primary d-flex align-items-center gap-2"
+                      onClick={() => {
+                        setDetailRecord(
+                          null
+                        );
+
+                        openNotice(
+                          detailRecord
+                        );
+                      }}
+                    >
+                      <Send size={14} />
+                      Issue Notice
+                    </button>
+                  )}
               </div>
             </div>
           </div>
@@ -2329,18 +3666,32 @@ export default function GstAuditDashboard() {
       ================================================= */}
 
       <NoticeModal
-        show={Boolean(modalRecord)}
+        show={Boolean(
+          modalRecord
+        )}
         record={modalRecord}
-        onClose={() => setModalRecord(null)}
-        onSubmit={dispatchNotice}
-        submitting={submittingNotice}
+        onClose={() =>
+          setModalRecord(null)
+        }
+        onSubmit={
+          dispatchNotice
+        }
+        submitting={
+          submittingNotice
+        }
       />
 
       {/* =================================================
           TOAST
       ================================================= */}
 
-      <Toast toast={toast} onClose={() => setToast(null)} />
+      <Toast
+        toast={toast}
+        onClose={() =>
+          setToast(null)
+        }
+      />
     </div>
   );
 }
+

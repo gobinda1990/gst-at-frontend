@@ -543,6 +543,7 @@ const GstinAnalysisPage = ({
       "itcClaimed",
       "cashPaid",
       "rcmTax",
+      "itcEligible",
     ];
 
     const result = {};
@@ -565,6 +566,7 @@ const GstinAnalysisPage = ({
       itc: result.itcClaimed,
       cash: result.cashPaid,
       rcm: result.rcmTax,
+      itcEligible: result.itcEligible,
     };
   }, [history]);
 
@@ -1141,105 +1143,133 @@ const GstinAnalysisPage = ({
 ===================================================== */}
               <div className="col-12 col-xl-6">
                 <BootstrapPanel
-                  icon={<FaFileInvoiceDollar className="text-primary" />}
+                  icon={<FaFileInvoiceDollar style={{ color: "#6f42c1" }} />}
                   title="Tax Summary"
                   subtitle="Aggregated GSTR-3B values"
                 >
                   <div className="row g-2">
-                    {/* TAXABLE VALUE */}
+                    {/* TAXABLE VALUE - IGST Purple Theme */}
                     <div className="col-6 col-md-4">
-                      <div className="p-3 rounded-3 bg-primary bg-opacity-10 border border-primary-subtle h-100">
+                      <div
+                        className="p-3 rounded-3 border h-100"
+                        style={{ backgroundColor: "#f3e8ff", borderColor: "#d8b4fe" }}
+                      >
                         <div
-                          className="text-uppercase fw-bold text-muted mb-1"
-                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                          className="text-uppercase fw-bold mb-1"
+                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px", color: "#4b5563" }}
                         >
                           Taxable Value
                         </div>
-                        <div className="fw-bold text-dark font-monospace fs-6">
-                          {formatINRCompact(totals.taxableValue)}
+                        <div
+                          className="fw-bold font-monospace fs-6"
+                          style={{ color: "#111827" }}
+                        >
+                          {formatINRCompact(totals?.taxableValue || 0)}
                         </div>
                       </div>
                     </div>
 
-                    {/* OUTPUT TAX */}
+                    {/* OUTPUT TAX - Dark Slate Theme */}
                     <div className="col-6 col-md-4">
-                      <div className="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary-subtle h-100">
+                      <div
+                        className="p-3 rounded-3 border h-100"
+                        style={{ backgroundColor: "#f1f5f9", borderColor: "#cbd5e1" }}
+                      >
                         <div
-                          className="text-uppercase fw-bold text-muted mb-1"
-                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                          className="text-uppercase fw-bold mb-1"
+                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px", color: "#4b5563" }}
                         >
                           Output Tax
                         </div>
-                        <div className="fw-bold text-dark font-monospace fs-6">
-                          {formatINRCompact(totals.outputTax)}
+                        <div
+                          className="fw-bold font-monospace fs-6"
+                          style={{ color: "#111827" }}
+                        >
+                          {formatINRCompact(totals?.outputTax || 0)}
                         </div>
                       </div>
                     </div>
 
-                    {/* ITC CLAIMED */}
+                    {/* ITC CLAIMED - SGST Blue Theme */}
                     <div className="col-6 col-md-4">
-                      <div className="p-3 rounded-3 bg-info bg-opacity-10 border border-info-subtle h-100">
+                      <div
+                        className="p-3 rounded-3 border h-100"
+                        style={{ backgroundColor: "#e0f2fe", borderColor: "#bae6fd" }}
+                      >
                         <div
-                          className="text-uppercase fw-bold text-muted mb-1"
-                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                          className="text-uppercase fw-bold mb-1"
+                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px", color: "#4b5563" }}
                         >
                           ITC Claimed
                         </div>
-                        <div className="fw-bold text-dark font-monospace fs-6">
-                          {formatINRCompact(totals.itc)}
+                        <div
+                          className="fw-bold font-monospace fs-6"
+                          style={{ color: "#111827" }}
+                        >
+                          {formatINRCompact(totals?.itc || 0)}
                         </div>
                       </div>
                     </div>
 
-                    {/* CASH PAID */}
+                    {/* CASH PAID - CGST Teal Theme */}
                     <div className="col-6 col-md-4">
-                      <div className="p-3 rounded-3 bg-success bg-opacity-10 border border-success-subtle h-100">
+                      <div
+                        className="p-3 rounded-3 border h-100"
+                        style={{ backgroundColor: "#ccfbf1", borderColor: "#99f6e4" }}
+                      >
                         <div
-                          className="text-uppercase fw-bold text-muted mb-1"
-                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                          className="text-uppercase fw-bold mb-1"
+                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px", color: "#4b5563" }}
                         >
                           Cash Paid
                         </div>
-                        <div className="fw-bold text-dark font-monospace fs-6">
-                          {formatINRCompact(totals.cash)}
+                        <div
+                          className="fw-bold font-monospace fs-6"
+                          style={{ color: "#111827" }}
+                        >
+                          {formatINRCompact(totals?.cash || 0)}
                         </div>
                       </div>
                     </div>
 
-                    {/* RCM TAX */}
+                    {/* RCM TAX - Dark Slate Theme */}
                     <div className="col-6 col-md-4">
-                      <div className="p-3 rounded-3 bg-dark bg-opacity-10 border border-dark-subtle h-100">
+                      <div
+                        className="p-3 rounded-3 border h-100"
+                        style={{ backgroundColor: "#f1f5f9", borderColor: "#cbd5e1" }}
+                      >
                         <div
-                          className="text-uppercase fw-bold text-muted mb-1"
-                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                          className="text-uppercase fw-bold mb-1"
+                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px", color: "#4b5563" }}
                         >
                           RCM Tax
                         </div>
-                        <div className="fw-bold text-dark font-monospace fs-6">
-                          {formatINRCompact(totals.rcm)}
+                        <div
+                          className="fw-bold font-monospace fs-6"
+                          style={{ color: "#111827" }}
+                        >
+                          {formatINRCompact(totals?.rcm || 0)}
                         </div>
                       </div>
                     </div>
 
-                    {/* DELAYED RETURNS */}
+                    {/* ITC ELIGIBLE - CESS Orange Theme (Replaced Delayed Returns) */}
                     <div className="col-6 col-md-4">
                       <div
-                        className={`p-3 rounded-3 border h-100 ${delayedReturns > 0
-                          ? "bg-warning bg-opacity-25 border-warning-subtle"
-                          : "bg-success bg-opacity-10 border-success-subtle"
-                          }`}
+                        className="p-3 rounded-3 border h-100"
+                        style={{ backgroundColor: "#ffedd5", borderColor: "#fed7aa" }}
                       >
                         <div
-                          className="text-uppercase fw-bold text-muted mb-1"
-                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px" }}
+                          className="text-uppercase fw-bold mb-1"
+                          style={{ fontSize: "0.68rem", letterSpacing: "0.5px", color: "#4b5563" }}
                         >
-                          Delayed Returns
+                          ITC Eligible
                         </div>
                         <div
-                          className={`fw-bold font-monospace fs-6 ${delayedReturns > 0 ? "text-warning-emphasis" : "text-success"
-                            }`}
+                          className="fw-bold font-monospace fs-6"
+                          style={{ color: "#111827" }}
                         >
-                          {delayedReturns}
+                          {formatINRCompact(analysis.lifetimeItcEligible || 0)}
                         </div>
                       </div>
                     </div>

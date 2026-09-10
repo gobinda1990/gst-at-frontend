@@ -6,9 +6,7 @@ import {
   FaBrain, 
   FaCog,
   FaBars,
-  FaTimes,
-  FaSearchLocation,
-  FaExclamationTriangle,
+  FaTimes,  
   FaUserShield,
   FaFileInvoiceDollar,
   FaCoins 
