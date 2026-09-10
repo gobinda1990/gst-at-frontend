@@ -1,0 +1,1469 @@
+
+/* =========================================================
+   GST AUDIT / SCRUTINY DASHBOARD
+   Production Office UI
+========================================================= */
+
+.gst-audit-dashboard {
+  background: #f4f6f9;
+  color: #1f2937;
+  min-height: 100vh;
+  font-family:
+    Inter,
+    "Segoe UI",
+    Roboto,
+    Arial,
+    sans-serif;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.gst-office-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.gst-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111111;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   LOADING BAR
+========================================================= */
+
+.gst-loading-bar {
+  height: 3px;
+  width: 100%;
+  overflow: hidden;
+  background: #e9edf3;
+}
+
+.gst-loading-bar-progress {
+  height: 100%;
+  width: 40%;
+  border-radius: 3px;
+  background:
+    linear-gradient(
+      90deg,
+      #0d6efd,
+      #6ea8fe
+    );
+  animation:
+    gst-loading-slide
+    1.1s
+    ease-in-out
+    infinite;
+}
+
+@keyframes gst-loading-slide {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+/* =========================================================
+   SPIN
+========================================================= */
+
+.spin {
+  animation:
+    gst-spin
+    0.9s
+    linear
+    infinite;
+}
+
+@keyframes gst-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   PERIOD SELECTOR
+========================================================= */
+
+.period-dropdown {
+  z-index: 1200;
+  width: 270px;
+  left: 0;
+}
+
+.period-chevron {
+  transition:
+    transform
+    0.18s
+    ease;
+}
+
+/* =========================================================
+   KPI
+========================================================= */
+
+.gst-audit-dashboard
+.card {
+  border-color: #e4e8ee;
+}
+
+.gst-audit-dashboard
+.card-body {
+  min-width: 0;
+}
+
+/* =========================================================
+   RISK SUMMARY
+========================================================= */
+
+.gst-risk-progress {
+  height: 11px;
+  border-radius: 10px;
+  background: #edf0f4;
+  overflow: hidden;
+}
+
+.gst-risk-progress
+.progress-bar {
+  min-width: 0;
+}
+
+.risk-summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.risk-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.gst-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.gst-office-table {
+  min-width: 1250px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.gst-office-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.official-table-header {
+  background: #eef2f7;
+}
+
+.official-table-header th {
+  color: #344054 !important;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+  border-bottom:
+    1px solid
+    #d9dee7;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.gst-office-table tbody td {
+  border-bottom:
+    1px solid
+    #edf0f4;
+  color: #293241;
+  font-size: 0.86rem;
+  vertical-align: middle;
+}
+
+.scrutiny-data-row {
+  transition:
+    background-color
+    0.12s
+    ease;
+}
+
+.scrutiny-data-row:hover {
+  background: #f8fafc !important;
+}
+
+.taxpayer-cell {
+  min-width: 170px;
+}
+
+.amount-cell {
+  min-width: 145px;
+}
+
+.amount-cell
+.font-monospace {
+  font-size: 0.82rem;
+}
+
+.scrutiny-reason {
+  max-width: 245px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.45;
+}
+
+.skeleton-row td {
+  background: #fff;
+}
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.empty-state-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #f1f3f6;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================================================
+   DETAIL BOX
+========================================================= */
+
+.detail-box {
+  background: #fff;
+  border:
+    1px solid
+    #e1e6ed;
+  border-radius: 9px;
+  padding: 14px;
+  height: 100%;
+}
+
+.detail-label {
+  color: #667085;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
+}
+
+.detail-reason {
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+/* =========================================================
+   BADGES
+========================================================= */
+
+.badge {
+  font-weight: 700;
+}
+
+/* =========================================================
+   FORM CONTROLS
+========================================================= */
+
+.gst-audit-dashboard
+.form-control,
+.gst-audit-dashboard
+.form-select {
+  border-color: #d7dce3;
+}
+
+.gst-audit-dashboard
+.form-control:focus,
+.gst-audit-dashboard
+.form-select:focus {
+  border-color: #86b7fe;
+  box-shadow:
+    0 0 0
+    0.2rem
+    rgba(13, 110, 253, 0.12);
+}
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.gst-audit-dashboard
+.btn {
+  font-weight: 600;
+}
+
+.gst-audit-dashboard
+.btn-primary {
+  box-shadow:
+    0 1px 2px
+    rgba(13, 110, 253, 0.12);
+}
+
+/* =========================================================
+   PAGINATION
+========================================================= */
+
+.gst-audit-dashboard
+.pagination
+.page-link {
+  color: #344054;
+  border-color: #dfe3e8;
+  min-width: 32px;
+  min-height: 31px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gst-audit-dashboard
+.pagination
+.page-item.active
+.page-link {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+}
+
+.gst-audit-dashboard
+.pagination
+.page-link:hover {
+  background: #f1f5f9;
+}
+
+.gst-audit-dashboard
+.pagination
+.page-item.active
+.page-link:hover {
+  background: #0d6efd;
+}
+
+/* =========================================================
+   MODALS
+========================================================= */
+
+.gst-audit-dashboard
+.modal-content {
+  border: 0;
+}
+
+.gst-audit-dashboard
+.modal-header {
+  border-bottom-color: #e6e9ee;
+}
+
+.gst-audit-dashboard
+.modal-footer {
+  border-top-color: #e6e9ee;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1199.98px) {
+  .gst-office-header {
+    position: relative;
+  }
+
+  .gst-office-table {
+    min-width: 1150px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .gst-audit-dashboard {
+    font-size: 0.92rem;
+  }
+
+  .gst-header-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .period-dropdown {
+    width: 100%;
+    min-width: 250px;
+  }
+
+  .gst-office-table {
+    min-width: 1080px;
+  }
+
+  .gst-office-table thead th {
+    font-size: 0.68rem;
+  }
+
+  .gst-office-table tbody td {
+    font-size: 0.8rem;
+  }
+
+  .amount-cell {
+    min-width: 130px;
+  }
+
+  .scrutiny-reason {
+    max-width: 210px;
+  }
+}
+
+.gst-defaulter-dashboard .card-header {
+  overflow-x: auto;
+}
+
+.gst-defaulter-dashboard .card-header > .d-flex {
+  min-width: 760px;
+}
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .spin,
+  .gst-loading-bar-progress {
+    animation: none;
+  }
+
+  .scrutiny-data-row {
+    transition: none;
+  }
+}
+
+.gst-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #ffffff;
+  border-radius: 0 0 8px 8px;
+}
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.gst-office-table {
+  width: 100%;
+  min-width: 1350px;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  color: #1f2937;
+  font-size: 0.84rem;
+}
+
+/* =========================================================
+   TABLE HEADER
+   ========================================================= */
+
+.gst-office-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.gst-office-table .official-table-header th {
+  height: 52px;
+  padding: 11px 10px;
+  background: #17365d;
+  color: #ffffff;
+  border-bottom: 2px solid #0f2744;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  line-height: 1.25;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.gst-office-table .official-table-header th:first-child {
+  border-left: 0;
+}
+
+.gst-office-table .official-table-header th:last-child {
+  border-right: 0;
+}
+
+/* Header hover */
+.gst-office-table .official-table-header th:hover {
+  background: #1d4775;
+}
+
+/* =========================================================
+   COLUMN WIDTHS
+   ========================================================= */
+
+.taxpayer-column {
+  min-width: 175px;
+}
+
+.amount-column {
+  min-width: 125px;
+}
+
+.ratio-column {
+  min-width: 110px;
+}
+
+.risk-column {
+  min-width: 115px;
+}
+
+.filing-column {
+  min-width: 115px;
+}
+
+.scrutiny-column {
+  min-width: 270px;
+}
+
+.action-column {
+  min-width: 180px;
+}
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+.gst-office-table tbody tr {
+  background: #ffffff;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.gst-office-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.gst-office-table tbody tr:hover {
+  background: #eef5ff !important;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+
+.gst-office-table td {
+  padding: 11px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #eef0f3;
+  color: #263445;
+  vertical-align: middle;
+}
+
+.gst-office-table td:last-child {
+  border-right: 0;
+}
+
+/* =========================================================
+   TAXPAYER
+   ========================================================= */
+
+.taxpayer-cell {
+  min-width: 175px;
+}
+
+.gstin-value {
+  color: #123b63;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+}
+
+.period-value {
+  margin-top: 3px;
+  color: #6b7280;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+/* =========================================================
+   AMOUNTS
+   ========================================================= */
+
+.amount-cell {
+  color: #263445 !important;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.excess-itc-value {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.normal-itc-value {
+  color: #475569;
+}
+
+/* =========================================================
+   ITC RATIO
+   ========================================================= */
+
+.ratio-cell {
+  min-width: 110px;
+}
+
+.ratio-value {
+  color: #334155;
+  font-size: 0.81rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ratio-progress {
+  width: 72px;
+  height: 5px;
+  margin: 5px auto 0;
+  overflow: hidden;
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.ratio-progress-bar {
+  height: 100%;
+  min-width: 2px;
+  background: #3b82f6;
+  border-radius: inherit;
+  transition: width 0.2s ease;
+}
+
+/* =========================================================
+   RISK
+   ========================================================= */
+
+.risk-cell {
+  min-width: 115px;
+}
+
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  padding: 4px 9px;
+
+  border: 1px solid;
+  border-radius: 5px;
+
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.risk-score {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   FILING
+   ========================================================= */
+
+.filing-cell {
+  min-width: 115px;
+  white-space: nowrap;
+}
+
+.filing-delay-badge,
+.filing-on-time-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  padding: 4px 8px;
+  border-radius: 5px;
+
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.filing-delay-badge {
+  color: #9a3412;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.filing-on-time-badge {
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+/* =========================================================
+   SCRUTINY GROUND
+   ========================================================= */
+
+.scrutiny-cell {
+  min-width: 270px;
+  max-width: 350px;
+}
+
+.scrutiny-reason {
+  display: -webkit-box;
+  overflow: hidden;
+
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.45;
+
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+}
+
+/* =========================================================
+   ACTION
+   ========================================================= */
+
+.action-cell {
+  min-width: 180px;
+  white-space: nowrap;
+}
+
+.action-btn {
+  min-width: 72px;
+  height: 31px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  border-radius: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.action-btn:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
+.gst-empty-cell {
+  height: 300px;
+  border-bottom: 0 !important;
+}
+
+.gst-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 270px;
+  text-align: center;
+}
+
+.empty-state-icon {
+  width: 54px;
+  height: 54px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 14px;
+
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+}
+
+.empty-state-title {
+  color: #1e293b;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.empty-state-description {
+  max-width: 380px;
+  margin-top: 4px;
+
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.gst-office-table .spinner-border {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+.gst-table-wrapper::-webkit-scrollbar {
+  height: 9px;
+}
+
+.gst-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.gst-table-wrapper::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 10px;
+}
+
+.gst-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1200px) {
+  .gst-office-table {
+    min-width: 1250px;
+  }
+}
+
+@media (max-width: 768px) {
+  .gst-office-table {
+    min-width: 1150px;
+    font-size: 0.78rem;
+  }
+
+  .gst-office-table .official-table-header th {
+    height: 48px;
+    padding: 9px 8px;
+    font-size: 0.7rem;
+  }
+
+  .gst-office-table td {
+    padding: 9px 8px;
+  }
+
+  .action-btn span {
+    display: none;
+  }
+
+  .action-btn {
+    min-width: 32px;
+    width: 32px;
+    padding: 0;
+  }
+}
+
+/* =========================================================
+   GST SCRUTINY KPI CARDS
+   Office / Production Dashboard
+========================================================= */
+
+.gst-kpi-card {
+  position: relative;
+  height: 100%;
+  min-height: 128px;
+
+  overflow: hidden;
+
+  background: var(--kpi-bg);
+  border: 1px solid var(--kpi-border);
+  border-radius: 10px;
+
+  box-shadow:
+    0 2px 5px rgba(15, 23, 42, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.gst-kpi-card:hover {
+  transform: translateY(-2px);
+
+  border-color: var(--kpi-accent);
+
+  box-shadow:
+    0 7px 18px rgba(15, 23, 42, 0.10),
+    0 2px 5px rgba(15, 23, 42, 0.05);
+}
+
+/* =========================================================
+   CARD BODY
+========================================================= */
+
+.gst-kpi-card-body {
+  position: relative;
+
+  display: flex;
+  align-items: flex-start;
+
+  gap: 14px;
+
+  min-height: 128px;
+
+  padding: 18px 18px 17px 20px;
+}
+
+/* =========================================================
+   LEFT ACCENT BAR
+========================================================= */
+
+.gst-kpi-accent-bar {
+  position: absolute;
+
+  top: 0;
+  bottom: 0;
+  left: 0;
+
+  width: 4px;
+
+  background: var(--kpi-accent);
+}
+
+/* =========================================================
+   ICON
+========================================================= */
+
+.gst-kpi-icon {
+  width: 42px;
+  height: 42px;
+
+  flex: 0 0 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #ffffff;
+
+  background: var(--kpi-icon-bg);
+
+  border-radius: 9px;
+
+  box-shadow:
+    0 3px 7px rgba(15, 23, 42, 0.12);
+}
+
+.gst-kpi-icon svg {
+  display: block;
+}
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.gst-kpi-content {
+  min-width: 0;
+  flex: 1;
+  padding-top: 1px;
+}
+
+/* =========================================================
+   TITLE
+========================================================= */
+
+.gst-kpi-title {
+  margin-bottom: 6px;
+
+  color: #475569;
+
+  font-size: 0.70rem;
+  font-weight: 800;
+
+  line-height: 1.2;
+
+  letter-spacing: 0.55px;
+  text-transform: uppercase;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =========================================================
+   VALUE
+========================================================= */
+
+.gst-kpi-value {
+  color: var(--kpi-value);
+
+  font-family:
+    "Roboto Mono",
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    monospace;
+
+  font-size: 1.65rem;
+  font-weight: 800;
+
+  line-height: 1.05;
+
+  letter-spacing: -0.5px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   SUBTITLE
+========================================================= */
+
+.gst-kpi-subtitle {
+  margin-top: 6px;
+
+  color: var(--kpi-subtitle);
+
+  font-size: 0.74rem;
+  font-weight: 600;
+
+  line-height: 1.25;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.gst-kpi-loading-value {
+  color: #64748b;
+
+  font-family:
+    "Roboto Mono",
+    "SFMono-Regular",
+    Consolas,
+    monospace;
+
+  font-size: 1rem;
+  font-weight: 700;
+
+  line-height: 1.5;
+}
+
+.gst-kpi-card .spin {
+  animation: gst-kpi-spin 0.9s linear infinite;
+}
+
+@keyframes gst-kpi-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1399px) {
+  .gst-kpi-card-body {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .gst-kpi-icon {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+
+  .gst-kpi-value {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 575px) {
+  .gst-kpi-card {
+    min-height: 116px;
+  }
+
+  .gst-kpi-card-body {
+    min-height: 116px;
+    padding: 15px 15px 15px 18px;
+  }
+
+  .gst-kpi-icon {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+  }
+
+  .gst-kpi-title {
+    font-size: 0.66rem;
+  }
+
+  .gst-kpi-value {
+    font-size: 1.4rem;
+  }
+
+  .gst-kpi-subtitle {
+    font-size: 0.70rem;
+  }
+}
+
+/* =========================================================
+   COMPACT RISK DISTRIBUTION
+   GST Office / Production Dashboard
+========================================================= */
+
+.gst-risk-card {
+  width: 100%;
+
+  padding: 14px 16px;
+
+  background: #ffffff;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.05);
+
+  transition:
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.gst-risk-card:hover {
+  border-color: #cbd5e1;
+
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.gst-risk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 10px;
+}
+
+.gst-risk-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  min-width: 0;
+}
+
+.gst-risk-title {
+  color: #1e293b;
+
+  font-size: 0.76rem;
+  font-weight: 800;
+
+  line-height: 1.2;
+
+  letter-spacing: 0.45px;
+  text-transform: uppercase;
+
+  white-space: nowrap;
+}
+
+.gst-risk-total {
+  padding-left: 9px;
+
+  color: #64748b;
+
+  font-size: 0.70rem;
+  font-weight: 600;
+
+  border-left: 1px solid #cbd5e1;
+
+  white-space: nowrap;
+}
+
+.gst-risk-total-percent {
+  color: #64748b;
+
+  font-size: 0.70rem;
+  font-weight: 700;
+}
+
+/* =========================================================
+   DISTRIBUTION BAR
+========================================================= */
+
+.gst-risk-bar {
+  display: flex;
+
+  width: 100%;
+  height: 9px;
+
+  overflow: hidden;
+
+  background: #f1f5f9;
+
+  border-radius: 20px;
+}
+
+.gst-risk-segment {
+  height: 100%;
+
+  min-width: 0;
+
+  transition:
+    width 0.35s ease;
+}
+
+.gst-risk-segment:first-child {
+  border-radius: 20px 0 0 20px;
+}
+
+.gst-risk-segment:last-child {
+  border-radius: 0 20px 20px 0;
+}
+
+/* Risk colors */
+
+.gst-risk-segment.critical {
+  background: #dc2626;
+}
+
+.gst-risk-segment.high {
+  background: #f59e0b;
+}
+
+.gst-risk-segment.medium {
+  background: #0891b2;
+}
+
+.gst-risk-segment.low {
+  background: #16a34a;
+}
+
+/* =========================================================
+   SUMMARY
+========================================================= */
+
+.gst-risk-summary {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 10px;
+
+  margin-top: 12px;
+}
+
+/* =========================================================
+   RISK ITEM
+========================================================= */
+
+.gst-risk-item {
+  display: flex;
+  align-items: center;
+
+  min-width: 0;
+
+  padding: 6px 9px;
+
+  background: #f8fafc;
+
+  border: 1px solid #edf1f5;
+  border-radius: 6px;
+}
+
+.gst-risk-item-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 8px;
+
+  width: 100%;
+  min-width: 0;
+}
+
+.gst-risk-label {
+  overflow: hidden;
+
+  color: #64748b;
+
+  font-size: 0.70rem;
+  font-weight: 600;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.gst-risk-item strong {
+  font-size: 0.78rem;
+  font-weight: 800;
+
+  font-variant-numeric: tabular-nums;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   DOT
+========================================================= */
+
+.gst-risk-dot {
+  width: 7px;
+  height: 7px;
+
+  flex: 0 0 7px;
+
+  margin-right: 7px;
+
+  border-radius: 50%;
+}
+
+/* =========================================================
+   INDIVIDUAL COLORS
+========================================================= */
+
+.critical-dot {
+  background: #dc2626;
+}
+
+.high-dot {
+  background: #f59e0b;
+}
+
+.medium-dot {
+  background: #0891b2;
+}
+
+.low-dot {
+  background: #16a34a;
+}
+
+.critical-item strong {
+  color: #b91c1c;
+}
+
+.high-item strong {
+  color: #b45309;
+}
+
+.medium-item strong {
+  color: #0e7490;
+}
+
+.low-item strong {
+  color: #15803d;
+}
+
+/* =========================================================
+   HOVER
+========================================================= */
+
+.gst-risk-item {
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.gst-risk-item:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 767px) {
+
+  .gst-risk-card {
+    padding: 13px;
+  }
+
+  .gst-risk-summary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap: 7px;
+  }
+
+}
+
+@media (max-width: 420px) {
+
+  .gst-risk-title-wrap {
+    gap: 6px;
+  }
+
+  .gst-risk-total {
+    display: none;
+  }
+
+  .gst-risk-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .gst-risk-item {
+    padding: 6px 7px;
+  }
+
+}
+

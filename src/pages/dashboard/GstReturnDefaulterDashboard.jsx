@@ -1,9 +1,9 @@
 import React, {
   useCallback,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
-  useDeferredValue,
   useState,
 } from "react";
 
@@ -48,13 +48,6 @@ const DEFAULT_PAGE_SIZE = 10;
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
-/*
- * Safety fallback only when backend does not return totalElements.
- *
- * NOTE:
- * For truly huge datasets, backend should ideally expose a
- * dedicated "fetch all" endpoint or export endpoint.
- */
 const FALLBACK_SERVER_FETCH_SIZE = 750000;
 
 const FETCH_SIZE_BUFFER = 200;
@@ -62,78 +55,67 @@ const FETCH_SIZE_BUFFER = 200;
 const MAX_RISK_SCORE = 100;
 
 /* =========================================================
-   RISK CONFIG
+   RISK CONFIGURATION
 ========================================================= */
 
 const RISK_CONFIG = {
   CRITICAL: {
     label: "Critical",
-    badge:
-      "bg-danger-subtle text-danger border-danger-subtle",
-    text: "text-danger",
+    className: "risk-critical",
+    color: "danger",
   },
 
   HIGH: {
     label: "High",
-    badge:
-      "bg-warning-subtle text-warning-emphasis border-warning-subtle",
-    text: "text-warning-emphasis",
+    className: "risk-high",
+    color: "warning",
   },
 
   MEDIUM: {
     label: "Medium",
-    badge:
-      "bg-info-subtle text-info-emphasis border-info-subtle",
-    text: "text-info-emphasis",
+    className: "risk-medium",
+    color: "info",
   },
 
   LOW: {
     label: "Low",
-    badge:
-      "bg-success-subtle text-success border-success-subtle",
-    text: "text-success",
+    className: "risk-low",
+    color: "success",
   },
 };
 
 /* =========================================================
-   DELAY CONFIG
+   DELAY CONFIGURATION
 ========================================================= */
 
 const DELAY_CONFIG = {
   CRITICAL: {
-    badge:
-      "bg-danger-subtle text-danger border-danger-subtle",
+    label: "Critical Delay",
+    className: "delay-critical",
   },
 
   WARNING: {
-    badge:
-      "bg-warning-subtle text-warning-emphasis border-warning-subtle",
+    label: "Delayed",
+    className: "delay-warning",
   },
 
   NORMAL: {
-    badge:
-      "bg-light text-secondary border-secondary-subtle",
+    label: "Normal",
+    className: "delay-normal",
   },
 };
 
 /* =========================================================
-   GLOBAL HELPERS
+   HELPERS
 ========================================================= */
 
-const isAbortError = (error) => {
-  return (
-    error?.name === "AbortError" ||
-    error?.name === "CanceledError" ||
-    error?.code === "ERR_CANCELED"
-  );
-};
+const isAbortError = (error) =>
+  error?.name === "AbortError" ||
+  error?.name === "CanceledError" ||
+  error?.code === "ERR_CANCELED";
 
 const toSafeNumber = (value, fallback = 0) => {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ""
-  ) {
+  if (value === null || value === undefined || value === "") {
     return fallback;
   }
 
@@ -142,21 +124,17 @@ const toSafeNumber = (value, fallback = 0) => {
   return Number.isFinite(number) ? number : fallback;
 };
 
-const formatCurrency = (amount) => {
-  const value = toSafeNumber(amount);
+const formatNumber = (value) =>
+  new Intl.NumberFormat("en-IN").format(
+    toSafeNumber(value)
+  );
 
-  return new Intl.NumberFormat("en-IN", {
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0,
-  }).format(value);
-};
-
-const formatNumber = (value) => {
-  const number = toSafeNumber(value);
-
-  return new Intl.NumberFormat("en-IN").format(number);
-};
+  }).format(toSafeNumber(value));
 
 /* =========================================================
    PERIOD HELPERS
@@ -174,12 +152,13 @@ const getPeriodValue = (period) => {
   if (typeof period === "object") {
     return String(
       period.value ??
-        period.id ??
-        period.retPeriod ??
-        period.period ??
-        period.code ??
-        Object.values(period)[0] ??
-        ""
+      period.id ??
+      period.retPeriod ??
+      period.returnPeriod ??
+      period.period ??
+      period.code ??
+      Object.values(period)[0] ??
+      ""
     );
   }
 
@@ -204,11 +183,6 @@ const formatPeriodLabel = (period) => {
 
   const value = getPeriodValue(period).trim();
 
-  if (!value) return "";
-
-  /*
-   * Expected MMYYYY.
-   */
   if (!/^\d{6}$/.test(value)) {
     return value;
   }
@@ -217,7 +191,6 @@ const formatPeriodLabel = (period) => {
   const year = Number(value.substring(2, 6));
 
   if (
-    !Number.isInteger(month) ||
     month < 1 ||
     month > 12 ||
     !Number.isInteger(year)
@@ -225,12 +198,13 @@ const formatPeriodLabel = (period) => {
     return value;
   }
 
-  const date = new Date(year, month - 1, 1);
-
-  return date.toLocaleString("en-IN", {
-    month: "short",
-    year: "numeric",
-  });
+  return new Date(year, month - 1, 1).toLocaleString(
+    "en-IN",
+    {
+      month: "short",
+      year: "numeric",
+    }
+  );
 };
 
 /* =========================================================
@@ -240,9 +214,9 @@ const formatPeriodLabel = (period) => {
 const getRiskCategory = (row) => {
   const risk = String(
     row?.defaulterRiskLevel ??
-      row?.riskLevel ??
-      row?.riskCategory ??
-      "MEDIUM"
+    row?.riskLevel ??
+    row?.riskCategory ??
+    "MEDIUM"
   )
     .trim()
     .toUpperCase();
@@ -257,8 +231,8 @@ const getRiskScorePct = (row) => {
     row?.riskScorePct;
 
   if (
-    raw === undefined ||
     raw === null ||
+    raw === undefined ||
     raw === ""
   ) {
     return null;
@@ -270,7 +244,8 @@ const getRiskScorePct = (row) => {
     return null;
   }
 
-  const percentage = value <= 1 ? value * 100 : value;
+  const percentage =
+    value <= 1 ? value * 100 : value;
 
   return Math.min(
     MAX_RISK_SCORE,
@@ -278,24 +253,27 @@ const getRiskScorePct = (row) => {
   );
 };
 
-const getDelayDays = (row) => {
-  return Math.max(
+const getDelayDays = (row) =>
+  Math.max(
     0,
     Math.trunc(
       toSafeNumber(
         row?.filingDelayDays ??
-          row?.delayDays ??
-          row?.filing_delay_days,
+        row?.delayDays ??
+        row?.filing_delay_days,
         0
       )
     )
   );
-};
 
 const getDelayTier = (delay) => {
-  if (delay >= 90) return "CRITICAL";
+  if (delay >= 90) {
+    return "CRITICAL";
+  }
 
-  if (delay >= 30) return "WARNING";
+  if (delay >= 30) {
+    return "WARNING";
+  }
 
   return "NORMAL";
 };
@@ -307,7 +285,10 @@ const getActionRequired = (row) => {
     row?.statutoryAction ??
     "Under Audit Scrutiny";
 
-  return String(action).trim() || "Under Audit Scrutiny";
+  return (
+    String(action).trim() ||
+    "Under Audit Scrutiny"
+  );
 };
 
 /* =========================================================
@@ -316,27 +297,29 @@ const getActionRequired = (row) => {
 
 const enrichRecord = (row) => {
   const safeRow =
-    row && typeof row === "object" ? row : {};
+    row && typeof row === "object"
+      ? row
+      : {};
 
-  const delay = getDelayDays(safeRow);
+  const gstin = String(
+    safeRow?.gstin ??
+    safeRow?.GSTIN ??
+    ""
+  ).trim();
+
+  const period = getPeriodValue(
+    safeRow?.retPeriod ??
+    safeRow?.returnPeriod ??
+    ""
+  );
 
   const risk = getRiskCategory(safeRow);
 
   const score = getRiskScorePct(safeRow);
 
-  const gstin = String(
-    safeRow?.gstin ??
-      safeRow?.GSTIN ??
-      ""
-  ).trim();
+  const delay = getDelayDays(safeRow);
 
   const action = getActionRequired(safeRow);
-
-  const period = getPeriodValue(
-    safeRow?.retPeriod ??
-      safeRow?.returnPeriod ??
-      ""
-  );
 
   return {
     ...safeRow,
@@ -363,7 +346,7 @@ const enrichRecord = (row) => {
 };
 
 /* =========================================================
-   DEFAULT NOTICE REASON
+   NOTICE REASON
 ========================================================= */
 
 const buildDefaultReason = (
@@ -399,21 +382,24 @@ const buildDefaultReason = (
    CSV
 ========================================================= */
 
-const csvEscape = (value) => {
-  return `"${String(value ?? "")
+const csvEscape = (value) =>
+  `"${String(value ?? "")
     .replace(/"/g, '""')
     .replace(/\r?\n|\r/g, " ")}"`;
-};
 
 const exportToCSV = (
   data,
-  filename = "GST_Defaulter_Report.csv"
+  filename
 ) => {
-  if (!Array.isArray(data) || data.length === 0) {
+  if (
+    !Array.isArray(data) ||
+    data.length === 0
+  ) {
     return false;
   }
 
   const headers = [
+    "Sl No",
     "GSTIN",
     "Return Period",
     "Filing Delay (Days)",
@@ -424,29 +410,31 @@ const exportToCSV = (
     "Risk Score (%)",
   ];
 
-  const rows = data.map((row) => [
-    csvEscape(row.gstin),
-
-    csvEscape(
-      formatPeriodLabel(row.retPeriod)
-    ),
-
-    getDelayDays(row),
-
-    toSafeNumber(row.taxableValue),
-
-    toSafeNumber(row.totalOutputTax),
-
-    csvEscape(getActionRequired(row)),
-
-    csvEscape(getRiskCategory(row)),
-
-    getRiskScorePct(row) ?? 0,
-  ]);
+  const rows = data.map(
+    (row, index) => [
+      index + 1,
+      csvEscape(row.gstin),
+      csvEscape(
+        formatPeriodLabel(row.retPeriod)
+      ),
+      getDelayDays(row),
+      toSafeNumber(row.taxableValue),
+      toSafeNumber(row.totalOutputTax),
+      csvEscape(
+        getActionRequired(row)
+      ),
+      csvEscape(
+        getRiskCategory(row)
+      ),
+      getRiskScorePct(row) ?? 0,
+    ]
+  );
 
   const csv = [
     headers.join(","),
-    ...rows.map((row) => row.join(",")),
+    ...rows.map((row) =>
+      row.join(",")
+    ),
   ].join("\r\n");
 
   const blob = new Blob(
@@ -463,7 +451,9 @@ const exportToCSV = (
     document.createElement("a");
 
   link.href = url;
-  link.download = filename;
+  link.download =
+    filename ||
+    "GST_Defaulters.csv";
 
   document.body.appendChild(link);
 
@@ -484,62 +474,50 @@ const exportToCSV = (
 
 const Toast = React.memo(
   ({ toast, onClose }) => {
-    if (!toast) return null;
+    if (!toast) {
+      return null;
+    }
 
-    const isError =
+    const error =
       toast.type === "error";
 
     return (
-      <div
-        className="position-fixed top-0 end-0 p-3"
-        style={{ zIndex: 2000 }}
-      >
+      <div className="gst-toast-container">
         <div
-          className={`toast show gst-toast border-0 ${
-            isError
-              ? "bg-danger"
-              : "bg-dark"
-          } text-white`}
+          className={`gst-toast ${error
+            ? "gst-toast-error"
+            : "gst-toast-success"
+            }`}
           role="alert"
         >
-          <div className="d-flex align-items-start p-3">
-
-            {isError ? (
-              <AlertCircle
-                size={20}
-                className="me-2 mt-1 flex-shrink-0"
-              />
+          <div className="gst-toast-icon">
+            {error ? (
+              <AlertCircle size={19} />
             ) : (
-              <CheckCircle2
-                size={20}
-                className="me-2 mt-1 flex-shrink-0"
-              />
+              <CheckCircle2 size={19} />
             )}
+          </div>
 
-            <div className="flex-grow-1">
-
-              <div className="fw-semibold">
-                {isError
-                  ? "Operation Failed"
-                  : "Success"}
-              </div>
-
-              <div className="small opacity-75 mt-1">
-                {toast.message}
-              </div>
-
+          <div className="gst-toast-content">
+            <div className="gst-toast-title">
+              {error
+                ? "Operation Failed"
+                : "Success"}
             </div>
 
-            <button
-              type="button"
-              className="btn btn-sm text-white p-0 ms-3"
-              onClick={onClose}
-              aria-label="Close notification"
-            >
-              <X size={16} />
-            </button>
-
+            <div className="gst-toast-message">
+              {toast.message}
+            </div>
           </div>
+
+          <button
+            type="button"
+            className="gst-toast-close"
+            onClick={onClose}
+            aria-label="Close notification"
+          >
+            <X size={15} />
+          </button>
         </div>
       </div>
     );
@@ -547,7 +525,7 @@ const Toast = React.memo(
 );
 
 /* =========================================================
-   PERIOD SELECTOR
+   PERIOD SELECT
 ========================================================= */
 
 const SearchablePeriodSelect =
@@ -624,150 +602,124 @@ const SearchablePeriodSelect =
           return selected
             ? formatPeriodLabel(selected)
             : value ||
-                "Select period";
+            "Select period";
         }, [options, value]);
 
       const filteredOptions =
         useMemo(() => {
           const query =
-            search.trim().toLowerCase();
+            search
+              .trim()
+              .toLowerCase();
 
           if (!query) {
             return options;
           }
 
           return options.filter(
-            (item) => {
-              const val =
-                getPeriodValue(item)
-                  .toLowerCase();
-
-              const label =
-                formatPeriodLabel(item)
-                  .toLowerCase();
-
-              return (
-                val.includes(query) ||
-                label.includes(query)
-              );
-            }
+            (item) =>
+              getPeriodValue(item)
+                .toLowerCase()
+                .includes(query) ||
+              formatPeriodLabel(item)
+                .toLowerCase()
+                .includes(query)
           );
         }, [options, search]);
 
       return (
         <div
           ref={containerRef}
-          className="position-relative gst-period-selector"
+          className="gst-period-control"
         >
           <button
             type="button"
             disabled={loading}
+            className="gst-period-button"
             onClick={() =>
-              setOpen((prev) => !prev)
+              setOpen(
+                (previous) =>
+                  !previous
+              )
             }
-            className="btn btn-light border d-flex align-items-center justify-content-between w-100 rounded-2 px-3 py-2"
           >
-            <span className="d-flex align-items-center gap-2 text-truncate">
+            <span className="gst-period-button-left">
+              <Calendar size={15} />
 
-              <Calendar
-                size={16}
-                className="text-primary flex-shrink-0"
-              />
-
-              <span className="text-truncate fw-semibold">
+              <span>
                 {loading
                   ? "Loading..."
                   : selectedLabel}
               </span>
-
             </span>
 
             {loading ? (
               <Loader2
                 size={15}
-                className="spin ms-2"
+                className="spin"
               />
             ) : (
               <ChevronDown
                 size={15}
-                className="ms-2"
-                style={{
-                  transform: open
-                    ? "rotate(180deg)"
-                    : "none",
-                  transition:
-                    "transform .15s ease",
-                }}
+                className={
+                  open
+                    ? "gst-chevron-open"
+                    : ""
+                }
               />
             )}
           </button>
 
           {open && !loading && (
-            <div
-              className="position-absolute bg-white border rounded-3 shadow-lg p-2 mt-1"
-              style={{
-                zIndex: 1100,
-                width: 260,
-                left: 0,
-              }}
-            >
-              <div className="input-group input-group-sm mb-2">
-
-                <span className="input-group-text bg-light border-0">
-                  <Search size={14} />
-                </span>
+            <div className="gst-period-menu">
+              <div className="gst-period-search">
+                <Search size={14} />
 
                 <input
                   autoFocus
                   type="text"
-                  className="form-control bg-light border-0 shadow-none"
                   placeholder="Search period..."
                   value={search}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setSearch(
-                      e.target.value
+                      event.target.value
                     )
                   }
                 />
-
               </div>
 
-              <div
-                className="overflow-auto"
-                style={{
-                  maxHeight: 230,
-                }}
-              >
+              <div className="gst-period-list">
                 {filteredOptions.length ===
-                0 ? (
-                  <div className="text-center text-muted small py-4">
+                  0 ? (
+                  <div className="gst-period-empty">
                     No period found
                   </div>
                 ) : (
                   filteredOptions.map(
                     (item, index) => {
-                      const val =
+                      const period =
                         getPeriodValue(
                           item
                         );
 
                       const selected =
-                        val === value;
+                        period === value;
 
                       return (
                         <button
+                          type="button"
                           key={
-                            val ||
+                            period ||
                             `period-${index}`
                           }
-                          type="button"
-                          className={`dropdown-item rounded-2 d-flex justify-content-between align-items-center py-2 ${
-                            selected
-                              ? "active"
-                              : ""
-                          }`}
+                          className={`gst-period-option ${selected
+                            ? "selected"
+                            : ""
+                            }`}
                           onClick={() => {
-                            onChange(val);
+                            onChange(
+                              period
+                            );
                             setOpen(false);
                             setSearch("");
                           }}
@@ -806,90 +758,41 @@ const KpiCard = React.memo(
     value,
     subtitle,
     icon: Icon,
-    variant = "primary",
+    variant,
     loading,
-  }) => {
-    const styles = {
-      primary: {
-        border: "border-primary",
-        icon: "bg-primary-subtle text-primary",
-      },
+  }) => (
+    <div
+      className={`gst-audit-kpi gst-audit-kpi-${variant}`}
+    >
+      <div className="gst-audit-kpi-main">
+        <div className="gst-audit-kpi-label">
+          {title}
+        </div>
 
-      danger: {
-        border: "border-danger",
-        icon: "bg-danger-subtle text-danger",
-      },
+        <div className="gst-audit-kpi-value">
+          {loading ? (
+            <span className="gst-kpi-loading">
+              Loading...
+            </span>
+          ) : (
+            formatNumber(value)
+          )}
+        </div>
 
-      warning: {
-        border: "border-warning",
-        icon:
-          "bg-warning-subtle text-warning-emphasis",
-      },
-
-      info: {
-        border: "border-info",
-        icon:
-          "bg-info-subtle text-info-emphasis",
-      },
-    };
-
-    const style =
-      styles[variant] ||
-      styles.primary;
-
-    return (
-      <div
-        className={`gst-kpi-card border-start border-4 ${style.border} h-100`}
-      >
-        <div className="p-3">
-
-          <div className="d-flex justify-content-between align-items-start">
-
-            <div className="min-w-0">
-
-              <div className="gst-kpi-label">
-                {title}
-              </div>
-
-              <div className="gst-kpi-value">
-                {loading ? (
-                  <span className="placeholder-glow">
-                    <span
-                      className="placeholder col-7"
-                      style={{
-                        height: 28,
-                      }}
-                    />
-                  </span>
-                ) : (
-                  formatNumber(value)
-                )}
-              </div>
-
-              {subtitle && (
-                <div className="gst-kpi-subtitle">
-                  {subtitle}
-                </div>
-              )}
-
-            </div>
-
-            <div
-              className={`gst-kpi-icon ${style.icon}`}
-            >
-              <Icon size={21} />
-            </div>
-
-          </div>
-
+        <div className="gst-audit-kpi-subtitle">
+          {subtitle}
         </div>
       </div>
-    );
-  }
+
+      <div className="gst-audit-kpi-icon">
+        <Icon size={21} />
+      </div>
+    </div>
+  )
 );
 
 /* =========================================================
-   BADGES
+   RISK BADGE
 ========================================================= */
 
 const RiskBadge = ({
@@ -901,27 +804,26 @@ const RiskBadge = ({
     RISK_CONFIG.MEDIUM;
 
   return (
-    <div className="d-inline-flex flex-column align-items-center">
-
+    <div className="gst-risk-wrapper">
       <span
-        className={`badge border gst-risk-badge ${config.badge}`}
+        className={`gst-risk-badge ${config.className}`}
       >
         {config.label}
       </span>
 
       {score !== null &&
         score !== undefined && (
-          <span
-            className={`gst-risk-score ${config.text}`}
-          >
-            Risk Score:{" "}
+          <span className="gst-risk-score">
             {score.toFixed(0)}%
           </span>
         )}
-
     </div>
   );
 };
+
+/* =========================================================
+   DELAY BADGE
+========================================================= */
 
 const DelayBadge = ({
   delay,
@@ -934,13 +836,22 @@ const DelayBadge = ({
 
   return (
     <span
-      className={`badge border gst-delay-badge d-inline-flex align-items-center gap-1 ${config.badge}`}
+      className={`gst-delay-badge ${config.className}`}
     >
-      <Clock3 size={11} />
-      {formatNumber(delay)} days
+      <Clock3 size={12} />
+
+      <span>
+        {formatNumber(delay)}
+      </span>
+
+      <span>days</span>
     </span>
   );
 };
+
+/* =========================================================
+   ACTION BADGE
+========================================================= */
 
 const ActionBadge = ({
   action,
@@ -949,32 +860,30 @@ const ActionBadge = ({
     String(action || "").trim() ||
     "Under Audit Scrutiny";
 
-  let cls =
-    "bg-primary-subtle text-primary border-primary-subtle";
-
-  const upperAction =
+  const upper =
     safeAction.toUpperCase();
 
+  let className =
+    "gst-action-default";
+
   if (
-    upperAction.includes("REG-17")
+    upper.includes("REG-17")
   ) {
-    cls =
-      "bg-danger-subtle text-danger border-danger-subtle";
+    className =
+      "gst-action-danger";
   } else if (
-    upperAction.includes("3A")
+    upper.includes("3A")
   ) {
-    cls =
-      "bg-warning-subtle text-warning-emphasis border-warning-subtle";
+    className =
+      "gst-action-warning";
   }
 
   return (
     <span
-      className={`badge border gst-action-badge d-inline-flex align-items-center gap-1 ${cls}`}
+      className={`gst-action-badge ${className}`}
+      title={safeAction}
     >
-      <FileText
-        size={12}
-        className="flex-shrink-0"
-      />
+      <FileText size={12} />
 
       <span>
         {safeAction}
@@ -1017,10 +926,10 @@ const NoticeModal = React.memo(
       return null;
     }
 
-    const riskCategory =
+    const risk =
       getRiskCategory(record);
 
-    const riskScore =
+    const score =
       getRiskScorePct(record);
 
     const period =
@@ -1029,279 +938,219 @@ const NoticeModal = React.memo(
 
     return (
       <div
-        className="modal fade show d-block gst-notice-modal"
+        className="gst-modal-backdrop"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="notice-modal-title"
-        style={{
-          backgroundColor:
-            "rgba(15, 23, 42, 0.65)",
-        }}
       >
-        <div className="modal-dialog modal-dialog-centered modal-lg">
+        <div className="gst-notice-modal">
+          <div className="gst-notice-header">
+            <div className="gst-notice-heading">
+              <div className="gst-notice-icon">
+                <ShieldAlert size={20} />
+              </div>
 
-          <div className="modal-content">
+              <div>
+                <div className="gst-notice-title">
+                  Dispatch Statutory Notice
+                </div>
 
-            {/* HEADER */}
+                <div className="gst-notice-subtitle">
+                  Return defaulter enforcement workflow
+                </div>
+              </div>
+            </div>
 
-            <div className="gst-modal-header">
+            <button
+              type="button"
+              className="gst-modal-close"
+              onClick={onClose}
+              disabled={submitting}
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+          </div>
 
-              <div className="d-flex align-items-center justify-content-between">
+          <div className="gst-notice-body">
+            <div className="row g-3 mb-3">
+              <div className="col-md-6">
+                <div className="gst-modal-info">
+                  <div className="gst-modal-label">
+                    GSTIN
+                  </div>
 
-                <div className="d-flex align-items-center gap-2">
+                  <div className="gst-modal-value gst-mono">
+                    {record.gstin || "-"}
+                  </div>
+                </div>
+              </div>
 
-                  <ShieldAlert
-                    size={20}
-                    className="text-warning"
+              <div className="col-md-3">
+                <div className="gst-modal-info">
+                  <div className="gst-modal-label">
+                    Return Period
+                  </div>
+
+                  <div className="gst-modal-value">
+                    {formatPeriodLabel(
+                      period
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-md-3">
+                <div className="gst-modal-info">
+                  <div className="gst-modal-label">
+                    Risk
+                  </div>
+
+                  <RiskBadge
+                    category={risk}
+                    score={score}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="row g-3 mb-3">
+              <div className="col-md-4">
+                <div className="gst-modal-info">
+                  <div className="gst-modal-label">
+                    Filing Delay
+                  </div>
+
+                  <div className="gst-modal-value">
+                    {formatNumber(
+                      getDelayDays(record)
+                    )}{" "}
+                    days
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-md-4">
+                <div className="gst-modal-info">
+                  <div className="gst-modal-label">
+                    Taxable Value
+                  </div>
+
+                  <div className="gst-modal-value">
+                    {formatCurrency(
+                      record.taxableValue
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-md-4">
+                <div className="gst-modal-info">
+                  <div className="gst-modal-label">
+                    Output Tax
+                  </div>
+
+                  <div className="gst-modal-value">
+                    {formatCurrency(
+                      record.totalOutputTax
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="notice-ground-reason"
+                className="gst-modal-form-label"
+              >
+                Audit enforcement grounds
+              </label>
+
+              <textarea
+                id="notice-ground-reason"
+                className="gst-modal-textarea"
+                rows={5}
+                maxLength={4000}
+                value={reason}
+                disabled={submitting}
+                onChange={(event) =>
+                  setReason(
+                    event.target.value
+                  )
+                }
+              />
+
+              <div className="gst-character-count">
+                {reason.length}/4000
+              </div>
+            </div>
+
+            <div className="gst-notice-warning">
+              <AlertTriangle size={17} />
+
+              <span>
+                Please verify the taxpayer,
+                return period and statutory
+                grounds before dispatching
+                the notice.
+              </span>
+            </div>
+          </div>
+
+          <div className="gst-notice-footer">
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={onClose}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-primary d-flex align-items-center gap-2"
+              disabled={
+                submitting ||
+                !reason.trim() ||
+                !record.gstin
+              }
+              onClick={() =>
+                onSubmit({
+                  gstin:
+                    record.gstin,
+
+                  retPeriod:
+                    record.retPeriod ||
+                    retPeriod,
+
+                  actionType:
+                    getActionRequired(
+                      record
+                    ),
+
+                  groundReason:
+                    reason.trim(),
+                })
+              }
+            >
+              {submitting ? (
+                <>
+                  <Loader2
+                    size={16}
+                    className="spin"
                   />
 
-                  <div>
-                    <h5
-                      id="notice-modal-title"
-                      className="gst-modal-title mb-0"
-                    >
-                      Dispatch Statutory Notice
-                    </h5>
+                  Dispatching...
+                </>
+              ) : (
+                <>
+                  <Send size={16} />
 
-                    <div className="gst-modal-subtitle">
-                      Return defaulter enforcement workflow
-                    </div>
-                  </div>
-
-                </div>
-
-                <button
-                  type="button"
-                  className="btn-close btn-close-white"
-                  onClick={onClose}
-                  disabled={submitting}
-                  aria-label="Close"
-                />
-
-              </div>
-
-            </div>
-
-            {/* BODY */}
-
-            <div className="gst-modal-body">
-
-              <div className="row g-3 mb-3">
-
-                <div className="col-md-6">
-                  <div className="gst-modal-info-card">
-
-                    <div className="gst-modal-info-label">
-                      GSTIN
-                    </div>
-
-                    <div className="gst-modal-info-value font-monospace">
-                      {record.gstin ||
-                        "-"}
-                    </div>
-
-                  </div>
-                </div>
-
-                <div className="col-md-3">
-                  <div className="gst-modal-info-card">
-
-                    <div className="gst-modal-info-label">
-                      Return Period
-                    </div>
-
-                    <div className="gst-modal-info-value">
-                      {formatPeriodLabel(
-                        period
-                      )}
-                    </div>
-
-                  </div>
-                </div>
-
-                <div className="col-md-3">
-                  <div className="gst-modal-info-card">
-
-                    <div className="gst-modal-info-label">
-                      Risk
-                    </div>
-
-                    <div className="mt-1">
-                      <RiskBadge
-                        category={
-                          riskCategory
-                        }
-                        score={
-                          riskScore
-                        }
-                      />
-                    </div>
-
-                  </div>
-                </div>
-
-              </div>
-
-              <div className="row g-3 mb-3">
-
-                <div className="col-md-4">
-                  <div className="gst-modal-info-card">
-
-                    <div className="gst-modal-info-label">
-                      Filing Delay
-                    </div>
-
-                    <div className="gst-modal-info-value">
-                      {formatNumber(
-                        getDelayDays(
-                          record
-                        )
-                      )}{" "}
-                      days
-                    </div>
-
-                  </div>
-                </div>
-
-                <div className="col-md-4">
-                  <div className="gst-modal-info-card">
-
-                    <div className="gst-modal-info-label">
-                      Taxable Value
-                    </div>
-
-                    <div className="gst-modal-info-value">
-                      {formatCurrency(
-                        record.taxableValue
-                      )}
-                    </div>
-
-                  </div>
-                </div>
-
-                <div className="col-md-4">
-                  <div className="gst-modal-info-card">
-
-                    <div className="gst-modal-info-label">
-                      Output Tax
-                    </div>
-
-                    <div className="gst-modal-info-value">
-                      {formatCurrency(
-                        record.totalOutputTax
-                      )}
-                    </div>
-
-                  </div>
-                </div>
-
-              </div>
-
-              <div className="mb-2">
-
-                <label
-                  htmlFor="notice-ground-reason"
-                  className="form-label small fw-bold"
-                >
-                  Audit enforcement grounds
-                </label>
-
-                <textarea
-                  id="notice-ground-reason"
-                  rows={5}
-                  className="form-control gst-modal-textarea"
-                  value={reason}
-                  onChange={(e) =>
-                    setReason(
-                      e.target.value
-                    )
-                  }
-                  disabled={submitting}
-                  maxLength={4000}
-                />
-
-                <div className="text-end text-muted small mt-1">
-                  {reason.length}/4000
-                </div>
-
-              </div>
-
-              <div className="alert alert-warning d-flex gap-2 align-items-start small mb-0">
-
-                <AlertTriangle
-                  size={17}
-                  className="flex-shrink-0 mt-1"
-                />
-
-                <div>
-                  Please verify the taxpayer,
-                  return period and statutory
-                  grounds before dispatching
-                  the notice.
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* FOOTER */}
-
-            <div className="modal-footer bg-white px-4 py-3">
-
-              <button
-                type="button"
-                className="btn btn-outline-secondary rounded-2"
-                onClick={onClose}
-                disabled={submitting}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-primary rounded-2 d-flex align-items-center gap-2 px-4"
-                disabled={
-                  submitting ||
-                  !reason.trim() ||
-                  !record.gstin
-                }
-                onClick={() =>
-                  onSubmit({
-                    gstin:
-                      record.gstin,
-
-                    retPeriod:
-                      record.retPeriod ||
-                      retPeriod,
-
-                    actionType:
-                      getActionRequired(
-                        record
-                      ),
-
-                    groundReason:
-                      reason.trim(),
-                  })
-                }
-              >
-                {submitting ? (
-                  <>
-                    <Loader2
-                      size={16}
-                      className="spin"
-                    />
-                    Dispatching...
-                  </>
-                ) : (
-                  <>
-                    <Send size={16} />
-                    Issue Statutory Notice
-                  </>
-                )}
-              </button>
-
-            </div>
-
+                  Issue Statutory Notice
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -1321,15 +1170,20 @@ const AdvancedFilters = ({
   setMaxDelay,
   onReset,
 }) => {
-  if (!show) return null;
+  if (!show) {
+    return null;
+  }
 
   return (
-    <div className="gst-advanced-filter">
+    <div className="gst-advanced-panel">
+      <div className="gst-advanced-title">
+        <SlidersHorizontal size={15} />
+
+        Advanced Screening Filters
+      </div>
 
       <div className="row g-3 align-items-end">
-
         <div className="col-md-4">
-
           <label
             htmlFor="minimum-risk-score"
             className="gst-filter-label"
@@ -1343,20 +1197,18 @@ const AdvancedFilters = ({
             min="0"
             max="100"
             step="1"
-            className="form-control form-control-sm mt-1"
+            className="form-control form-control-sm"
             value={minRiskScore}
-            onChange={(e) =>
+            onChange={(event) =>
               setMinRiskScore(
-                e.target.value
+                event.target.value
               )
             }
             placeholder="Example: 70"
           />
-
         </div>
 
         <div className="col-md-4">
-
           <label
             htmlFor="maximum-filing-delay"
             className="gst-filter-label"
@@ -1369,20 +1221,18 @@ const AdvancedFilters = ({
             type="number"
             min="0"
             step="1"
-            className="form-control form-control-sm mt-1"
+            className="form-control form-control-sm"
             value={maxDelay}
-            onChange={(e) =>
+            onChange={(event) =>
               setMaxDelay(
-                e.target.value
+                event.target.value
               )
             }
             placeholder="Days"
           />
-
         </div>
 
         <div className="col-md-4">
-
           <button
             type="button"
             className="btn btn-sm btn-outline-danger w-100"
@@ -1392,13 +1242,11 @@ const AdvancedFilters = ({
               size={14}
               className="me-1"
             />
+
             Reset Filters
           </button>
-
         </div>
-
       </div>
-
     </div>
   );
 };
@@ -1410,20 +1258,20 @@ const AdvancedFilters = ({
 const DefaulterRow = React.memo(
   ({
     row,
+    serialNumber,
     retPeriod,
     onNotice,
   }) => {
-    const riskCategory =
+    const risk =
       row._risk ||
       getRiskCategory(row);
+
+    const score =
+      getRiskScorePct(row);
 
     const delay =
       row._delay ??
       getDelayDays(row);
-
-    const score =
-      row._score ??
-      getRiskScorePct(row);
 
     const action =
       row._action ||
@@ -1431,11 +1279,15 @@ const DefaulterRow = React.memo(
 
     return (
       <tr>
+        {/* SERIAL */}
+        <td className="gst-serial-cell">
+          {formatNumber(
+            serialNumber
+          )}
+        </td>
 
         {/* TAXPAYER */}
-
         <td className="gst-taxpayer-cell">
-
           <div className="gst-gstin">
             {row.gstin || "-"}
           </div>
@@ -1443,14 +1295,12 @@ const DefaulterRow = React.memo(
           <div className="gst-period">
             {formatPeriodLabel(
               row.retPeriod ||
-                retPeriod
+              retPeriod
             )}
           </div>
-
         </td>
 
-        {/* DELAY */}
-
+        {/* FILING DELAY */}
         <td className="text-center">
           <DelayBadge
             delay={delay}
@@ -1458,39 +1308,24 @@ const DefaulterRow = React.memo(
         </td>
 
         {/* TAXABLE VALUE */}
-
         <td className="text-end">
-
           <div className="gst-money">
             {formatCurrency(
               row.taxableValue
             )}
           </div>
-
-          <div className="gst-cell-label">
-            Taxable Value
-          </div>
-
         </td>
 
         {/* OUTPUT TAX */}
-
         <td className="text-end">
-
           <div className="gst-money">
             {formatCurrency(
               row.totalOutputTax
             )}
           </div>
-
-          <div className="gst-cell-label">
-            Output Tax
-          </div>
-
         </td>
 
-        {/* STATUTORY ACTION */}
-
+        {/* ACTION */}
         <td className="text-center">
           <ActionBadge
             action={action}
@@ -1498,29 +1333,22 @@ const DefaulterRow = React.memo(
         </td>
 
         {/* RISK */}
-
         <td className="text-center">
-
           <RiskBadge
-            category={
-              riskCategory
-            }
+            category={risk}
             score={score}
           />
-
         </td>
 
-        {/* ACTION */}
-
+        {/* NOTICE */}
         <td className="text-center">
-
           <button
             type="button"
-            className="btn btn-sm btn-primary gst-notice-button d-inline-flex align-items-center justify-content-center gap-1"
+            className="gst-notice-button"
+            disabled={!row.gstin}
             onClick={() =>
               onNotice(row)
             }
-            disabled={!row.gstin}
             title={
               row.gstin
                 ? "Issue statutory notice"
@@ -1528,132 +1356,62 @@ const DefaulterRow = React.memo(
             }
           >
             <Send size={13} />
-            Notice
+
+            <span>
+              Notice
+            </span>
           </button>
-
         </td>
-
       </tr>
     );
   }
 );
 
 /* =========================================================
-   SKELETON
+   SKELETON ROW
 ========================================================= */
 
 const SkeletonRow = () => (
   <tr>
-
-    <td>
-      <span
-        className="placeholder-glow d-inline-block"
-        style={{ width: "70%" }}
+    {Array.from({
+      length: 8,
+    }).map((_, index) => (
+      <td
+        key={index}
+        className={
+          index === 0
+            ? "text-center"
+            : index === 2 ||
+              index === 5 ||
+              index === 6 ||
+              index === 7
+              ? "text-center"
+              : index === 3 ||
+                index === 4
+                ? "text-end"
+                : ""
+        }
       >
-        <span
-          className="placeholder col-12 rounded-1"
-          style={{ height: 14 }}
-        />
-      </span>
-
-      <span
-        className="placeholder-glow d-inline-block mt-2"
-        style={{ width: "45%" }}
-      >
-        <span
-          className="placeholder col-12 rounded-1"
-          style={{ height: 10 }}
-        />
-      </span>
-    </td>
-
-    <td className="text-center">
-      <span
-        className="placeholder-glow d-inline-block"
-        style={{ width: 70 }}
-      >
-        <span
-          className="placeholder col-12 rounded-pill"
-          style={{ height: 22 }}
-        />
-      </span>
-    </td>
-
-    <td className="text-end">
-      <span
-        className="placeholder-glow d-inline-block"
-        style={{ width: "65%" }}
-      >
-        <span
-          className="placeholder col-12 rounded-1"
-          style={{ height: 14 }}
-        />
-      </span>
-    </td>
-
-    <td className="text-end">
-      <span
-        className="placeholder-glow d-inline-block"
-        style={{ width: "65%" }}
-      >
-        <span
-          className="placeholder col-12 rounded-1"
-          style={{ height: 14 }}
-        />
-      </span>
-    </td>
-
-    <td className="text-center">
-      <span
-        className="placeholder-glow d-inline-block"
-        style={{ width: "80%" }}
-      >
-        <span
-          className="placeholder col-12 rounded-pill"
-          style={{ height: 22 }}
-        />
-      </span>
-    </td>
-
-    <td className="text-center">
-      <span
-        className="placeholder-glow d-inline-block"
-        style={{ width: 90 }}
-      >
-        <span
-          className="placeholder col-12 rounded-pill"
-          style={{ height: 22 }}
-        />
-      </span>
-    </td>
-
-    <td className="text-center">
-      <span
-        className="placeholder-glow d-inline-block"
-        style={{ width: 80 }}
-      >
-        <span
-          className="placeholder col-12 rounded-2"
-          style={{ height: 30 }}
-        />
-      </span>
-    </td>
-
+        <span className="gst-skeleton-line" />
+      </td>
+    ))}
   </tr>
 );
 
 /* =========================================================
-   TOP LOADING BAR
+   LOADING BAR
 ========================================================= */
 
 const TopLoadingBar = ({
   active,
 }) => {
-  if (!active) return null;
+  if (!active) {
+    return null;
+  }
 
   return (
-    <div className="gst-top-loading">
-      <div className="gst-top-loading-inner" />
+    <div className="gst-loading-bar">
+      <div />
     </div>
   );
 };
@@ -1666,20 +1424,20 @@ const buildPageWindow = (
   current,
   total
 ) => {
-  if (total <= 0) return [];
+  if (total <= 0) {
+    return [];
+  }
 
   const pages = [];
 
-  const windowSize = 1;
-
   const start = Math.max(
     1,
-    current - windowSize
+    current - 1
   );
 
   const end = Math.min(
     total,
-    current + windowSize
+    current + 1
   );
 
   if (start > 1) {
@@ -1729,19 +1487,19 @@ const PaginationBar =
         totalRecords === 0
           ? 0
           : pageNumber *
-              pageSize +
-            1;
+          pageSize +
+          1;
 
       const rangeEnd =
         totalRecords === 0
           ? 0
           : Math.min(
-              (pageNumber + 1) *
-                pageSize,
-              totalRecords
-            );
+            (pageNumber + 1) *
+            pageSize,
+            totalRecords
+          );
 
-      const pageWindow =
+      const pages =
         useMemo(
           () =>
             buildPageWindow(
@@ -1755,51 +1513,42 @@ const PaginationBar =
         );
 
       return (
-        <div className="d-flex flex-column flex-lg-row justify-content-between align-items-center gap-3">
+        <div className="gst-pagination-footer">
+          <div className="gst-pagination-info">
+            Showing{" "}
+            <strong>
+              {formatNumber(
+                rangeStart
+              )}
+            </strong>
+            –
+            <strong>
+              {formatNumber(
+                rangeEnd
+              )}
+            </strong>{" "}
+            of{" "}
+            <strong>
+              {formatNumber(
+                totalRecords
+              )}
+            </strong>{" "}
+            records
+          </div>
 
-          <div className="d-flex flex-wrap align-items-center gap-3">
-
-            <div className="small text-muted">
-              Showing{" "}
-              <strong className="text-dark">
-                {formatNumber(
-                  rangeStart
-                )}
-              </strong>
-              {"–"}
-              <strong className="text-dark">
-                {formatNumber(
-                  rangeEnd
-                )}
-              </strong>{" "}
-              of{" "}
-              <strong className="text-dark">
-                {formatNumber(
-                  totalRecords
-                )}
-              </strong>{" "}
-              records
-            </div>
-
-            <div className="d-flex align-items-center gap-2">
-
-              <label
-                className="small text-muted mb-0"
-                htmlFor="defaulter-page-size"
-              >
+          <div className="gst-pagination-right">
+            <div className="gst-page-size">
+              <span>
                 Rows per page
-              </label>
+              </span>
 
               <select
-                id="defaulter-page-size"
-                className="form-select form-select-sm"
-                style={{ width: 80 }}
                 value={pageSize}
                 disabled={disabled}
-                onChange={(e) =>
+                onChange={(event) =>
                   onPageSizeChange(
                     Number(
-                      e.target.value
+                      event.target.value
                     )
                   )
                 }
@@ -1815,215 +1564,181 @@ const PaginationBar =
                   )
                 )}
               </select>
-
             </div>
 
-          </div>
-
-          {totalRecords > 0 && (
-            <nav
-              aria-label="Defaulter pagination"
-              className="gst-pagination"
-            >
-              <ul className="pagination pagination-sm mb-0">
-
-                {/* FIRST */}
-
-                <li
-                  className={`page-item ${
-                    pageNumber === 0 ||
-                    disabled
+            {totalRecords > 0 && (
+              <nav>
+                <ul className="pagination pagination-sm mb-0">
+                  <li
+                    className={`page-item ${pageNumber ===
+                      0 ||
+                      disabled
                       ? "disabled"
                       : ""
-                  }`}
-                >
-                  <button
-                    type="button"
-                    className="page-link d-flex align-items-center"
-                    aria-label="First page"
-                    disabled={
-                      pageNumber === 0 ||
-                      disabled
-                    }
-                    onClick={() =>
-                      onPageChange(0)
-                    }
+                      }`}
                   >
-                    <ChevronsLeft
-                      size={14}
-                    />
-                  </button>
-                </li>
+                    <button
+                      type="button"
+                      className="page-link"
+                      disabled={
+                        pageNumber ===
+                        0 ||
+                        disabled
+                      }
+                      onClick={() =>
+                        onPageChange(0)
+                      }
+                    >
+                      <ChevronsLeft
+                        size={14}
+                      />
+                    </button>
+                  </li>
 
-                {/* PREVIOUS */}
-
-                <li
-                  className={`page-item ${
-                    pageNumber === 0 ||
-                    disabled
+                  <li
+                    className={`page-item ${pageNumber ===
+                      0 ||
+                      disabled
                       ? "disabled"
                       : ""
-                  }`}
-                >
-                  <button
-                    type="button"
-                    className="page-link d-flex align-items-center"
-                    aria-label="Previous page"
-                    disabled={
-                      pageNumber === 0 ||
-                      disabled
-                    }
-                    onClick={() =>
-                      onPageChange(
-                        Math.max(
-                          0,
+                      }`}
+                  >
+                    <button
+                      type="button"
+                      className="page-link"
+                      disabled={
+                        pageNumber ===
+                        0 ||
+                        disabled
+                      }
+                      onClick={() =>
+                        onPageChange(
                           pageNumber -
-                            1
+                          1
                         )
-                      )
-                    }
-                  >
-                    <ChevronLeft
-                      size={14}
-                    />
-                  </button>
-                </li>
+                      }
+                    >
+                      <ChevronLeft
+                        size={14}
+                      />
+                    </button>
+                  </li>
 
-                {/* PAGES */}
-
-                {pageWindow.map(
-                  (page) =>
-                    typeof page ===
-                    "string" ? (
-                      <li
-                        className="page-item disabled"
-                        key={page}
-                      >
-                        <span className="page-link">
-                          …
-                        </span>
-                      </li>
-                    ) : (
-                      <li
-                        className={`page-item ${
-                          page ===
-                          currentPage
+                  {pages.map(
+                    (page) =>
+                      typeof page ===
+                        "string" ? (
+                        <li
+                          key={page}
+                          className="page-item disabled"
+                        >
+                          <span className="page-link">
+                            …
+                          </span>
+                        </li>
+                      ) : (
+                        <li
+                          key={page}
+                          className={`page-item ${page ===
+                            currentPage
                             ? "active"
                             : ""
-                        }`}
-                        key={page}
-                      >
-                        <button
-                          type="button"
-                          className="page-link"
-                          disabled={
-                            disabled
-                          }
-                          onClick={() =>
-                            onPageChange(
-                              page - 1
-                            )
-                          }
+                            }`}
                         >
-                          {page}
-                        </button>
-                      </li>
-                    )
-                )}
+                          <button
+                            type="button"
+                            className="page-link"
+                            disabled={
+                              disabled
+                            }
+                            onClick={() =>
+                              onPageChange(
+                                page -
+                                1
+                              )
+                            }
+                          >
+                            {page}
+                          </button>
+                        </li>
+                      )
+                  )}
 
-                {/* NEXT */}
-
-                <li
-                  className={`page-item ${
-                    pageNumber >=
+                  <li
+                    className={`page-item ${pageNumber >=
                       totalPages -
-                        1 ||
-                    disabled
+                      1 ||
+                      disabled
                       ? "disabled"
                       : ""
-                  }`}
-                >
-                  <button
-                    type="button"
-                    className="page-link d-flex align-items-center"
-                    aria-label="Next page"
-                    disabled={
-                      pageNumber >=
+                      }`}
+                  >
+                    <button
+                      type="button"
+                      className="page-link"
+                      disabled={
+                        pageNumber >=
                         totalPages -
-                          1 ||
-                      disabled
-                    }
-                    onClick={() =>
-                      onPageChange(
-                        Math.min(
-                          totalPages -
-                            1,
+                        1 ||
+                        disabled
+                      }
+                      onClick={() =>
+                        onPageChange(
                           pageNumber +
-                            1
+                          1
                         )
-                      )
-                    }
-                  >
-                    <ChevronRight
-                      size={14}
-                    />
-                  </button>
-                </li>
+                      }
+                    >
+                      <ChevronRight
+                        size={14}
+                      />
+                    </button>
+                  </li>
 
-                {/* LAST */}
-
-                <li
-                  className={`page-item ${
-                    pageNumber >=
+                  <li
+                    className={`page-item ${pageNumber >=
                       totalPages -
-                        1 ||
-                    disabled
+                      1 ||
+                      disabled
                       ? "disabled"
                       : ""
-                  }`}
-                >
-                  <button
-                    type="button"
-                    className="page-link d-flex align-items-center"
-                    aria-label="Last page"
-                    disabled={
-                      pageNumber >=
-                        totalPages -
-                          1 ||
-                      disabled
-                    }
-                    onClick={() =>
-                      onPageChange(
-                        totalPages -
-                          1
-                      )
-                    }
+                      }`}
                   >
-                    <ChevronsRight
-                      size={14}
-                    />
-                  </button>
-                </li>
-
-              </ul>
-            </nav>
-          )}
-
+                    <button
+                      type="button"
+                      className="page-link"
+                      disabled={
+                        pageNumber >=
+                        totalPages -
+                        1 ||
+                        disabled
+                      }
+                      onClick={() =>
+                        onPageChange(
+                          totalPages -
+                          1
+                        )
+                      }
+                    >
+                      <ChevronsRight
+                        size={14}
+                      />
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            )}
+          </div>
         </div>
       );
     }
   );
 
 /* =========================================================
-   MAIN DASHBOARD
+   MAIN COMPONENT
 ========================================================= */
 
 export default function GstReturnDefaulterDashboard() {
-
-  /* -------------------------------------------------------
-     PERIOD
-  ------------------------------------------------------- */
-
   const [periods, setPeriods] =
     useState([]);
 
@@ -2032,10 +1747,6 @@ export default function GstReturnDefaulterDashboard() {
 
   const [periodsLoading, setPeriodsLoading] =
     useState(false);
-
-  /* -------------------------------------------------------
-     DATA
-  ------------------------------------------------------- */
 
   const [data, setData] =
     useState([]);
@@ -2054,10 +1765,6 @@ export default function GstReturnDefaulterDashboard() {
   const [error, setError] =
     useState(null);
 
-  /* -------------------------------------------------------
-     FILTERS
-  ------------------------------------------------------- */
-
   const [searchTerm, setSearchTerm] =
     useState("");
 
@@ -2073,19 +1780,11 @@ export default function GstReturnDefaulterDashboard() {
   const [maxDelay, setMaxDelay] =
     useState("");
 
-  /* -------------------------------------------------------
-     PAGINATION
-  ------------------------------------------------------- */
-
   const [pageNumber, setPageNumber] =
     useState(0);
 
   const [pageSize, setPageSize] =
     useState(DEFAULT_PAGE_SIZE);
-
-  /* -------------------------------------------------------
-     DEFERRED FILTERS
-  ------------------------------------------------------- */
 
   const deferredSearchTerm =
     useDeferredValue(searchTerm);
@@ -2098,15 +1797,11 @@ export default function GstReturnDefaulterDashboard() {
 
   const isFilterPending =
     searchTerm !==
-      deferredSearchTerm ||
+    deferredSearchTerm ||
     minRiskScore !==
-      deferredMinRiskScore ||
+    deferredMinRiskScore ||
     maxDelay !==
-      deferredMaxDelay;
-
-  /* -------------------------------------------------------
-     NOTICE
-  ------------------------------------------------------- */
+    deferredMaxDelay;
 
   const [modalRecord, setModalRecord] =
     useState(null);
@@ -2116,16 +1811,8 @@ export default function GstReturnDefaulterDashboard() {
     setSubmittingNotice,
   ] = useState(false);
 
-  /* -------------------------------------------------------
-     TOAST
-  ------------------------------------------------------- */
-
   const [toast, setToast] =
     useState(null);
-
-  /* -------------------------------------------------------
-     REQUEST CONTROL
-  ------------------------------------------------------- */
 
   const abortControllerRef =
     useRef(null);
@@ -2139,38 +1826,39 @@ export default function GstReturnDefaulterDashboard() {
 
     const loadPeriods = async () => {
       setPeriodsLoading(true);
+      setError(null);
 
       try {
         const response =
           await fetchAllReturnPeriods();
 
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
-        const list = Array.isArray(
-          response
-        )
-          ? response
-          : Array.isArray(
+        const list =
+          Array.isArray(response)
+            ? response
+            : Array.isArray(
               response?.data
             )
-          ? response.data
-          : Array.isArray(
-              response?.content
-            )
-          ? response.content
-          : [];
+              ? response.data
+              : Array.isArray(
+                response?.content
+              )
+                ? response.content
+                : [];
 
-        const normalized =
-          list
-            .map((item) => ({
-              original: item,
-              value:
-                getPeriodValue(item),
-            }))
-            .filter(
-              (item) =>
-                item.value
-            );
+        const normalized = list
+          .map((item) => ({
+            original: item,
+            value:
+              getPeriodValue(item),
+          }))
+          .filter(
+            (item) =>
+              item.value
+          );
 
         setPeriods(
           normalized.map(
@@ -2187,7 +1875,9 @@ export default function GstReturnDefaulterDashboard() {
           );
         }
       } catch (err) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
         console.error(
           "Failed to load return periods",
@@ -2197,8 +1887,8 @@ export default function GstReturnDefaulterDashboard() {
         setError(
           err?.response?.data
             ?.message ||
-            err?.message ||
-            "Unable to load return periods."
+          err?.message ||
+          "Unable to load return periods."
         );
       } finally {
         if (mounted) {
@@ -2221,11 +1911,10 @@ export default function GstReturnDefaulterDashboard() {
   const fetchAuditData =
     useCallback(
       async (period) => {
-        if (!period) return;
+        if (!period) {
+          return;
+        }
 
-        /*
-         * Cancel previous request.
-         */
         if (
           abortControllerRef.current
         ) {
@@ -2242,14 +1931,6 @@ export default function GstReturnDefaulterDashboard() {
         setError(null);
 
         try {
-          /*
-           * -------------------------------------------------
-           * STEP 1: PROBE
-           * -------------------------------------------------
-           *
-           * Ask backend for one row to obtain
-           * totalElements.
-           */
           const probe =
             await fetchReturnDefaulters({
               retPeriod: period,
@@ -2283,31 +1964,17 @@ export default function GstReturnDefaulterDashboard() {
             ) &&
             reportedTotal >= 0;
 
-          /*
-           * -------------------------------------------------
-           * STEP 2: FETCH DATA
-           * -------------------------------------------------
-           */
-
-          let fetchSize;
-
-          if (hasUsableTotal) {
-            /*
-             * Do not add unnecessary buffer if
-             * backend already reports the total.
-             */
-            fetchSize =
-              reportedTotal === 0
+          const fetchSize =
+            hasUsableTotal
+              ? reportedTotal ===
+                0
                 ? 1
                 : Math.min(
-                    reportedTotal +
-                      FETCH_SIZE_BUFFER,
-                    FALLBACK_SERVER_FETCH_SIZE
-                  );
-          } else {
-            fetchSize =
-              FALLBACK_SERVER_FETCH_SIZE;
-          }
+                  reportedTotal +
+                  FETCH_SIZE_BUFFER,
+                  FALLBACK_SERVER_FETCH_SIZE
+                )
+              : FALLBACK_SERVER_FETCH_SIZE;
 
           const result =
             await fetchReturnDefaulters({
@@ -2325,39 +1992,29 @@ export default function GstReturnDefaulterDashboard() {
             return;
           }
 
-          /*
-           * -------------------------------------------------
-           * RESPONSE NORMALIZATION
-           * -------------------------------------------------
-           */
-
           const records =
             Array.isArray(
               result?.content
             )
               ? result.content
               : Array.isArray(
-                  result?.records
-                )
-              ? result.records
-              : Array.isArray(
+                result?.records
+              )
+                ? result.records
+                : Array.isArray(
                   result?.data
                 )
-              ? result.data
-              : Array.isArray(result)
-              ? result
-              : [];
+                  ? result.data
+                  : Array.isArray(
+                    result
+                  )
+                    ? result
+                    : [];
 
           const enriched =
             records.map(
               enrichRecord
             );
-
-          /*
-           * -------------------------------------------------
-           * SUMMARY
-           * -------------------------------------------------
-           */
 
           const serverSummary =
             result?.summary ||
@@ -2368,11 +2025,6 @@ export default function GstReturnDefaulterDashboard() {
             probe?.statistics ||
             {};
 
-          /*
-           * If backend total is available,
-           * use it. Otherwise use actual fetched
-           * records.
-           */
           const totalQueue =
             hasUsableTotal
               ? reportedTotal
@@ -2390,20 +2042,21 @@ export default function GstReturnDefaulterDashboard() {
               (item) =>
                 item._delay >= 90 ||
                 item._risk ===
-                  "CRITICAL"
+                "CRITICAL"
             ).length;
 
           const calculatedHigh =
             enriched.filter(
               (item) =>
-                item._risk === "HIGH"
+                item._risk ===
+                "HIGH"
             ).length;
 
           const serverForm3A =
             Number(
               serverSummary.form3A ??
-                serverSummary.formGst3A ??
-                serverSummary.form3a
+              serverSummary.formGst3A ??
+              serverSummary.form3a
             );
 
           const serverCritical =
@@ -2419,7 +2072,9 @@ export default function GstReturnDefaulterDashboard() {
           setData(enriched);
 
           setSummary({
-            totalQueue,
+            totalQueue:
+              totalQueue ||
+              enriched.length,
 
             form3A:
               Number.isFinite(
@@ -2442,26 +2097,7 @@ export default function GstReturnDefaulterDashboard() {
                 ? serverHigh
                 : calculatedHigh,
           });
-
-          /*
-           * If backend reports zero but returned
-           * records, correct the total.
-           */
-          if (
-            totalQueue === 0 &&
-            enriched.length > 0
-          ) {
-            setSummary(
-              (current) => ({
-                ...current,
-                totalQueue:
-                  enriched.length,
-              })
-            );
-          }
-
         } catch (err) {
-
           if (
             isAbortError(err)
           ) {
@@ -2476,8 +2112,8 @@ export default function GstReturnDefaulterDashboard() {
           setError(
             err?.response?.data
               ?.message ||
-              err?.message ||
-              "Unable to load GST return defaulter data."
+            err?.message ||
+            "Unable to load GST return defaulter data."
           );
 
           setData([]);
@@ -2488,11 +2124,10 @@ export default function GstReturnDefaulterDashboard() {
             critical: 0,
             high: 0,
           });
-
         } finally {
-
           if (
-            !controller.signal.aborted
+            !controller.signal
+              .aborted
           ) {
             setLoading(false);
           }
@@ -2517,11 +2152,7 @@ export default function GstReturnDefaulterDashboard() {
     );
 
     return () => {
-      if (
-        abortControllerRef.current
-      ) {
-        abortControllerRef.current.abort();
-      }
+      abortControllerRef.current?.abort();
     };
   }, [
     selectedPeriod,
@@ -2529,7 +2160,7 @@ export default function GstReturnDefaulterDashboard() {
   ]);
 
   /* =======================================================
-     CLIENT-SIDE FILTERING
+     FILTER
   ======================================================= */
 
   const displayedRecords =
@@ -2539,42 +2170,43 @@ export default function GstReturnDefaulterDashboard() {
           .trim()
           .toLowerCase();
 
-      const parsedMinScore =
+      const parsedMin =
         deferredMinRiskScore ===
-        ""
+          ""
           ? null
           : Number(
-              deferredMinRiskScore
-            );
+            deferredMinRiskScore
+          );
 
       const minScore =
         Number.isFinite(
-          parsedMinScore
+          parsedMin
         )
           ? Math.max(
-              0,
-              Math.min(
-                100,
-                parsedMinScore
-              )
+            0,
+            Math.min(
+              100,
+              parsedMin
             )
+          )
           : null;
 
-      const parsedMaxDelay =
-        deferredMaxDelay === ""
+      const parsedMax =
+        deferredMaxDelay ===
+          ""
           ? null
           : Number(
-              deferredMaxDelay
-            );
+            deferredMaxDelay
+          );
 
       const maxDelayValue =
         Number.isFinite(
-          parsedMaxDelay
+          parsedMax
         )
           ? Math.max(
-              0,
-              parsedMaxDelay
-            )
+            0,
+            parsedMax
+          )
           : null;
 
       if (
@@ -2588,10 +2220,6 @@ export default function GstReturnDefaulterDashboard() {
 
       return data.filter(
         (row) => {
-
-          /*
-           * Search GSTIN or return period.
-           */
           if (query) {
             const matches =
               row._gstinLower.includes(
@@ -2611,33 +2239,27 @@ export default function GstReturnDefaulterDashboard() {
             }
           }
 
-          /*
-           * Risk.
-           */
           if (
             riskFilter !== "ALL" &&
-            row._risk !== riskFilter
+            row._risk !==
+            riskFilter
           ) {
             return false;
           }
 
-          /*
-           * Minimum risk.
-           */
           if (
             minScore !== null &&
-            row._score < minScore
+            row._score <
+            minScore
           ) {
             return false;
           }
 
-          /*
-           * Maximum delay.
-           */
           if (
-            maxDelayValue !== null &&
+            maxDelayValue !==
+            null &&
             row._delay >
-              maxDelayValue
+            maxDelayValue
           ) {
             return false;
           }
@@ -2663,14 +2285,11 @@ export default function GstReturnDefaulterDashboard() {
   const totalPages = Math.max(
     1,
     Math.ceil(
-      totalElements / pageSize
+      totalElements /
+      pageSize
     )
   );
 
-  /*
-   * Reset page when the actual deferred
-   * filter changes.
-   */
   useEffect(() => {
     setPageNumber(0);
   }, [
@@ -2682,9 +2301,6 @@ export default function GstReturnDefaulterDashboard() {
     selectedPeriod,
   ]);
 
-  /*
-   * Keep page within valid range.
-   */
   useEffect(() => {
     setPageNumber(
       (current) =>
@@ -2698,7 +2314,8 @@ export default function GstReturnDefaulterDashboard() {
   const paginatedRecords =
     useMemo(() => {
       const start =
-        pageNumber * pageSize;
+        pageNumber *
+        pageSize;
 
       return displayedRecords.slice(
         start,
@@ -2711,7 +2328,7 @@ export default function GstReturnDefaulterDashboard() {
     ]);
 
   /* =======================================================
-     RESET FILTERS
+     RESET
   ======================================================= */
 
   const resetFilters =
@@ -2744,7 +2361,9 @@ export default function GstReturnDefaulterDashboard() {
       }
 
       setModalRecord(null);
-    }, [submittingNotice]);
+    }, [
+      submittingNotice,
+    ]);
 
   const dispatchNotice =
     useCallback(
@@ -2785,17 +2404,10 @@ export default function GstReturnDefaulterDashboard() {
               `Statutory notice successfully dispatched to ${payload.gstin}.`,
           });
 
-          /*
-           * Refresh current period so that
-           * backend notice/status changes are
-           * immediately reflected.
-           */
           await fetchAuditData(
             selectedPeriod
           );
-
         } catch (err) {
-
           console.error(
             "Failed to issue statutory notice",
             err
@@ -2809,7 +2421,6 @@ export default function GstReturnDefaulterDashboard() {
               err?.message ||
               "Unable to issue statutory notice.",
           });
-
         } finally {
           setSubmittingNotice(
             false
@@ -2830,7 +2441,8 @@ export default function GstReturnDefaulterDashboard() {
   const handleExport =
     useCallback(() => {
       if (
-        displayedRecords.length === 0
+        displayedRecords.length ===
+        0
       ) {
         setToast({
           type: "error",
@@ -2862,67 +2474,82 @@ export default function GstReturnDefaulterDashboard() {
     ]);
 
   /* =======================================================
+     RISK DISTRIBUTION
+  ======================================================= */
+
+  const criticalPct =
+    summary.totalQueue > 0
+      ? Math.min(
+        100,
+        (summary.critical /
+          summary.totalQueue) *
+        100
+      )
+      : 0;
+
+  const highPct =
+    summary.totalQueue > 0
+      ? Math.min(
+        100,
+        (summary.high /
+          summary.totalQueue) *
+        100
+      )
+      : 0;
+
+  const form3APct =
+    summary.totalQueue > 0
+      ? Math.min(
+        100,
+        (summary.form3A /
+          summary.totalQueue) *
+        100
+      )
+      : 0;
+
+  /* =======================================================
      RENDER
   ======================================================= */
 
   return (
-    <div className="gst-defaulter-dashboard">
+    <div className="gst-defaulter-dashboard min-vh-100">
+      {/* =================================================
+    OFFICE HEADER
+================================================= */}
 
-      {/* ===================================================
-          HEADER
-      =================================================== */}
-
-      <header className="gst-office-header">
-
-        <div className="container-fluid px-3 px-lg-4">
-
-          <div className="gst-header-inner d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 py-3">
-
-            <div className="d-flex align-items-center gap-3">
-
-              <div className="gst-title-icon flex-shrink-0">
-                <UserX size={21} />
-              </div>
-
-              <div className="min-w-0">
-
-                <h1 className="gst-page-title text-truncate">
-                  Filing Delay & Statutory Enforcement Monitoring
-                </h1>
-
-                <div className="gst-page-subtitle">
-                  GST return defaulter monitoring,
-                  risk assessment and statutory
-                  enforcement
+      <header className="gst-office-header bg-white border-bottom">
+        <div className="container-fluid px-3 px-lg-4 py-3">
+          <div className="d-flex flex-column flex-xl-row justify-content-between align-items-start align-items-xl-center gap-3">
+            <div>
+              <div className="d-flex align-items-center gap-2">
+                <div className="gst-header-icon">
+                  <UserX size={20} />
                 </div>
-
+                <div>
+                  <h5 className="fw-bold text-dark mb-0 text-truncate">
+                    Filing Delay & Statutory Enforcement Monitoring
+                  </h5>
+                </div>
               </div>
-
             </div>
 
-            <div className="d-flex flex-wrap align-items-center gap-2">
-
-              <SearchablePeriodSelect
-                options={periods}
-                value={selectedPeriod}
-                loading={periodsLoading}
-                onChange={(value) => {
-                  setSelectedPeriod(
-                    value
-                  );
-
-                  setPageNumber(0);
-                }}
-              />
+            <div className="d-flex flex-wrap align-items-center justify-content-end gap-2 w-100 w-xl-auto">
+              <div className="flex-grow-1 flex-xl-grow-0" style={{ minWidth: 210 }}>
+                <SearchablePeriodSelect
+                  options={periods}
+                  value={selectedPeriod}
+                  loading={periodsLoading}
+                  onChange={(value) => {
+                    setSelectedPeriod(value);
+                    setPageNumber(0);
+                  }}
+                />
+              </div>
 
               <button
                 type="button"
-                className="btn btn-outline-success rounded-2 d-flex align-items-center gap-2"
-                disabled={
-                  loading ||
-                  displayedRecords.length ===
-                    0
-                }
+                className="btn btn-outline-success rounded-2 d-flex align-items-center justify-content-center gap-2"
+                disabled={loading || displayedRecords.length === 0}
                 onClick={handleExport}
               >
                 <Download size={15} />
@@ -2931,429 +2558,326 @@ export default function GstReturnDefaulterDashboard() {
 
               <button
                 type="button"
-                className="btn btn-primary rounded-2 d-flex align-items-center gap-2"
-                disabled={
-                  loading ||
-                  !selectedPeriod
-                }
-                onClick={() =>
-                  fetchAuditData(
-                    selectedPeriod
-                  )
-                }
+                className="btn btn-primary rounded-2 d-flex align-items-center justify-content-center gap-2"
+                disabled={loading || !selectedPeriod}
+                onClick={() => fetchAuditData(selectedPeriod)}
               >
-                <RefreshCw
-                  size={15}
-                  className={
-                    loading
-                      ? "spin"
-                      : ""
-                  }
-                />
+                <RefreshCw size={15} className={loading ? "spin" : ""} />
                 Refresh
               </button>
-
             </div>
-
           </div>
-
         </div>
 
+        <TopLoadingBar active={loading} />
       </header>
 
-      {/* ===================================================
+      {/* =================================================
           MAIN
-      =================================================== */}
+      ================================================= */}
 
       <main className="container-fluid px-3 px-lg-4 gst-main-content">
-
         {/* ERROR */}
 
         {error && (
-          <div className="alert alert-danger border-0 shadow-sm d-flex align-items-start gap-2 rounded-3">
-
+          <div className="gst-dashboard-alert">
             <AlertTriangle
               size={18}
-              className="mt-1 flex-shrink-0"
             />
 
-            <div className="flex-grow-1">
-
-              <div className="fw-bold">
+            <div>
+              <strong>
                 Unable to load dashboard
-              </div>
+              </strong>
 
-              <div className="small">
+              <span>
                 {error}
-              </div>
-
+              </span>
             </div>
 
             <button
               type="button"
-              className="btn-close"
               onClick={() =>
                 setError(null)
               }
-              aria-label="Close error"
-            />
-
+            >
+              <X size={16} />
+            </button>
           </div>
         )}
 
         {/* =================================================
-    KPI GRID — GST RETURN DEFAULTER DASHBOARD
-================================================= */}
+            KPI SECTION
+        ================================================= */}
 
-<div className="px-2 px-sm-3 px-lg-4">
-  <div className="row g-3 mb-4">
+        <section className="gst-kpi-grid">
+          <KpiCard
+            title="Total Defaulters"
+            value={
+              summary.totalQueue
+            }
+            subtitle="Taxpayers requiring compliance monitoring"
+            icon={UserX}
+            variant="primary"
+            loading={loading}
+          />
 
-    {/* =================================================
-        TOTAL DEFAULTERS
-    ================================================= */}
-    <div className="col-12 col-sm-6 col-xl-3">
-      <KpiCard
-        title="Total Defaulters"
-        value={summary.totalQueue}
-        subtitle="Return defaulters requiring monitoring"
-        icon={UserX}
-        variant="primary"
-        loading={loading}
-      />
-    </div>
+          <KpiCard
+            title="Form GST 3A"
+            value={
+              summary.form3A
+            }
+            subtitle="Filing delay between 30 and 89 days"
+            icon={Clock3}
+            variant="warning"
+            loading={loading}
+          />
 
-    {/* =================================================
-        FORM GST 3A
-    ================================================= */}
-    <div className="col-12 col-sm-6 col-xl-3">
-      <KpiCard
-        title="Form GST 3A"
-        value={summary.form3A}
-        subtitle="30–89 days filing delay"
-        icon={Clock3}
-        variant="warning"
-        loading={loading}
-      />
-    </div>
+          <KpiCard
+            title="Critical Risk"
+            value={
+              summary.critical
+            }
+            subtitle="90+ days or critical risk classification"
+            icon={ShieldAlert}
+            variant="danger"
+            loading={loading}
+          />
 
-    {/* =================================================
-        CRITICAL RISK
-    ================================================= */}
-    <div className="col-12 col-sm-6 col-xl-3">
-      <KpiCard
-        title="Critical Risk"
-        value={summary.critical}
-        subtitle="90+ days / critical risk"
-        icon={ShieldAlert}
-        variant="danger"
-        loading={loading}
-      />
-    </div>
-
-    {/* =================================================
-        HIGH RISK
-    ================================================= */}
-    <div className="col-12 col-sm-6 col-xl-3">
-      <KpiCard
-        title="High Risk"
-        value={summary.high}
-        subtitle="Priority audit review"
-        icon={AlertTriangle}
-        variant="info"
-        loading={loading}
-      />
-    </div>
-
-  </div>
-</div>
-
-
+          <KpiCard
+            title="High Risk"
+            value={
+              summary.high
+            }
+            subtitle="Priority taxpayers for audit review"
+            icon={AlertTriangle}
+            variant="info"
+            loading={loading}
+          />
+        </section>
 
         {/* =================================================
             RISK DISTRIBUTION
         ================================================= */}
 
-        <div className="gst-risk-card mb-4">
-
-          <div className="p-3">
-
-            <div className="d-flex flex-column flex-md-row align-items-md-center gap-3">
-
-              <div className="gst-section-label">
+        <section className="gst-risk-card">
+          <div className="gst-section-heading">
+            <div>
+              <div className="gst-section-title">
                 Risk Distribution
               </div>
 
-              <div className="flex-grow-1">
-
-                <div className="progress gst-risk-progress">
-
-                  <div
-                    className="progress-bar bg-danger"
-                    style={{
-                      width: `${
-                        summary.totalQueue
-                          ? Math.min(
-                              100,
-                              (summary.critical /
-                                summary.totalQueue) *
-                                100
-                            )
-                          : 0
-                      }%`,
-                    }}
-                    title={`Critical: ${summary.critical}`}
-                  />
-
-                  <div
-                    className="progress-bar bg-warning"
-                    style={{
-                      width: `${
-                        summary.totalQueue
-                          ? Math.min(
-                              100,
-                              (summary.high /
-                                summary.totalQueue) *
-                                100
-                            )
-                          : 0
-                      }%`,
-                    }}
-                    title={`High: ${summary.high}`}
-                  />
-
-                  <div
-                    className="progress-bar bg-info"
-                    style={{
-                      width: `${
-                        summary.totalQueue
-                          ? Math.min(
-                              100,
-                              (summary.form3A /
-                                summary.totalQueue) *
-                                100
-                            )
-                          : 0
-                      }%`,
-                    }}
-                    title={`Form GST 3A: ${summary.form3A}`}
-                  />
-
-                </div>
-
+              <div className="gst-section-subtitle">
+                Current period defaulter
+                classification
               </div>
-
-              <div className="d-flex flex-wrap gap-3">
-
-                <span className="gst-risk-stat">
-                  <span
-                    className="gst-risk-dot"
-                    style={{
-                      background:
-                        "#dc3545",
-                    }}
-                  />
-
-                  <strong className="text-danger">
-                    {formatNumber(
-                      summary.critical
-                    )}
-                  </strong>
-
-                  Critical
-                </span>
-
-                <span className="gst-risk-stat">
-                  <span
-                    className="gst-risk-dot"
-                    style={{
-                      background:
-                        "#f59e0b",
-                    }}
-                  />
-
-                  <strong className="text-warning-emphasis">
-                    {formatNumber(
-                      summary.high
-                    )}
-                  </strong>
-
-                  High
-                </span>
-
-                <span className="gst-risk-stat">
-                  <span
-                    className="gst-risk-dot"
-                    style={{
-                      background:
-                        "#0dcaf0",
-                    }}
-                  />
-
-                  <strong className="text-info-emphasis">
-                    {formatNumber(
-                      summary.form3A
-                    )}
-                  </strong>
-
-                  Form 3A
-                </span>
-
-              </div>
-
             </div>
 
+            <div className="gst-section-total">
+              <span>
+                Total
+              </span>
+
+              <strong>
+                {formatNumber(
+                  summary.totalQueue
+                )}
+              </strong>
+            </div>
           </div>
 
-        </div>
+          <div className="gst-risk-track">
+            <div
+              className="gst-risk-segment critical"
+              style={{
+                width: `${criticalPct}%`,
+              }}
+              title={`Critical: ${summary.critical}`}
+            />
+
+            <div
+              className="gst-risk-segment high"
+              style={{
+                width: `${highPct}%`,
+              }}
+              title={`High: ${summary.high}`}
+            />
+
+            <div
+              className="gst-risk-segment form3a"
+              style={{
+                width: `${form3APct}%`,
+              }}
+              title={`Form GST 3A: ${summary.form3A}`}
+            />
+          </div>
+
+          <div className="gst-risk-legend">
+            <div>
+              <span className="risk-dot critical" />
+              <strong>
+                {formatNumber(
+                  summary.critical
+                )}
+              </strong>
+              <span>
+                Critical
+              </span>
+            </div>
+
+            <div>
+              <span className="risk-dot high" />
+              <strong>
+                {formatNumber(
+                  summary.high
+                )}
+              </strong>
+              <span>
+                High
+              </span>
+            </div>
+
+            <div>
+              <span className="risk-dot form3a" />
+              <strong>
+                {formatNumber(
+                  summary.form3A
+                )}
+              </strong>
+              <span>
+                Form GST 3A
+              </span>
+            </div>
+          </div>
+        </section>
 
         {/* =================================================
-            DEFAULTER QUEUE
+            DEFAULTER MONITORING
         ================================================= */}
 
-        <section className="gst-office-card overflow-hidden">
-
-          {/* TOOLBAR */}
-
-          <div className="gst-toolbar">
-
-            <div className="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
-
-              <div>
-
-                <div className="gst-toolbar-title">
-                  Return Defaulter Monitoring
-                </div>
-
-                <div className="gst-toolbar-subtitle">
-                  Taxpayers requiring filing
-                  compliance review and
-                  statutory action
-                </div>
-
+        <section className="gst-office-card">
+          <div className="gst-card-toolbar">
+            <div>
+              <div className="gst-card-title">
+                Return Defaulter Monitoring
               </div>
 
-              <div className="d-flex flex-wrap align-items-center gap-2">
-
-                {/* SEARCH */}
-
-                <div className="input-group input-group-sm gst-search">
-
-                  <span className="input-group-text">
-                    <Search
-                      size={14}
-                      className="text-muted"
-                    />
-                  </span>
-
-                  <input
-                    type="search"
-                    className="form-control"
-                    placeholder="Search GSTIN or period..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(
-                        e.target.value
-                      );
-                    }}
-                  />
-
-                  {searchTerm && (
-                    <button
-                      type="button"
-                      className="btn btn-light border"
-                      onClick={() =>
-                        setSearchTerm("")
-                      }
-                      aria-label="Clear search"
-                    >
-                      <X size={13} />
-                    </button>
-                  )}
-
-                </div>
-
-                {/* RISK */}
-
-                <select
-                  className="form-select form-select-sm gst-filter-select"
-                  value={riskFilter}
-                  onChange={(e) => {
-                    setRiskFilter(
-                      e.target.value
-                    );
-                  }}
-                  aria-label="Risk level filter"
-                >
-                  <option value="ALL">
-                    All Risk Levels
-                  </option>
-
-                  <option value="CRITICAL">
-                    Critical
-                  </option>
-
-                  <option value="HIGH">
-                    High
-                  </option>
-
-                  <option value="MEDIUM">
-                    Medium
-                  </option>
-
-                  <option value="LOW">
-                    Low
-                  </option>
-                </select>
-
-                {/* ADVANCED */}
-
-                <button
-                  type="button"
-                  className={`btn btn-sm d-flex align-items-center gap-1 ${
-                    showAdvanced
-                      ? "btn-primary"
-                      : "btn-outline-secondary"
-                  }`}
-                  onClick={() =>
-                    setShowAdvanced(
-                      (prev) =>
-                        !prev
-                    )
-                  }
-                >
-                  <SlidersHorizontal
-                    size={14}
-                  />
-
-                  Filters
-                </button>
-
-                {isFilterPending && (
-                  <span className="small text-primary d-flex align-items-center gap-1">
-                    <Loader2
-                      size={13}
-                      className="spin"
-                    />
-                    Filtering...
-                  </span>
-                )}
-
+              <div className="gst-card-subtitle">
+                Taxpayer-wise filing default
+                review and statutory
+                enforcement queue
               </div>
-
             </div>
 
-          </div>
+            <div className="gst-toolbar-filters">
+              <div className="gst-search-control">
+                <Search size={15} />
 
-          {/* LOADING */}
+                <input
+                  type="search"
+                  placeholder="Search GSTIN or period..."
+                  value={
+                    searchTerm
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setSearchTerm(
+                      event.target.value
+                    )
+                  }
+                />
+
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSearchTerm(
+                        ""
+                      )
+                    }
+                    aria-label="Clear search"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              <select
+                className="gst-risk-filter"
+                value={
+                  riskFilter
+                }
+                onChange={(
+                  event
+                ) =>
+                  setRiskFilter(
+                    event.target.value
+                  )
+                }
+              >
+                <option value="ALL">
+                  All Risk Levels
+                </option>
+
+                <option value="CRITICAL">
+                  Critical
+                </option>
+
+                <option value="HIGH">
+                  High
+                </option>
+
+                <option value="MEDIUM">
+                  Medium
+                </option>
+
+                <option value="LOW">
+                  Low
+                </option>
+              </select>
+
+              <button
+                type="button"
+                className={`gst-filter-button ${showAdvanced
+                  ? "active"
+                  : ""
+                  }`}
+                onClick={() =>
+                  setShowAdvanced(
+                    (previous) =>
+                      !previous
+                  )
+                }
+              >
+                <SlidersHorizontal
+                  size={14}
+                />
+
+                Filters
+              </button>
+
+              {isFilterPending && (
+                <span className="gst-filter-loading">
+                  <Loader2
+                    size={13}
+                    className="spin"
+                  />
+
+                  Filtering...
+                </span>
+              )}
+            </div>
+          </div>
 
           <TopLoadingBar
             active={loading}
           />
 
-          {/* ADVANCED FILTER */}
-
           <AdvancedFilters
-            show={showAdvanced}
+            show={
+              showAdvanced
+            }
             minRiskScore={
               minRiskScore
             }
@@ -3371,72 +2895,70 @@ export default function GstReturnDefaulterDashboard() {
             }
           />
 
-          {/* ACTIVE FILTERS */}
-
           {(searchTerm ||
             riskFilter !==
-              "ALL" ||
+            "ALL" ||
             minRiskScore ||
             maxDelay) && (
-            <div className="gst-active-filter-bar d-flex flex-wrap align-items-center gap-2">
+              <div className="gst-active-filters">
+                <div className="gst-active-label">
+                  <Filter size={13} />
+                  Active filters
+                </div>
 
-              <span className="small fw-bold text-muted">
-                Active filters:
-              </span>
+                {searchTerm && (
+                  <span>
+                    Search:{" "}
+                    {searchTerm}
+                  </span>
+                )}
 
-              {searchTerm && (
-                <span className="gst-filter-chip">
-                  GSTIN/Period:{" "}
-                  {searchTerm}
-                </span>
-              )}
+                {riskFilter !==
+                  "ALL" && (
+                    <span>
+                      Risk:{" "}
+                      {riskFilter}
+                    </span>
+                  )}
 
-              {riskFilter !==
-                "ALL" && (
-                <span className="gst-filter-chip">
-                  Risk:{" "}
-                  {riskFilter}
-                </span>
-              )}
+                {minRiskScore && (
+                  <span>
+                    Risk ≥{" "}
+                    {minRiskScore}%
+                  </span>
+                )}
 
-              {minRiskScore && (
-                <span className="gst-filter-chip">
-                  Risk ≥{" "}
-                  {minRiskScore}%
-                </span>
-              )}
+                {maxDelay && (
+                  <span>
+                    Delay ≤{" "}
+                    {maxDelay} days
+                  </span>
+                )}
 
-              {maxDelay && (
-                <span className="gst-filter-chip">
-                  Delay ≤{" "}
-                  {maxDelay} days
-                </span>
-              )}
+                <button
+                  type="button"
+                  onClick={
+                    resetFilters
+                  }
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
 
-              <button
-                type="button"
-                className="btn btn-link btn-sm text-danger p-0 ms-1"
-                onClick={
-                  resetFilters
-                }
-              >
-                Clear all
-              </button>
-
-            </div>
-          )}
-
-          {/* TABLE */}
+          {/* =================================================
+              TABLE
+          ================================================= */}
 
           <div className="gst-table-wrapper">
-
-            <table className="table gst-office-table align-middle">
-
+            <table className="gst-office-table">
               <thead>
-
                 <tr>
+                  <th className="serial-column">
+                    Sl.
+                  </th>
 
-                  <th className="text-start">
+                  <th>
                     Taxpayer
                   </th>
 
@@ -3460,41 +2982,36 @@ export default function GstReturnDefaulterDashboard() {
                     Risk Tier
                   </th>
 
-                  <th className="text-center">
+                  <th className="text-center action-column">
                     Action
                   </th>
-
                 </tr>
-
               </thead>
 
               <tbody>
-
                 {loading ? (
                   Array.from({
                     length: pageSize,
                   }).map(
                     (_, index) => (
                       <SkeletonRow
-                        key={`skeleton-${index}`}
+                        key={
+                          index
+                        }
                       />
                     )
                   )
                 ) : displayedRecords.length ===
                   0 ? (
-
                   <tr>
-
                     <td
-                      colSpan={7}
-                      className="py-5"
+                      colSpan={8}
+                      className="gst-empty-cell"
                     >
-
                       <div className="gst-empty-state">
-
-                        <div className="gst-empty-icon mb-3">
+                        <div className="gst-empty-icon">
                           <FilterX
-                            size={26}
+                            size={25}
                           />
                         </div>
 
@@ -3504,36 +3021,39 @@ export default function GstReturnDefaulterDashboard() {
                         </div>
 
                         <div className="gst-empty-text">
-                          Try changing the
-                          period or filters.
+                          No taxpayers match
+                          the selected period
+                          and screening
+                          criteria.
                         </div>
 
                         <button
                           type="button"
-                          className="btn btn-sm btn-outline-primary mt-3"
+                          className="btn btn-sm btn-outline-primary"
                           onClick={
                             resetFilters
                           }
                         >
                           Reset filters
                         </button>
-
                       </div>
-
                     </td>
-
                   </tr>
-
                 ) : (
-
                   paginatedRecords.map(
-                    (row, index) => (
+                    (
+                      row,
+                      index
+                    ) => (
                       <DefaulterRow
-                        key={`${row.gstin || "unknown"}-${
-                          row.retPeriod ||
-                          selectedPeriod
-                        }-${index}`}
+                        key={`${row.gstin || "unknown"}-${row.retPeriod || selectedPeriod}-${index}`}
                         row={row}
+                        serialNumber={
+                          pageNumber *
+                          pageSize +
+                          index +
+                          1
+                        }
                         retPeriod={
                           selectedPeriod
                         }
@@ -3543,83 +3063,79 @@ export default function GstReturnDefaulterDashboard() {
                       />
                     )
                   )
-
                 )}
-
               </tbody>
-
             </table>
-
           </div>
 
-          {/* PAGINATION */}
+          {/* =================================================
+              FOOTER
+          ================================================= */}
 
-          <div className="gst-table-footer">
-
-            <PaginationBar
-              pageNumber={
-                pageNumber
-              }
-              totalPages={
-                totalPages
-              }
-              totalRecords={
-                totalElements
-              }
-              pageSize={
-                pageSize
-              }
-              disabled={
-                loading ||
-                isFilterPending
-              }
-              onPageChange={(
-                page
-              ) => {
-                setPageNumber(
-                  Math.max(
-                    0,
-                    Math.min(
-                      page,
-                      totalPages -
-                        1
-                    )
+          <PaginationBar
+            pageNumber={
+              pageNumber
+            }
+            totalPages={
+              totalPages
+            }
+            totalRecords={
+              totalElements
+            }
+            pageSize={
+              pageSize
+            }
+            disabled={
+              loading ||
+              isFilterPending
+            }
+            onPageChange={(
+              page
+            ) =>
+              setPageNumber(
+                Math.max(
+                  0,
+                  Math.min(
+                    page,
+                    totalPages -
+                    1
                   )
-                );
-              }}
-              onPageSizeChange={(
-                size
-              ) => {
-                const safeSize =
-                  PAGE_SIZE_OPTIONS.includes(
-                    size
-                  )
-                    ? size
-                    : DEFAULT_PAGE_SIZE;
+                )
+              )
+            }
+            onPageSizeChange={(
+              size
+            ) => {
+              const safeSize =
+                PAGE_SIZE_OPTIONS.includes(
+                  size
+                )
+                  ? size
+                  : DEFAULT_PAGE_SIZE;
 
-                setPageSize(
-                  safeSize
-                );
+              setPageSize(
+                safeSize
+              );
 
-                setPageNumber(0);
-              }}
-            />
-
-          </div>
-
+              setPageNumber(
+                0
+              );
+            }}
+          />
         </section>
-
       </main>
 
-      {/* ===================================================
-          NOTICE MODAL
-      =================================================== */}
+      {/* =================================================
+          NOTICE
+      ================================================= */}
 
       <NoticeModal
         show={Boolean(
           modalRecord
         )}
-        record={modalRecord}
+        record={
+          modalRecord
+        }
         retPeriod={
           selectedPeriod
         }
@@ -3634,9 +3150,9 @@ export default function GstReturnDefaulterDashboard() {
         }
       />
 
-      {/* ===================================================
+      {/* =================================================
           TOAST
-      =================================================== */}
+      ================================================= */}
 
       <Toast
         toast={toast}
@@ -3644,7 +3160,6 @@ export default function GstReturnDefaulterDashboard() {
           setToast(null)
         }
       />
-
     </div>
   );
 }
