@@ -1,125 +1,331 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { 
-  BarChart3, 
-  Download, 
-  RefreshCw, 
-  Calendar, 
-  Briefcase, 
-  IndianRupee 
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  AlertTriangle,
+  BarChart3,
+  Briefcase,
+  Calendar,
+  Download,
+  IndianRupee,
+  Loader2,
+  PieChart,
+  RefreshCw,
+  Wallet,
 } from "lucide-react";
-import { 
-  fetchMonthlyRevenueSummary, 
-  fetchFinancialYears 
+
+import {
+  fetchFinancialYears,
+  fetchMonthlyRevenueSummary,
 } from "../../services/dashboardService";
 
-// Helper to calculate current Indian Financial Year (April to March)
+import "./GstMonthlyRevenueSummary.css";
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
 const getCurrentFinancialYear = () => {
   const now = new Date();
-  const month = now.getMonth() + 1; // 1 - 12
+
+  const month = now.getMonth() + 1;
+
   const year = now.getFullYear();
 
   if (month >= 4) {
     return `${year}-${(year + 1).toString().slice(-2)}`;
-  } else {
-    return `${year - 1}-${year.toString().slice(-2)}`;
   }
+
+  return `${year - 1}-${year.toString().slice(-2)}`;
 };
 
-// Helper to format MMYYYY string into standard readable format (e.g., "042025" -> "Apr 2025")
 const formatPeriod = (periodStr) => {
-  if (!periodStr || String(periodStr).length !== 6) return periodStr || "N/A";
+  if (!periodStr || String(periodStr).length !== 6) {
+    return periodStr || "N/A";
+  }
+
   const str = String(periodStr);
+
   const monthStr = str.substring(0, 2);
+
   const yearStr = str.substring(2);
 
-  const date = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, 1);
+  const date = new Date(
+    parseInt(yearStr, 10),
+    parseInt(monthStr, 10) - 1,
+    1
+  );
+
   return isNaN(date.getTime())
     ? periodStr
     : date.toLocaleString("en-IN", { month: "short", year: "numeric" });
 };
 
+const toNumber = (value, fallback = 0) => {
+  const number = Number(value);
+
+  return Number.isFinite(number) ? number : fallback;
+};
+
+const formatNumber = (value) =>
+  new Intl.NumberFormat("en-IN").format(toNumber(value));
+
+/* =========================================================
+   LOADING BAR
+========================================================= */
+
+const TopLoadingBar = React.memo(({ active }) => {
+  if (!active) {
+    return null;
+  }
+
+  return (
+    <div className="gst-loading-bar">
+      <div className="gst-loading-bar-progress" />
+    </div>
+  );
+});
+
+/* =========================================================
+   KPI CARD
+========================================================= */
+
+const KPI_THEMES = {
+  neutral: {
+    background: "#f4f6f9",
+    border: "#dfe4ea",
+    accent: "#475569",
+    iconBackground: "#475569",
+    valueColor: "#1f2937",
+    subtitleColor: "#64748b",
+  },
+
+  success: {
+    background: "#f0fdf4",
+    border: "#bbf7d0",
+    accent: "#16a34a",
+    iconBackground: "#16a34a",
+    valueColor: "#166534",
+    subtitleColor: "#52675a",
+  },
+
+  primary: {
+    background: "#eef4ff",
+    border: "#c7d7fe",
+    accent: "#2563eb",
+    iconBackground: "#2563eb",
+    valueColor: "#123b63",
+    subtitleColor: "#52657a",
+  },
+
+  purple: {
+    background: "#f5f0ff",
+    border: "#e0d0fb",
+    accent: "#6f42c1",
+    iconBackground: "#6f42c1",
+    valueColor: "#553c9a",
+    subtitleColor: "#6f6480",
+  },
+};
+
+const KpiCard = ({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  variant = "primary",
+  loading = false,
+}) => {
+  const theme = KPI_THEMES[variant] || KPI_THEMES.primary;
+
+  return (
+    <div
+      className="gst-kpi-card"
+      style={{
+        "--kpi-bg": theme.background,
+        "--kpi-border": theme.border,
+        "--kpi-accent": theme.accent,
+        "--kpi-icon-bg": theme.iconBackground,
+        "--kpi-value": theme.valueColor,
+        "--kpi-subtitle": theme.subtitleColor,
+      }}
+    >
+      <div className="gst-kpi-card-body">
+        <div className="gst-kpi-accent-bar" />
+
+        <div className="gst-kpi-icon">
+          {loading ? (
+            <Loader2 size={18} className="spin" />
+          ) : (
+            <Icon size={18} strokeWidth={2.2} />
+          )}
+        </div>
+
+        <div className="gst-kpi-content">
+          <div className="gst-kpi-title">{title}</div>
+
+          {loading ? (
+            <div className="gst-kpi-loading-value">Loading...</div>
+          ) : (
+            <div className="gst-kpi-value" title={String(value)}>
+              {value}
+            </div>
+          )}
+
+          <div className="gst-kpi-subtitle" title={subtitle}>
+            {subtitle}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* =========================================================
+   SKELETON ROW
+========================================================= */
+
+const SkeletonRow = React.memo(() => (
+  <tr className="skeleton-row">
+    <td className="ps-3">
+      <span className="placeholder-glow d-inline-block w-75">
+        <span className="placeholder col-12 rounded-1" style={{ height: 14 }} />
+      </span>
+    </td>
+
+    {Array.from({ length: 7 }).map((_, index) => (
+      <td key={index} className="text-end">
+        <span className="placeholder-glow d-inline-block w-75">
+          <span className="placeholder col-12 rounded-1" style={{ height: 14 }} />
+        </span>
+      </td>
+    ))}
+  </tr>
+));
+
+/* =========================================================
+   MAIN COMPONENT
+========================================================= */
+
 const GstMonthlyRevenueSummary = () => {
   const [data, setData] = useState([]);
+
   const [fyOptions, setFyOptions] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState(null);
 
-  // Selected FY State (Defaults to current Indian FY)
-  const [selectedFy, setSelectedFy] = useState(() => getCurrentFinancialYear());
+  const [selectedFy, setSelectedFy] = useState(() =>
+    getCurrentFinancialYear()
+  );
 
-  // Display Unit State: 'crores' | 'lakhs' | 'standard'
   const [displayUnit, setDisplayUnit] = useState("crores");
 
-  // Fetch FY Dropdown list from backend GET /gst/return-3b/fin-year
-  const loadFinancialYears = useCallback(async (signal) => {
-    try {
-      const response = await fetchFinancialYears(signal);
-      
-      // Extract array whether backend returns direct array or wrapped data
-      const rawYears = Array.isArray(response) ? response : response?.data || [];
-      
-      if (Array.isArray(rawYears) && rawYears.length > 0) {
-        // Sanitize item structures (handles string[] and object[])
-        const normalizedYears = rawYears.map((fy) =>
-          typeof fy === "object" && fy !== null ? fy.finYear || fy.financialYear || String(fy) : String(fy)
-        );
+  /* =====================================================
+     FINANCIAL YEARS
+  ===================================================== */
 
-        setFyOptions(normalizedYears);
+  const loadFinancialYears = useCallback(
+    async (signal) => {
+      try {
+        const response = await fetchFinancialYears(signal);
 
-        // Fallback to first available FY if currently selected FY is missing from backend response
-        const currentFy = getCurrentFinancialYear();
-        if (!normalizedYears.includes(currentFy) && !normalizedYears.includes(selectedFy)) {
-          setSelectedFy(normalizedYears[0]);
+        const rawYears = Array.isArray(response)
+          ? response
+          : response?.data || [];
+
+        if (Array.isArray(rawYears) && rawYears.length > 0) {
+          const normalizedYears = rawYears.map((fy) =>
+            typeof fy === "object" && fy !== null
+              ? fy.finYear || fy.financialYear || String(fy)
+              : String(fy)
+          );
+
+          setFyOptions(normalizedYears);
+
+          const currentFy = getCurrentFinancialYear();
+
+          if (
+            !normalizedYears.includes(currentFy) &&
+            !normalizedYears.includes(selectedFy)
+          ) {
+            setSelectedFy(normalizedYears[0]);
+          }
+        } else {
+          setFyOptions([]);
         }
-      } else {
+      } catch (err) {
+        console.error("Failed to load financial years:", err);
+
         setFyOptions([]);
       }
-    } catch (err) {
-      console.error("Failed to load financial years:", err);
-      setFyOptions([]);
-    }
-  }, [selectedFy]);
+    },
+    [selectedFy]
+  );
 
-  // Fetch Summary Table Data filtered by backend String FY
-  const loadSummaryData = useCallback(async (signal) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await fetchMonthlyRevenueSummary(selectedFy, signal);
-      if (result !== null) {
-        setData(Array.isArray(result) ? result : []);
+  /* =====================================================
+     SUMMARY DATA
+  ===================================================== */
+
+  const loadSummaryData = useCallback(
+    async (signal) => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const result = await fetchMonthlyRevenueSummary(selectedFy, signal);
+
+        if (result !== null) {
+          setData(Array.isArray(result) ? result : []);
+        }
+      } catch (err) {
+        setError(
+          err?.message ||
+            "Failed to fetch revenue summary data. Please try again later."
+        );
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(
-        err?.message || "Failed to fetch revenue summary data. Please try again later."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedFy]);
+    },
+    [selectedFy]
+  );
 
-  // Load FY Dropdown list on Component Mount
   useEffect(() => {
     const controller = new AbortController();
+
     loadFinancialYears(controller.signal);
+
     return () => controller.abort();
   }, [loadFinancialYears]);
 
-  // Refetch Table Data whenever selectedFy changes
   useEffect(() => {
     const controller = new AbortController();
+
     loadSummaryData(controller.signal);
+
     return () => controller.abort();
   }, [loadSummaryData]);
 
-  // Unit Scaler Currency Formatter
+  /* =====================================================
+     CURRENCY FORMATTER
+  ===================================================== */
+
   const formatCurrency = useCallback(
     (val) => {
       const num = Number(val);
-      if (isNaN(num) || val === null || val === undefined) return "₹0";
+
+      if (isNaN(num) || val === null || val === undefined) {
+        return "₹0";
+      }
 
       if (displayUnit === "crores") {
         const inCrores = num / 10000000;
+
         return `₹${inCrores.toLocaleString("en-IN", {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
@@ -128,6 +334,7 @@ const GstMonthlyRevenueSummary = () => {
 
       if (displayUnit === "lakhs") {
         const inLakhs = num / 100000;
+
         return `₹${inLakhs.toLocaleString("en-IN", {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
@@ -139,19 +346,33 @@ const GstMonthlyRevenueSummary = () => {
     [displayUnit]
   );
 
-  // Aggregated Totals Calculation over dataset
-  const totals = useMemo(() => {
-    return data.reduce(
-      (acc, row) => ({
-        taxableValue: acc.taxableValue + (Number(row.grossTaxableValue) || 0),
-        grossRevenue: acc.grossRevenue + (Number(row.totalGrossRevenue) || 0),
-        cashPaid: acc.cashPaid + (Number(row.totalCashCollection) || 0),
-        itcUtilized: acc.itcUtilized + (Number(row.totalCreditUtilized) || 0),
-        taxpayers: acc.taxpayers + (Number(row.totalTaxpayersFiled) || 0),
-      }),
-      { taxableValue: 0, grossRevenue: 0, cashPaid: 0, itcUtilized: 0, taxpayers: 0 }
-    );
-  }, [data]);
+  /* =====================================================
+     TOTALS
+  ===================================================== */
+
+  const totals = useMemo(
+    () =>
+      data.reduce(
+        (acc, row) => ({
+          taxableValue:
+            acc.taxableValue + toNumber(row.grossTaxableValue),
+          grossRevenue:
+            acc.grossRevenue + toNumber(row.totalGrossRevenue),
+          cashPaid: acc.cashPaid + toNumber(row.totalCashCollection),
+          itcUtilized:
+            acc.itcUtilized + toNumber(row.totalCreditUtilized),
+          taxpayers: acc.taxpayers + toNumber(row.totalTaxpayersFiled),
+        }),
+        {
+          taxableValue: 0,
+          grossRevenue: 0,
+          cashPaid: 0,
+          itcUtilized: 0,
+          taxpayers: 0,
+        }
+      ),
+    [data]
+  );
 
   const overallCashPct = totals.grossRevenue
     ? ((totals.cashPaid / totals.grossRevenue) * 100).toFixed(2)
@@ -161,9 +382,15 @@ const GstMonthlyRevenueSummary = () => {
     ? ((totals.itcUtilized / totals.grossRevenue) * 100).toFixed(2)
     : "0.00";
 
-  // CSV Export Handler
+  /* =====================================================
+     EXPORT
+  ===================================================== */
+
   const handleExport = () => {
-    if (!data.length) return;
+    if (!data.length) {
+      return;
+    }
+
     const headers = [
       "Period",
       "Taxpayers Filed",
@@ -188,85 +415,67 @@ const GstMonthlyRevenueSummary = () => {
 
     const csvContent =
       "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+      [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
 
     const encodedUri = encodeURI(csvContent);
+
     const link = document.createElement("a");
+
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `GSTR3B_Revenue_Summary_${selectedFy}.csv`);
+    link.setAttribute(
+      "download",
+      `GSTR3B_Revenue_Summary_${selectedFy}.csv`
+    );
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  return (
-    <div className="container-fluid p-0 animate-fade-in">
-      {/* INJECTED ANIMATION STYLES */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .animate-card {
-          animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .animate-row {
-          animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .spin-icon {
-          animation: spin 1s linear infinite;
-        }
-      `}</style>
+  /* =====================================================
+     UI
+  ===================================================== */
 
-      {/* STICKY HEADER SECTION */}
-      <header
-        className="bg-white border-bottom mb-4 sticky-top shadow-sm"
-        style={{ zIndex: 1000 }}
-      >
-        <div className="container-fluid px-2 px-sm-3 px-lg-4 py-2 py-sm-3">
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-2 gap-md-3">
-            <div className="d-flex align-items-center gap-2">
-              <div
-                className="bg-primary text-white rounded-2 d-flex align-items-center justify-content-center shadow-sm flex-shrink-0"
-                style={{ width: 36, height: 36 }}
-              >
-                <BarChart3 size={20} />
+  return (
+    <div className="gst-revenue-dashboard min-vh-100">
+      {/* =================================================
+          OFFICE HEADER
+      ================================================= */}
+
+      <header className="gst-office-header bg-white border-bottom">
+        <div className="container-fluid px-3 px-lg-4 py-3">
+          <div className="d-flex flex-column flex-xl-row justify-content-between align-items-start align-items-xl-center gap-3">
+            <div>
+              <div className="d-flex align-items-center gap-2">
+                <div className="gst-header-icon">
+                  <BarChart3 size={20} />
+                </div>
+
+                <div>
+                  <h5 className="fw-bold text-dark mb-0 text-truncate">
+                    GSTR-3B Revenue Summary
+                  </h5>
+                </div>
               </div>
-              <h5 className="mb-0 fw-bold text-dark text-truncate">
-                GSTR-3B Revenue Summary
-              </h5>
             </div>
 
-            {/* Controls Bar */}
-            <div className="d-flex flex-wrap align-items-center justify-content-between justify-content-md-end gap-2 w-100 w-md-auto">
-              
-              {/* MEDIUM SIZED DYNAMIC FY DROPDOWN */}
-              <div 
-                className="input-group input-group-md flex-grow-0" 
-                style={{ minWidth: "160px", maxWidth: "220px" }}
+            <div className="d-flex flex-wrap align-items-center justify-content-end gap-2 w-100 w-xl-auto">
+              <div
+                className="input-group input-group-sm"
+                style={{ width: "190px" }}
               >
-                <span className="input-group-text bg-light border-end-0 px-2 text-secondary">
-                  <Calendar size={15} />
+                <span className="input-group-text bg-white">
+                  <Calendar size={15} className="text-primary" />
                 </span>
+
                 <select
                   aria-label="Select Financial Year"
-                  className="form-select border-start-0 rounded-end fw-semibold text-dark py-1 pe-4"
+                  className="form-select fw-semibold"
                   value={selectedFy}
-                  onChange={(e) => setSelectedFy(e.target.value)}
-                  style={{ 
-                    fontSize: "0.85rem", 
-                    height: "34px", 
-                    cursor: "pointer" 
-                  }}
+                  onChange={(event) => setSelectedFy(event.target.value)}
                 >
                   <option value="ALL">All Financial Years</option>
+
                   {fyOptions.length > 0 ? (
                     fyOptions.map((fy) => (
                       <option key={fy} value={fy}>
@@ -281,228 +490,280 @@ const GstMonthlyRevenueSummary = () => {
                 </select>
               </div>
 
-              {/* Amount Unit Switcher */}
-              <div className="btn-group btn-group-sm flex-grow-1 flex-sm-grow-0" role="group">
+              <div className="btn-group btn-group-sm" role="group">
                 <button
                   type="button"
-                  className={`btn py-1 px-2 ${displayUnit === "crores" ? "btn-primary fw-semibold" : "btn-outline-secondary bg-white"}`}
-                  style={{ fontSize: "0.8rem", height: "34px" }}
+                  className={`btn ${
+                    displayUnit === "crores"
+                      ? "btn-primary"
+                      : "btn-outline-secondary bg-white"
+                  }`}
                   onClick={() => setDisplayUnit("crores")}
                 >
                   Cr
                 </button>
+
                 <button
                   type="button"
-                  className={`btn py-1 px-2 ${displayUnit === "lakhs" ? "btn-primary fw-semibold" : "btn-outline-secondary bg-white"}`}
-                  style={{ fontSize: "0.8rem", height: "34px" }}
+                  className={`btn ${
+                    displayUnit === "lakhs"
+                      ? "btn-primary"
+                      : "btn-outline-secondary bg-white"
+                  }`}
                   onClick={() => setDisplayUnit("lakhs")}
                 >
                   Lakhs
                 </button>
+
                 <button
                   type="button"
-                  className={`btn py-1 px-2 ${displayUnit === "standard" ? "btn-primary fw-semibold" : "btn-outline-secondary bg-white"}`}
-                  style={{ fontSize: "0.8rem", height: "34px" }}
+                  className={`btn ${
+                    displayUnit === "standard"
+                      ? "btn-primary"
+                      : "btn-outline-secondary bg-white"
+                  }`}
                   onClick={() => setDisplayUnit("standard")}
                 >
                   Abs
                 </button>
               </div>
 
-              {/* Action Buttons */}
-              <div className="d-flex align-items-center gap-2 flex-grow-1 flex-sm-grow-0 justify-content-end">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-success rounded-2 d-flex align-items-center justify-content-center gap-1 shadow-sm flex-grow-1 flex-sm-grow-0 px-2"
-                  style={{ fontSize: "0.8rem", height: "34px" }}
-                  disabled={loading || data.length === 0}
-                  onClick={handleExport}
-                >
-                  <Download size={14} />
-                  <span className="d-none d-sm-inline">Export</span>
-                </button>
+              <button
+                type="button"
+                className="btn btn-outline-success rounded-2 d-flex align-items-center justify-content-center gap-2"
+                disabled={loading || data.length === 0}
+                onClick={handleExport}
+              >
+                <Download size={15} />
+                Export
+              </button>
 
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary rounded-2 d-flex align-items-center justify-content-center gap-1 shadow-sm flex-grow-1 flex-sm-grow-0 px-2"
-                  style={{ fontSize: "0.8rem", height: "34px" }}
-                  disabled={loading}
-                  onClick={() => {
-                    loadFinancialYears();
-                    loadSummaryData();
-                  }}
-                >
-                  <RefreshCw size={14} className={loading ? "spin-icon" : ""} />
-                  <span className="d-none d-sm-inline">Refresh</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                className="btn btn-primary rounded-2 d-flex align-items-center justify-content-center gap-2"
+                disabled={loading}
+                onClick={() => {
+                  loadFinancialYears();
+                  loadSummaryData();
+                }}
+              >
+                <RefreshCw size={15} className={loading ? "spin" : ""} />
+                Refresh
+              </button>
             </div>
           </div>
         </div>
+
+        <TopLoadingBar active={loading} />
       </header>
 
-      {/* ERROR DISPLAY */}
-      {error && (
-        <div className="alert alert-danger mx-2 mx-sm-3 d-flex align-items-center justify-content-between rounded-3 shadow-sm border-0 p-3 animate-fade-in" role="alert">
-          <div className="small">{error}</div>
-          <button className="btn btn-outline-danger btn-sm text-nowrap ms-2" onClick={() => loadSummaryData()}>
-            Retry
-          </button>
+      <main className="container-fluid px-3 px-lg-4 py-4">
+        {/* =================================================
+            ERROR
+        ================================================= */}
+
+        {error && (
+          <div className="alert alert-danger shadow-sm d-flex align-items-start gap-2 rounded-3">
+            <AlertTriangle size={18} className="mt-1" />
+
+            <div className="flex-grow-1">
+              <div className="fw-bold">Unable to load revenue summary</div>
+
+              <div className="small">{error}</div>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-outline-danger btn-sm text-nowrap"
+              onClick={() => loadSummaryData()}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* =================================================
+            LOADING
+        ================================================= */}
+
+        {loading && (
+          <div className="alert alert-info shadow-sm d-flex align-items-center gap-2 rounded-3 py-2">
+            <Loader2 size={16} className="spin" />
+
+            <div className="small fw-semibold">
+              Loading revenue analytics...
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================
+            KPI GRID
+        ========================================================= */}
+
+        <div className="px-2 px-sm-3 px-lg-4">
+          <div className="row g-3 mb-4">
+            <div className="col-12 col-sm-6 col-xl-3">
+              <KpiCard
+                title="Gross Taxable Value"
+                value={formatCurrency(totals.taxableValue)}
+                subtitle="Base tax computation value"
+                icon={Briefcase}
+                variant="neutral"
+                loading={loading}
+              />
+            </div>
+
+            <div className="col-12 col-sm-6 col-xl-3">
+              <KpiCard
+                title="Total Gross Revenue"
+                value={formatCurrency(totals.grossRevenue)}
+                subtitle="Total tax liability (Cash + ITC)"
+                icon={IndianRupee}
+                variant="success"
+                loading={loading}
+              />
+            </div>
+
+            <div className="col-12 col-sm-6 col-xl-3">
+              <KpiCard
+                title="Cash Realization"
+                value={formatCurrency(totals.cashPaid)}
+                subtitle={`${overallCashPct}% of gross revenue`}
+                icon={Wallet}
+                variant="primary"
+                loading={loading}
+              />
+            </div>
+
+            <div className="col-12 col-sm-6 col-xl-3">
+              <KpiCard
+                title="ITC Utilized"
+                value={formatCurrency(totals.itcUtilized)}
+                subtitle={`${overallItcPct}% of gross revenue`}
+                icon={PieChart}
+                variant="purple"
+                loading={loading}
+              />
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* KPI METRIC CARDS */}
-      <div className="px-2 px-sm-3 px-lg-4">
-        <div className="row g-2 g-sm-3 mb-4">
-          <div className="col-12 col-sm-6 col-xl-3 animate-card" style={{ animationDelay: "50ms" }}>
-            <div className="card border-0 shadow-sm rounded-3 h-100 bg-white border-start border-4 border-secondary">
-              <div className="card-body p-3">
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="text-uppercase text-muted fw-bold" style={{ fontSize: "0.7rem", letterSpacing: "0.5px" }}>
-                    Gross Taxable Value
-                  </span>
-                  <div className="bg-light p-2 rounded-circle text-secondary">
-                    <Briefcase size={16} />
-                  </div>
-                </div>
-                <h4 className="fw-bold text-dark mb-1 font-monospace text-truncate">{formatCurrency(totals.taxableValue)}</h4>
-                <span className="text-muted small">Base tax computation value</span>
-              </div>
-            </div>
-          </div>
+        {/* =================================================
+            REVENUE TABLE
+        ================================================= */}
 
-          <div className="col-12 col-sm-6 col-xl-3 animate-card" style={{ animationDelay: "100ms" }}>
-            <div className="card border-0 shadow-sm rounded-3 h-100 bg-white border-start border-4 border-success">
-              <div className="card-body p-3">
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="text-uppercase text-muted fw-bold" style={{ fontSize: "0.7rem", letterSpacing: "0.5px" }}>
-                    Total Gross Revenue
-                  </span>
-                  <div className="bg-success-subtle p-2 rounded-circle text-success">
-                    <IndianRupee size={16} />
-                  </div>
-                </div>
-                <h4 className="fw-bold text-success mb-1 font-monospace text-truncate">{formatCurrency(totals.grossRevenue)}</h4>
-                <span className="text-muted small">Total tax liability (Cash + ITC)</span>
-              </div>
-            </div>
-          </div>
+        <section className="card border-0 shadow-sm rounded-3 overflow-hidden">
+          <div className="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between gap-2">
+            <h5 className="fw-bold text-dark mb-0 text-truncate">
+              Monthly Revenue Breakdown
+            </h5>
 
-          <div className="col-12 col-sm-6 col-xl-3 animate-card" style={{ animationDelay: "150ms" }}>
-            <div className="card border-0 shadow-sm rounded-3 h-100 bg-white border-start border-4 border-primary">
-              <div className="card-body p-3">
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="text-uppercase text-muted fw-bold" style={{ fontSize: "0.7rem", letterSpacing: "0.5px" }}>
-                    Cash Realization
-                  </span>
-                  <span className="badge bg-primary-subtle text-primary rounded-pill font-monospace fw-bold">
-                    {overallCashPct}%
-                  </span>
-                </div>
-                <h4 className="fw-bold text-primary mb-1 font-monospace text-truncate">{formatCurrency(totals.cashPaid)}</h4>
-                <span className="text-muted small">Direct Treasury Cash Collections</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="col-12 col-sm-6 col-xl-3 animate-card" style={{ animationDelay: "200ms" }}>
-            <div className="card border-0 shadow-sm rounded-3 h-100 bg-white border-start border-4" style={{ borderColor: "#6f42c1" }}>
-              <div className="card-body p-3">
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="text-uppercase text-muted fw-bold" style={{ fontSize: "0.7rem", letterSpacing: "0.5px" }}>
-                    ITC Utilized
-                  </span>
-                  <span className="badge rounded-pill font-monospace fw-bold" style={{ backgroundColor: "#f3ebf9", color: "#6f42c1" }}>
-                    {overallItcPct}%
-                  </span>
-                </div>
-                <h4 className="fw-bold mb-1 font-monospace text-truncate" style={{ color: "#6f42c1" }}>
-                  {formatCurrency(totals.itcUtilized)}
-                </h4>
-                <span className="text-muted small">Adjusted via Input Credit</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* DATA TABLE CONTAINER */}
-        <div className="card border-0 shadow-sm rounded-3 overflow-hidden bg-white mb-4 animate-card" style={{ animationDelay: "250ms" }}>
-          <div className="card-header bg-white border-bottom py-3 px-3 px-sm-4 d-flex flex-row justify-content-between align-items-center gap-2">
-            <h6 className="fw-bold text-dark mb-0 text-truncate">Monthly Revenue Breakdown</h6>
             <span className="badge bg-light text-secondary border font-monospace text-nowrap">
-              Unit: {displayUnit === "crores" ? "₹ Cr" : displayUnit === "lakhs" ? "₹ Lakhs" : "₹ Abs"}
+              Unit:{" "}
+              {displayUnit === "crores"
+                ? "₹ Cr"
+                : displayUnit === "lakhs"
+                ? "₹ Lakhs"
+                : "₹ Abs"}
             </span>
           </div>
 
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0" style={{ fontSize: "0.85rem", minWidth: "750px" }}>
-              <thead className="table-dark text-uppercase border-bottom" style={{ fontSize: "0.7rem", letterSpacing: "0.5px" }}>
-                <tr>
-                  <th className="py-3 px-3 border-0">Period</th>
-                  <th className="py-3 px-2 border-0 text-end">Taxpayers</th>
-                  <th className="py-3 px-2 border-0 text-end">Taxable Value</th>
-                  <th className="py-3 px-2 border-0 text-end">Gross Revenue</th>
-                  <th className="py-3 px-2 border-0 text-end">Cash Paid</th>
-                  <th className="py-3 px-2 border-0 text-end">ITC Utilized</th>
-                  <th className="py-3 px-2 border-0 text-end">Cash %</th>
-                  <th className="py-3 px-3 border-0 text-end">ITC %</th>
+          <div className="table-responsive gst-table-wrapper">
+            <table className="table table-hover align-middle mb-0 gst-office-table">
+              <thead>
+                <tr className="official-table-header">
+                  <th className="text-center period-column">Period</th>
+
+                  <th className="text-center amount-column">Taxpayers</th>
+
+                  <th className="text-center amount-column">
+                    Taxable Value
+                  </th>
+
+                  <th className="text-center amount-column">
+                    Gross Revenue
+                  </th>
+
+                  <th className="text-center amount-column">Cash Paid</th>
+
+                  <th className="text-center amount-column">
+                    ITC Utilized
+                  </th>
+
+                  <th className="text-center ratio-column">Cash %</th>
+
+                  <th className="text-center ratio-column">ITC %</th>
                 </tr>
               </thead>
+
               <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="8" className="text-center py-5">
-                      <div className="spinner-border text-primary" role="status" style={{ width: "2rem", height: "2rem" }}>
-                        <span className="visually-hidden">Loading...</span>
-                      </div>
-                      <p className="mt-2 text-secondary fw-semibold small mb-0">Loading revenue analytics...</p>
-                    </td>
-                  </tr>
+                {loading && data.length === 0 ? (
+                  Array.from({ length: 8 }).map((_, index) => (
+                    <SkeletonRow key={`skeleton-${index}`} />
+                  ))
                 ) : data.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="text-center py-5 text-muted">
-                      No revenue data available for Financial Year <strong>{selectedFy}</strong>.
+                    <td colSpan={8} className="gst-empty-cell">
+                      <div className="gst-empty-state">
+                        <div className="empty-state-icon">
+                          <BarChart3 size={25} />
+                        </div>
+
+                        <div className="empty-state-title">
+                          No revenue data found
+                        </div>
+
+                        <div className="empty-state-description">
+                          No revenue records are available for financial
+                          year <strong>{selectedFy}</strong>.
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ) : (
-                  data.map((row, idx) => {
-                    const cashPct = Number(row.cashRealizationPct) || 0;
-                    const itcPct = Number(row.itcUtilizationPct) || 0;
+                  data.map((row) => {
+                    const cashPct = toNumber(row.cashRealizationPct);
+
+                    const itcPct = toNumber(row.itcUtilizationPct);
 
                     return (
-                      <tr 
-                        key={row.retPeriod} 
-                        className="animate-row"
-                        style={{ animationDelay: `${Math.min(idx * 30, 300)}ms` }}
-                      >
-                        <td className="px-3 fw-bold text-dark bg-light-subtle text-nowrap">
-                          <span className="badge bg-dark text-white border me-1 me-sm-2 font-monospace px-1 px-sm-2 py-1">
-                            {row.retPeriod}
-                          </span>
-                          <span className="d-none d-sm-inline">{formatPeriod(row.retPeriod)}</span>
+                      <tr key={row.retPeriod} className="gst-data-row">
+                        <td className="taxpayer-cell text-center">
+                          <div className="gstin-value">{row.retPeriod}</div>
+
+                          <div className="period-value">
+                            {formatPeriod(row.retPeriod)}
+                          </div>
                         </td>
-                        <td className="px-2 text-end font-monospace fw-semibold text-secondary">
-                          {Number(row.totalTaxpayersFiled || 0).toLocaleString("en-IN")}
+
+                        <td className="amount-cell text-end">
+                          {formatNumber(row.totalTaxpayersFiled)}
                         </td>
-                        <td className="px-2 text-end font-monospace fw-semibold text-dark text-nowrap">
+
+                        <td className="amount-cell text-end">
                           {formatCurrency(row.grossTaxableValue)}
                         </td>
-                        <td className="px-2 text-end font-monospace fw-bold text-success text-nowrap" style={{ backgroundColor: "#f2faf5" }}>
+
+                        <td className="amount-cell text-end">
                           {formatCurrency(row.totalGrossRevenue)}
                         </td>
-                        <td className="px-2 text-end font-monospace fw-bold text-primary text-nowrap" style={{ backgroundColor: "#f0f7ff" }}>
+
+                        <td className="amount-cell text-end">
                           {formatCurrency(row.totalCashCollection)}
                         </td>
-                        <td className="px-2 text-end font-monospace fw-bold text-nowrap" style={{ color: "#6f42c1", backgroundColor: "#fbf8ff" }}>
+
+                        <td className="amount-cell text-end">
                           {formatCurrency(row.totalCreditUtilized)}
                         </td>
-                        <td className="px-2 text-end font-monospace" style={{ backgroundColor: "#f0f7ff" }}>
-                          <span className="badge bg-primary text-white border shadow-sm px-1 px-sm-2 py-1">
+
+                        <td className="ratio-cell text-center">
+                          <span className="percent-badge percent-badge-cash">
                             {cashPct.toFixed(1)}%
                           </span>
                         </td>
-                        <td className="px-3 text-end font-monospace" style={{ backgroundColor: "#fbf8ff" }}>
-                          <span className="badge text-white border shadow-sm px-1 px-sm-2 py-1" style={{ backgroundColor: "#6f42c1" }}>
+
+                        <td className="ratio-cell text-center">
+                          <span className="percent-badge percent-badge-itc">
                             {itcPct.toFixed(1)}%
                           </span>
                         </td>
@@ -513,31 +774,48 @@ const GstMonthlyRevenueSummary = () => {
               </tbody>
 
               {!loading && data.length > 0 && (
-                <tfoot className="table-dark fw-bold border-top animate-row" style={{ animationDelay: "320ms" }}>
-                  <tr>
-                    <td className="px-3 py-3 text-uppercase text-white text-nowrap">Total</td>
-                    <td className="px-2 py-3 text-end font-monospace text-light">
-                      {totals.taxpayers.toLocaleString("en-IN")}
+                <tfoot>
+                  <tr className="gst-totals-row">
+                    <td className="taxpayer-cell text-center">Total</td>
+
+                    <td className="amount-cell text-end">
+                      {formatNumber(totals.taxpayers)}
                     </td>
-                    <td className="px-2 py-3 text-end font-monospace text-light text-nowrap">{formatCurrency(totals.taxableValue)}</td>
-                    <td className="px-2 py-3 text-end font-monospace text-warning text-nowrap">{formatCurrency(totals.grossRevenue)}</td>
-                    <td className="px-2 py-3 text-end font-monospace text-info text-nowrap">{formatCurrency(totals.cashPaid)}</td>
-                    <td className="px-2 py-3 text-end font-monospace text-nowrap" style={{ color: "#d8b4fe" }}>
+
+                    <td className="amount-cell text-end">
+                      {formatCurrency(totals.taxableValue)}
+                    </td>
+
+                    <td className="amount-cell text-end">
+                      {formatCurrency(totals.grossRevenue)}
+                    </td>
+
+                    <td className="amount-cell text-end">
+                      {formatCurrency(totals.cashPaid)}
+                    </td>
+
+                    <td className="amount-cell text-end">
                       {formatCurrency(totals.itcUtilized)}
                     </td>
-                    <td className="px-2 py-3 text-end font-monospace">
-                      <span className="badge bg-info text-dark fw-bold">{overallCashPct}%</span>
+
+                    <td className="ratio-cell text-center">
+                      <span className="percent-badge percent-badge-cash">
+                        {overallCashPct}%
+                      </span>
                     </td>
-                    <td className="px-3 py-3 text-end font-monospace">
-                      <span className="badge text-white fw-bold" style={{ backgroundColor: "#9333ea" }}>{overallItcPct}%</span>
+
+                    <td className="ratio-cell text-center">
+                      <span className="percent-badge percent-badge-itc">
+                        {overallItcPct}%
+                      </span>
                     </td>
                   </tr>
                 </tfoot>
               )}
             </table>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 };
