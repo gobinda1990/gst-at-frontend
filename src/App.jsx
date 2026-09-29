@@ -2,45 +2,43 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import DashboardLayout from "./layouts/DashboardLayout";
 import PredictionPage from "./pages/prediction/PredictionPage";
-import GstinAnalysisPage from "./pages/prediction/GstinAnalysisPage";
-import GstRiskDashboard from "./pages/prediction/GstRiskDashboard";
-import GstAuditDashboard from "./pages/dashboard/GstAuditDashboard";
-import GstReturnDefaulterDashboard from "./pages/dashboard/GstReturnDefaulterDashboard";
-import GstMonthlyRevenueSummary from "./pages/dashboard/GstMonthlyRevenueSummary";
+import TaxpayerView from "./pages/prediction/taxpayerview";
+import GstReturnDefaulterDashboard from "./pages/GstReturnDefaulterDashboard";
+import GstReturn3BGrowth from "./pages/GstReturn3BGrowth";
+import RevenueDashboard from "./pages/OfficeRevenueDashboard";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* LAYOUT WRAPPER */}
+        {/* MAIN DASHBOARD LAYOUT */}
         <Route path="/" element={<DashboardLayout />}>
 
-          {/* DEFAULT / HOME PAGE */}
-          <Route index element={<GstinAnalysisPage />} />
+          {/* DEFAULT / HOME */}
+          <Route index element={<GstReturn3BGrowth />} />
 
-          {/* GSTIN ANALYSIS */}
+          {/* GST 3B GROWTH */}
+          <Route
+            path="return-3b-growth"
+            element={<GstReturn3BGrowth />}
+          />
+
+          {/* REVENUE DASHBOARD */}
+          <Route
+            path="revenue-dashboard"
+            element={<RevenueDashboard />}
+          />
+
+          {/* GSTIN / TAXPAYER ANALYSIS */}
           <Route
             path="gst-analysis"
-            element={<GstinAnalysisPage />}
+            element={<TaxpayerView />}
           />
 
-          {/* RISK DASHBOARD */}
-          <Route
-            path="risk-dashboard"
-            element={<GstRiskDashboard />}
-          />
-
-          {/* PREDICTION */}
+          {/* AI PREDICTION */}
           <Route
             path="prediction"
             element={<PredictionPage />}
-          />
-
-          {/* AUDIT DESK */}
-          <Route
-            path="audit-desk"
-            element={<GstAuditDashboard />}
           />
 
           {/* RETURN DEFAULTERS */}
@@ -49,14 +47,7 @@ function App() {
             element={<GstReturnDefaulterDashboard />}
           />
 
-          {/* MONTHLY REVENUE */}
-          <Route
-            path="monthly-revenue"
-            element={<GstMonthlyRevenueSummary />}
-          />
-
         </Route>
-
       </Routes>
     </BrowserRouter>
   );

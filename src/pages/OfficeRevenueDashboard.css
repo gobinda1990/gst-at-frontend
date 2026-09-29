@@ -1,0 +1,3009 @@
+/* =========================================================
+
+   OFFICE REVENUE DASHBOARD
+
+   Production office UI
+
+\========================================================= */
+
+
+
+.office-revenue-dashboard {
+
+  --or-navy: #0b2c4d;
+
+  --or-navy-2: #17365d;
+
+  --or-navy-3: #204873;
+
+  --or-blue: #1769aa;
+
+  --or-bg: #f3f6f9;
+
+  --or-card: #ffffff;
+
+  --or-border: #d7e0e9;
+
+  --or-border-light: #e5eaf0;
+
+  --or-text: #172b4d;
+
+  --or-text-2: #455a70;
+
+  --or-muted: #6c7d8f;
+
+  --or-green: #087a43;
+
+  --or-red: #bd2d2d;
+
+
+
+  width: 100%;
+
+  min-width: 0;
+
+  min-height: 100%;
+
+  padding: 16px 18px 28px;
+
+  background: var(--or-bg);
+
+  color: var(--or-text);
+
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+
+  font-size: 13px;
+
+  line-height: 1.45;
+
+}
+
+
+
+.office-revenue-dashboard *,
+
+.office-revenue-dashboard *::before,
+
+.office-revenue-dashboard *::after {
+
+  box-sizing: border-box;
+
+}
+
+
+
+/* =========================================================
+
+   FILTER PANEL
+
+\========================================================= */
+
+
+
+.office-filter-panel {
+
+  margin-bottom: 12px;
+
+  padding: 14px 16px 16px;
+
+  background: #fff;
+
+  border: 1px solid var(--or-border);
+
+  border-radius: 8px;
+
+  box-shadow: 0 1px 3px rgba(15, 39, 66, 0.06);
+
+}
+
+
+
+.office-filter-topline {
+
+  min-height: 42px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 18px;
+
+  margin-bottom: 13px;
+
+  padding-bottom: 11px;
+
+  border-bottom: 1px solid #e8edf2;
+
+}
+
+
+
+.office-filter-title {
+
+  min-width: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+}
+
+
+
+.office-filter-title-icon {
+
+  width: 38px;
+
+  height: 38px;
+
+  flex: 0 0 38px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  color: #fff;
+
+  background: var(--or-navy);
+
+  border-radius: 6px;
+
+}
+
+
+
+.office-filter-title h2 {
+
+  margin: 0;
+
+  color: var(--or-navy);
+
+  font-size: 15px;
+
+  font-weight: 750;
+
+  line-height: 1.25;
+
+}
+
+
+
+.office-filter-title p {
+
+  margin: 2px 0 0;
+
+  color: var(--or-muted);
+
+  font-size: 11.5px;
+
+}
+
+
+
+.office-filter-meta {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+}
+
+
+
+.office-last-updated {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 5px;
+
+  color: #5a6f84;
+
+  font-size: 11.5px;
+
+  white-space: nowrap;
+
+}
+
+
+
+.office-last-updated svg {
+
+  color: #527493;
+
+}
+
+
+
+.office-last-updated strong {
+
+  color: var(--or-navy);
+
+  font-weight: 650;
+
+}
+
+
+
+.office-filter-grid {
+
+  display: grid;
+
+  grid-template-columns:
+
+    minmax(150px, 0.85fr)
+
+    minmax(185px, 1fr)
+
+    minmax(155px, 0.85fr)
+
+    minmax(210px, 1.15fr)
+
+    auto;
+
+  gap: 12px;
+
+  align-items: end;
+
+}
+
+
+
+.office-filter-field {
+
+  min-width: 0;
+
+}
+
+
+
+.office-filter-field label {
+
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #243f5b;
+
+  font-size: 11.5px;
+
+  font-weight: 700;
+
+  line-height: 1.2;
+
+}
+
+
+
+.office-filter-field label span {
+
+  color: #bd2d2d;
+
+}
+
+
+
+.office-filter-field select,
+
+.office-search-input {
+
+  width: 100%;
+
+  height: 38px;
+
+  background: #fff;
+
+  border: 1px solid #c8d4df;
+
+  border-radius: 5px;
+
+  color: #243b53;
+
+  font-family: inherit;
+
+  font-size: 12px;
+
+  transition:
+
+    border-color 0.15s ease,
+
+    box-shadow 0.15s ease;
+
+}
+
+
+
+.office-filter-field select {
+
+  padding: 0 30px 0 10px;
+
+  cursor: pointer;
+
+}
+
+
+
+.office-filter-field select:focus,
+
+.office-search-input:focus-within {
+
+  outline: none;
+
+  border-color: #4c86b5;
+
+  box-shadow: 0 0 0 2px rgba(76, 134, 181, 0.11);
+
+}
+
+
+
+.office-filter-field select:disabled {
+
+  color: #8a99a8;
+
+  background: #f6f8fa;
+
+  cursor: not-allowed;
+
+}
+
+
+
+.office-search-input {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 0 10px;
+
+}
+
+
+
+.office-search-input svg {
+
+  flex: 0 0 auto;
+
+  color: #718397;
+
+}
+
+
+
+.office-search-input input {
+
+  min-width: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  padding: 0;
+
+  color: #243b53;
+
+  background: transparent;
+
+  border: 0;
+
+  outline: none;
+
+  font-family: inherit;
+
+  font-size: 12px;
+
+}
+
+
+
+.office-search-input input::placeholder {
+
+  color: #96a3b1;
+
+}
+
+
+
+.office-filter-actions {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  white-space: nowrap;
+
+}
+
+
+
+/* =========================================================
+
+   BUTTONS
+
+\========================================================= */
+
+
+
+.office-btn {
+
+  height: 38px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 6px;
+
+  padding: 0 13px;
+
+  border: 1px solid transparent;
+
+  border-radius: 5px;
+
+  font-family: inherit;
+
+  font-size: 11.5px;
+
+  font-weight: 700;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+
+    background-color 0.15s ease,
+
+    border-color 0.15s ease,
+
+    box-shadow 0.15s ease;
+
+}
+
+
+
+.office-btn:focus-visible {
+
+  outline: 2px solid #6ba5d2;
+
+  outline-offset: 2px;
+
+}
+
+
+
+.office-btn:disabled {
+
+  opacity: 0.55;
+
+  cursor: not-allowed;
+
+}
+
+
+
+.office-btn-search {
+
+  color: #fff;
+
+  background: #1769aa;
+
+}
+
+
+
+.office-btn-search:hover:not(:disabled) {
+
+  background: #125a92;
+
+}
+
+
+
+.office-btn-reset {
+
+  color: #294763;
+
+  background: #fff;
+
+  border-color: #c8d4df;
+
+}
+
+
+
+.office-btn-reset:hover:not(:disabled) {
+
+  background: #f5f7f9;
+
+}
+
+
+
+.office-btn-export,
+
+.office-btn-refresh {
+
+  color: #fff;
+
+  background: #087a43;
+
+}
+
+
+
+.office-btn-export:hover:not(:disabled),
+
+.office-btn-refresh:hover:not(:disabled) {
+
+  background: #066738;
+
+}
+
+
+
+.office-btn-refresh {
+
+  height: 32px;
+
+  padding: 0 11px;
+
+}
+
+
+
+/* =========================================================
+
+   ALERT
+
+\========================================================= */
+
+
+
+.office-dashboard-alert {
+
+  min-height: 42px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin-bottom: 12px;
+
+  padding: 9px 12px;
+
+  color: #8f2828;
+
+  background: #fff4f4;
+
+  border: 1px solid #efc1c1;
+
+  border-left: 4px solid #bd2d2d;
+
+  border-radius: 5px;
+
+  font-size: 12px;
+
+  font-weight: 550;
+
+}
+
+
+
+.office-dashboard-alert span {
+
+  flex: 1;
+
+}
+
+
+
+.office-dashboard-alert button {
+
+  padding: 4px 10px;
+
+  color: #8f2828;
+
+  background: #fff;
+
+  border: 1px solid #dfa9a9;
+
+  border-radius: 4px;
+
+  font-family: inherit;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+}
+
+
+
+/* =========================================================
+
+   KPI
+
+\========================================================= */
+
+
+
+/* =========================================================
+   KPI GRID - 5 CARDS
+========================================================= */
+
+.office-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.office-kpi-card {
+  width: 100%;
+  min-width: 0;
+  min-height: 124px;
+  padding: 15px 14px;
+}
+
+/* Better use of increased card width */
+.office-kpi-value {
+  font-size: clamp(19px, 1.35vw, 24px);
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.office-kpi-full-value {
+  margin-top: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Responsive */
+@media (max-width: 1280px) {
+  .office-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .office-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .office-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+.office-kpi-card {
+
+  position: relative;
+
+  min-width: 0;
+
+  min-height: 110px;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 8px;
+
+  padding: 14px 13px;
+
+  background: #fff;
+
+  border: 1px solid var(--or-border);
+
+  border-top: 3px solid #2563eb;
+
+  border-radius: 7px;
+
+  box-shadow: 0 1px 3px rgba(15, 39, 66, 0.05);
+
+  overflow: hidden;
+
+}
+
+
+
+.office-kpi-content {
+
+  min-width: 0;
+
+  flex: 1;
+
+}
+
+
+
+.office-kpi-title {
+
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #53677b;
+
+  font-size: 11.5px;
+
+  font-weight: 700;
+
+  line-height: 1.25;
+
+}
+
+
+
+.office-kpi-value {
+
+  display: block;
+
+  max-width: 100%;
+
+  overflow: hidden;
+
+  color: var(--or-navy);
+
+  font-size: clamp(17px, 1.2vw, 22px);
+
+  font-weight: 800;
+
+  line-height: 1.18;
+
+  letter-spacing: -0.25px;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+
+}
+
+
+
+.office-kpi-subtitle {
+
+  display: block;
+
+  margin-top: 8px;
+
+  color: #788898;
+
+  font-size: 10.5px;
+
+}
+
+
+
+.office-kpi-growth {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 5px;
+
+  margin-top: 8px;
+
+  color: #6a7a8b;
+
+  font-size: 10.5px;
+
+  font-weight: 650;
+
+}
+
+
+
+.office-kpi-icon {
+
+  width: 38px;
+
+  height: 38px;
+
+  flex: 0 0 38px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  margin-left: 5px;
+
+  color: #1769aa;
+
+  background: #edf5fc;
+
+  border-radius: 50%;
+
+}
+
+
+
+.kpi-blue {
+
+  border-top-color: #1769aa;
+
+}
+
+
+
+.kpi-blue .office-kpi-icon {
+
+  color: #1769aa;
+
+  background: #e7f2fb;
+
+}
+
+
+
+.kpi-red {
+
+  border-top-color: #bd3b3b;
+
+}
+
+
+
+.kpi-red .office-kpi-icon {
+
+  color: #b93636;
+
+  background: #fceaea;
+
+}
+
+
+
+.kpi-orange {
+
+  border-top-color: #d98214;
+
+}
+
+
+
+.kpi-orange .office-kpi-icon {
+
+  color: #b66c0d;
+
+  background: #fff2dd;
+
+}
+
+
+
+.kpi-green {
+
+  border-top-color: #14814b;
+
+}
+
+
+
+.kpi-green .office-kpi-icon {
+
+  color: #087a43;
+
+  background: #e5f5ec;
+
+}
+
+
+
+.kpi-purple {
+
+  border-top-color: #7044ad;
+
+}
+
+
+
+.kpi-purple .office-kpi-icon {
+
+  color: #6840a2;
+
+  background: #f0eafb;
+
+}
+
+
+
+.kpi-rose {
+
+  border-top-color: #bf4b5d;
+
+}
+
+
+
+.kpi-rose .office-kpi-icon {
+
+  color: #b83d50;
+
+  background: #fae9ec;
+
+}
+
+
+
+.growth-value {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 1px;
+
+  font-size: 10.5px;
+
+  font-weight: 750;
+
+  white-space: nowrap;
+
+}
+
+
+
+.growth-value.positive {
+
+  color: #087a43;
+
+}
+
+
+
+.growth-value.negative {
+
+  color: #bd2d2d;
+
+}
+
+
+
+.growth-value.neutral {
+
+  color: #68798b;
+
+}
+
+
+
+/* =========================================================
+
+   CHARTS
+
+\========================================================= */
+
+
+
+.office-chart-grid {
+
+  display: grid;
+
+  gap: 10px;
+
+  margin-bottom: 10px;
+
+}
+
+
+
+.office-chart-grid-main {
+
+  grid-template-columns:
+
+    minmax(0, 1.5fr)
+
+    minmax(0, 0.95fr)
+
+    minmax(0, 1.08fr);
+
+}
+
+
+
+.office-chart-grid-secondary {
+
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+}
+
+
+
+.office-chart-card {
+
+  min-width: 0;
+
+  overflow: hidden;
+
+  background: #fff;
+
+  border: 1px solid var(--or-border);
+
+  border-radius: 7px;
+
+  box-shadow: 0 1px 3px rgba(15, 39, 66, 0.05);
+
+}
+
+
+
+.office-card-heading {
+
+  min-height: 49px;
+
+  display: flex;
+
+  align-items: center;
+
+  padding: 10px 13px 8px;
+
+  border-bottom: 1px solid #e7ecf1;
+
+}
+
+
+
+.office-card-heading h3 {
+
+  margin: 0;
+
+  color: var(--or-navy);
+
+  font-size: 13px;
+
+  font-weight: 750;
+
+  line-height: 1.3;
+
+}
+
+
+
+.office-card-heading p {
+
+  margin: 2px 0 0;
+
+  color: #718194;
+
+  font-size: 10.5px;
+
+}
+
+
+
+.office-chart-content {
+
+  min-height: 255px;
+
+  padding: 8px 8px 7px;
+
+}
+
+
+
+.monthly-revenue-chart-card {
+
+  border-top: 3px solid #1769aa;
+
+}
+
+
+
+.office-empty-chart {
+
+  min-height: 245px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 7px;
+
+  color: #687b8e;
+
+  font-size: 11.5px;
+
+  font-weight: 550;
+
+}
+
+
+
+/* =========================================================
+
+   TAX COMPONENT BREAKDOWN
+
+\========================================================= */
+
+
+
+.office-tax-breakdown-layout {
+
+  min-height: 265px;
+
+  display: grid;
+
+  grid-template-columns: minmax(190px, 1fr) minmax(155px, 0.9fr);
+
+  align-items: center;
+
+  gap: 4px;
+
+  padding: 4px 8px 8px;
+
+}
+
+
+
+.office-tax-donut {
+
+  position: relative;
+
+  width: 100%;
+
+  min-width: 0;
+
+}
+
+
+
+.office-tax-donut-center {
+
+  position: absolute;
+
+  top: 50%;
+
+  left: 50%;
+
+  width: 125px;
+
+  transform: translate(-50%, -50%);
+
+  text-align: center;
+
+  pointer-events: none;
+
+}
+
+
+
+.office-tax-donut-center strong {
+
+  display: block;
+
+  color: #0b2c4d;
+
+  font-size: 12px;
+
+  font-weight: 800;
+
+  line-height: 1.25;
+
+  font-variant-numeric: tabular-nums;
+
+}
+
+
+
+.office-tax-donut-center span {
+
+  display: block;
+
+  margin-top: 4px;
+
+  color: #65788c;
+
+  font-size: 9.5px;
+
+  font-weight: 650;
+
+}
+
+
+
+.office-tax-legend {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 7px;
+
+  min-width: 0;
+
+}
+
+
+
+.office-tax-legend-item {
+
+  min-height: 45px;
+
+  display: grid;
+
+  grid-template-columns: 10px 42px minmax(0, 1fr);
+
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 6px 8px;
+
+  background: #f8fafc;
+
+  border: 1px solid #e1e8ef;
+
+  border-radius: 5px;
+
+}
+
+
+
+.office-tax-legend-color {
+
+  width: 9px;
+
+  height: 9px;
+
+  border-radius: 50%;
+
+}
+
+
+
+.office-tax-legend-name {
+
+  color: #334e68;
+
+  font-size: 11px;
+
+  font-weight: 750;
+
+}
+
+
+
+.office-tax-legend-value {
+
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-end;
+
+}
+
+
+
+.office-tax-legend-value strong {
+
+  color: #17365d;
+
+  font-size: 10.5px;
+
+  font-weight: 750;
+
+  font-variant-numeric: tabular-nums;
+
+  white-space: nowrap;
+
+}
+
+
+
+.office-tax-legend-value span {
+
+  margin-top: 1px;
+
+  color: #718397;
+
+  font-size: 9.5px;
+
+  font-weight: 650;
+
+}
+
+
+
+.office-tax-no-data {
+
+  min-height: 255px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 6px;
+
+  padding: 20px;
+
+  color: #75869a;
+
+  text-align: center;
+
+}
+
+
+
+.office-tax-no-data svg {
+
+  color: #8da0b3;
+
+}
+
+
+
+.office-tax-no-data strong {
+
+  color: #455f78;
+
+  font-size: 12px;
+
+  font-weight: 750;
+
+}
+
+
+
+.office-tax-no-data span {
+
+  max-width: 280px;
+
+  font-size: 10.5px;
+
+}
+
+
+
+/* =========================================================
+
+   GENERIC DONUT / FILING
+
+\========================================================= */
+
+
+
+.office-donut-layout {
+
+  min-height: 245px;
+
+  display: grid;
+
+  grid-template-columns: minmax(145px, 1fr) minmax(130px, 0.8fr);
+
+  align-items: center;
+
+}
+
+
+
+.office-donut-chart {
+
+  position: relative;
+
+  min-width: 0;
+
+}
+
+
+
+.office-donut-center {
+
+  position: absolute;
+
+  top: 50%;
+
+  left: 50%;
+
+  width: 120px;
+
+  transform: translate(-50%, -50%);
+
+  text-align: center;
+
+  pointer-events: none;
+
+}
+
+
+
+.office-donut-center strong {
+
+  display: block;
+
+  color: var(--or-navy);
+
+  font-size: 13px;
+
+  font-weight: 800;
+
+  line-height: 1.25;
+
+}
+
+
+
+.office-donut-center span {
+
+  display: block;
+
+  margin-top: 3px;
+
+  color: #718194;
+
+  font-size: 9.5px;
+
+}
+
+
+
+.office-chart-legend {
+
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 9px;
+
+  padding-right: 6px;
+
+}
+
+
+
+.office-legend-row {
+
+  display: grid;
+
+  grid-template-columns: 8px 78px minmax(0, 1fr);
+
+  align-items: center;
+
+  gap: 6px;
+
+  color: #4c6074;
+
+  font-size: 10px;
+
+}
+
+
+
+.office-legend-row i {
+
+  width: 8px;
+
+  height: 8px;
+
+  border-radius: 50%;
+
+}
+
+
+
+.office-legend-row strong {
+
+  color: #233f5b;
+
+  font-weight: 700;
+
+  text-align: right;
+
+  white-space: nowrap;
+
+}
+
+
+
+/* =========================================================
+
+   TABLE TOOLBAR
+
+\========================================================= */
+
+
+
+.office-revenue-table-card {
+
+  overflow: hidden;
+
+  background: #fff;
+
+  border: 1px solid #ced9e4;
+
+  border-radius: 7px;
+
+  box-shadow: 0 1px 4px rgba(15, 39, 66, 0.06);
+
+}
+
+
+
+.office-table-toolbar {
+
+  min-height: 53px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding: 9px 12px;
+
+  background: #fff;
+
+  border-bottom: 1px solid #dce4ec;
+
+}
+
+
+
+.office-table-toolbar h3 {
+
+  margin: 0;
+
+  color: var(--or-navy);
+
+  font-size: 14px;
+
+  font-weight: 750;
+
+}
+
+
+
+.office-table-toolbar p {
+
+  margin: 2px 0 0;
+
+  color: #65788b;
+
+  font-size: 11px;
+
+  font-weight: 500;
+
+}
+
+
+
+.office-table-controls {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  color: #52657a;
+
+  font-size: 11px;
+
+  white-space: nowrap;
+
+}
+
+
+
+.office-table-controls select {
+
+  height: 31px;
+
+  min-width: 64px;
+
+  padding: 0 7px;
+
+  color: #233f5b;
+
+  background: #fff;
+
+  border: 1px solid #c7d3df;
+
+  border-radius: 4px;
+
+  font-family: inherit;
+
+  font-size: 11px;
+
+  font-weight: 650;
+
+}
+
+
+
+/* =========================================================
+
+   HIGH READABILITY OFFICE TABLE
+
+\========================================================= */
+
+
+
+.office-table-scroll {
+
+  width: 100%;
+
+  overflow-x: auto;
+
+  overflow-y: visible;
+
+  background: #fff;
+
+  scrollbar-width: thin;
+
+  scrollbar-color: #9aabba #e8edf2;
+
+}
+
+
+
+.office-table-scroll::-webkit-scrollbar {
+
+  height: 10px;
+
+}
+
+
+
+.office-table-scroll::-webkit-scrollbar-track {
+
+  background: #e8edf2;
+
+}
+
+
+
+.office-table-scroll::-webkit-scrollbar-thumb {
+
+  background: #9aabba;
+
+  border-radius: 5px;
+
+}
+
+
+
+.office-revenue-table {
+
+  width: 100%;
+
+  min-width: 1580px;
+
+  border-collapse: separate;
+
+  border-spacing: 0;
+
+  table-layout: auto;
+
+  color: #172b4d;
+
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+
+  font-size: 12px;
+
+}
+
+
+
+.office-revenue-table th,
+
+.office-revenue-table td {
+
+  border-right: 1px solid #dce4eb;
+
+  border-bottom: 1px solid #dce4eb;
+
+}
+
+
+
+.office-revenue-table th:last-child,
+
+.office-revenue-table td:last-child {
+
+  border-right: 0;
+
+}
+
+
+
+.office-revenue-table thead th {
+
+  padding: 10px 9px;
+
+  color: #fff;
+
+  background: #17365d;
+
+  border-right: 1px solid rgba(255, 255, 255, 0.17);
+
+  border-bottom: 1px solid #456887;
+
+  font-size: 11px;
+
+  font-weight: 750;
+
+  line-height: 1.3;
+
+  text-align: center;
+
+  vertical-align: middle;
+
+  white-space: nowrap;
+
+}
+
+
+
+.office-revenue-table thead tr:nth-child(2) th {
+
+  background: #204873;
+
+  color: #fff;
+
+}
+
+
+
+.office-revenue-table thead th small {
+
+  display: block;
+
+  margin-top: 3px;
+
+  color: #dce8f3;
+
+  font-size: 9.5px;
+
+  font-weight: 550;
+
+}
+
+
+
+.office-revenue-table tbody td {
+
+  height: 46px;
+
+  padding: 9px 10px;
+
+  color: #172b4d;
+
+  background: #fff;
+
+  font-size: 12px;
+
+  font-weight: 550;
+
+  line-height: 1.35;
+
+  text-align: right;
+
+  vertical-align: middle;
+
+  white-space: nowrap;
+
+  font-variant-numeric: tabular-nums;
+
+}
+
+
+
+.office-revenue-table tbody tr:nth-child(even) td {
+
+  background: #f7f9fb;
+
+}
+
+
+
+.office-revenue-table tbody tr:hover td {
+
+  background: #eaf3fa;
+
+}
+
+
+
+.office-revenue-table .text-left {
+
+  text-align: left;
+
+}
+
+
+
+.office-revenue-table .text-center {
+
+  text-align: center;
+
+}
+
+
+
+.office-revenue-table tbody td:first-child {
+
+  color: #5a6f83;
+
+  font-weight: 650;
+
+  text-align: center;
+
+}
+
+
+
+.office-revenue-table .office-code {
+
+  min-width: 105px;
+
+  color: #0f5688 !important;
+
+  font-size: 11.5px;
+
+  font-weight: 750;
+
+  text-align: left !important;
+
+}
+
+
+
+.office-revenue-table .office-name {
+
+  min-width: 190px;
+
+  max-width: 280px;
+
+  color: #102f4d !important;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  text-align: left !important;
+
+  white-space: normal;
+
+  line-height: 1.35;
+
+}
+
+
+
+.filed-gstin-cell {
+
+  min-width: 90px;
+
+  color: #293f55 !important;
+
+  font-weight: 650 !important;
+
+}
+
+
+
+.office-revenue-table .money-cell {
+
+  min-width: 105px;
+
+  color: #203c57;
+
+  font-weight: 650;
+
+  letter-spacing: 0.05px;
+
+}
+
+
+
+.office-revenue-table .output-tax {
+
+  color: #075a91 !important;
+
+  background: #f1f8fd !important;
+
+  font-weight: 800 !important;
+
+}
+
+
+
+.office-revenue-table .cash-tax {
+
+  color: #087a43 !important;
+
+  background: #f0faf5 !important;
+
+  font-weight: 800 !important;
+
+}
+
+
+
+.office-revenue-table tbody tr:hover .output-tax {
+
+  background: #deeffb !important;
+
+}
+
+
+
+.office-revenue-table tbody tr:hover .cash-tax {
+
+  background: #e1f5eb !important;
+
+}
+
+
+
+.office-revenue-table tbody td:nth-child(12),
+
+.office-revenue-table tbody td:nth-child(13) {
+
+  min-width: 88px;
+
+  text-align: center;
+
+}
+
+
+
+.office-revenue-table .growth-value {
+
+  min-width: 66px;
+
+  padding: 4px 6px;
+
+  border-radius: 4px;
+
+  font-size: 11px;
+
+  font-weight: 750;
+
+}
+
+
+
+.office-revenue-table .growth-value.positive {
+
+  color: #08783f;
+
+  background: #e8f6ee;
+
+}
+
+
+
+.office-revenue-table .growth-value.negative {
+
+  color: #b12b2b;
+
+  background: #fceaea;
+
+}
+
+
+
+.office-revenue-table .growth-value.neutral {
+
+  color: #566b7e;
+
+  background: #edf1f5;
+
+}
+
+
+
+/* =========================================================
+
+   STATUS BADGES
+
+\========================================================= */
+
+
+
+.office-status-badge {
+
+  min-width: 78px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 5px 8px;
+
+  border: 1px solid transparent;
+
+  border-radius: 4px;
+
+  font-size: 10px;
+
+  font-weight: 750;
+
+  letter-spacing: 0.15px;
+
+  text-transform: uppercase;
+
+  white-space: nowrap;
+
+}
+
+
+
+.status-high {
+
+  color: #086839;
+
+  background: #ddf3e7;
+
+  border-color: #b1dec4;
+
+}
+
+
+
+.status-medium {
+
+  color: #825400;
+
+  background: #fff2c9;
+
+  border-color: #ecd58f;
+
+}
+
+
+
+.status-low {
+
+  color: #17547f;
+
+  background: #e0effb;
+
+  border-color: #b8d6ec;
+
+}
+
+
+
+.status-stable {
+
+  color: #465b70;
+
+  background: #e9eef3;
+
+  border-color: #d0d9e2;
+
+}
+
+
+
+.status-declining {
+
+  color: #9e2929;
+
+  background: #fbe4e4;
+
+  border-color: #edb8b8;
+
+}
+
+
+
+.status-no-base,
+
+.status-none {
+
+  color: #5c6874;
+
+  background: #edf0f3;
+
+  border-color: #d6dce2;
+
+}
+
+
+
+/* =========================================================
+
+   VIEW BUTTON
+
+\========================================================= */
+
+
+
+.office-view-btn {
+
+  min-width: 65px;
+
+  height: 30px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 5px;
+
+  padding: 0 10px;
+
+  color: #0f5f99;
+
+  background: #edf6fc;
+
+  border: 1px solid #afd0e8;
+
+  border-radius: 4px;
+
+  font-family: inherit;
+
+  font-size: 10.5px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+
+    background-color 0.15s ease,
+
+    border-color 0.15s ease;
+
+}
+
+
+
+.office-view-btn:hover {
+
+  color: #fff;
+
+  background: #1769aa;
+
+  border-color: #1769aa;
+
+}
+
+
+
+.office-table-state {
+
+  min-height: 130px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 8px;
+
+  color: #536b81;
+
+  font-size: 12px;
+
+  font-weight: 550;
+
+}
+
+
+
+/* =========================================================
+
+   PAGINATION
+
+\========================================================= */
+
+
+
+.office-pagination-bar {
+
+  min-height: 48px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding: 8px 12px;
+
+  background: #fafbfd;
+
+}
+
+
+
+.office-pagination-info {
+
+  color: #5b6d80;
+
+  font-size: 11px;
+
+}
+
+
+
+.office-pagination-info strong {
+
+  color: var(--or-navy);
+
+  font-weight: 700;
+
+}
+
+
+
+.office-pagination {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  color: #52657a;
+
+  font-size: 11px;
+
+}
+
+
+
+.office-pagination > span {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 4px;
+
+}
+
+
+
+.office-pagination > span strong {
+
+  color: var(--or-navy);
+
+  font-weight: 750;
+
+}
+
+
+
+.office-pagination button {
+
+  width: 30px;
+
+  height: 30px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0;
+
+  color: #174f7d;
+
+  background: #fff;
+
+  border: 1px solid #c7d3df;
+
+  border-radius: 4px;
+
+  cursor: pointer;
+
+}
+
+
+
+.office-pagination button:hover:not(:disabled) {
+
+  color: #fff;
+
+  background: #1769aa;
+
+  border-color: #1769aa;
+
+}
+
+
+
+.office-pagination button:disabled {
+
+  color: #aab5c0;
+
+  background: #f4f6f8;
+
+  cursor: not-allowed;
+
+}
+
+
+
+/* =========================================================
+
+   RECHARTS
+
+\========================================================= */
+
+
+
+.office-revenue-dashboard .recharts-default-tooltip {
+
+  font-family: Inter, "Segoe UI", Arial, sans-serif !important;
+
+}
+
+
+
+.office-revenue-dashboard .recharts-legend-item-text {
+
+  color: #455a70 !important;
+
+  font-size: 10.5px !important;
+
+}
+
+
+
+.office-revenue-dashboard .recharts-cartesian-axis-tick-value {
+
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+
+}
+
+
+
+/* =========================================================
+
+   LOADING
+
+\========================================================= */
+
+
+
+.spin {
+
+  animation: office-revenue-spin 0.8s linear infinite;
+
+}
+
+
+
+@keyframes office-revenue-spin {
+
+  to {
+
+    transform: rotate(360deg);
+
+  }
+
+}
+
+
+
+/* =========================================================
+
+   RESPONSIVE
+
+\========================================================= */
+
+
+
+@media (max-width: 1550px) {
+
+  .office-kpi-grid {
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  }
+
+
+
+  .office-filter-grid {
+
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  }
+
+
+
+  .office-filter-actions {
+
+    grid-column: 1 / -1;
+
+    justify-content: flex-end;
+
+  }
+
+}
+
+
+
+@media (max-width: 1250px) {
+
+  .office-chart-grid-main {
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  }
+
+
+
+  .office-chart-grid-main > :first-child {
+
+    grid-column: 1 / -1;
+
+  }
+
+
+
+  .office-chart-grid-secondary {
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  }
+
+}
+
+
+
+@media (max-width: 900px) {
+
+  .office-revenue-dashboard {
+
+    padding: 12px;
+
+  }
+
+
+
+  .office-filter-topline {
+
+    align-items: flex-start;
+
+    flex-direction: column;
+
+  }
+
+
+
+  .office-filter-meta {
+
+    width: 100%;
+
+    justify-content: space-between;
+
+  }
+
+
+
+  .office-filter-grid {
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  }
+
+
+
+  .office-kpi-grid {
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  }
+
+
+
+  .office-chart-grid-main,
+
+  .office-chart-grid-secondary {
+
+    grid-template-columns: 1fr;
+
+  }
+
+
+
+  .office-chart-grid-main > :first-child {
+
+    grid-column: auto;
+
+  }
+
+
+
+  .office-table-toolbar,
+
+  .office-pagination-bar {
+
+    align-items: flex-start;
+
+    flex-direction: column;
+
+  }
+
+}
+
+
+
+@media (max-width: 600px) {
+
+  .office-revenue-dashboard {
+
+    padding: 8px;
+
+  }
+
+
+
+  .office-filter-panel {
+
+    padding: 12px;
+
+  }
+
+
+
+  .office-filter-title-icon {
+
+    width: 34px;
+
+    height: 34px;
+
+    flex-basis: 34px;
+
+  }
+
+
+
+  .office-filter-title h2 {
+
+    font-size: 14px;
+
+  }
+
+
+
+  .office-filter-title p {
+
+    font-size: 10.5px;
+
+  }
+
+
+
+  .office-filter-meta {
+
+    align-items: flex-end;
+
+    flex-direction: column;
+
+  }
+
+
+
+  .office-filter-grid,
+
+  .office-kpi-grid {
+
+    grid-template-columns: 1fr;
+
+  }
+
+
+
+  .office-filter-actions {
+
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  }
+
+
+
+  .office-btn {
+
+    width: 100%;
+
+  }
+
+
+
+  .office-btn-export {
+
+    grid-column: 1 / -1;
+
+  }
+
+
+
+  .office-kpi-card {
+
+    min-height: 98px;
+
+  }
+
+
+
+  .office-kpi-value {
+
+    font-size: 20px;
+
+  }
+
+
+
+  .office-tax-breakdown-layout,
+
+  .office-donut-layout {
+
+    grid-template-columns: 1fr;
+
+  }
+
+
+
+  .office-tax-legend,
+
+  .office-chart-legend {
+
+    padding: 0 18px 15px;
+
+  }
+
+
+
+  .office-pagination {
+
+    width: 100%;
+
+    justify-content: space-between;
+
+  }
+
+}
+
+
+/* =========================================================
+   KPI + TAX BREAKDOWN — HIGH READABILITY PRODUCTION OVERRIDES
+========================================================= */
+
+.office-kpi-card {
+  min-height: 126px;
+  border-top-width: 4px;
+  box-shadow: 0 2px 8px rgba(15, 39, 66, 0.07);
+}
+
+.office-kpi-card.kpi-blue { background: linear-gradient(180deg, #f3f9ff 0%, #ffffff 52%); }
+.office-kpi-card.kpi-red { background: linear-gradient(180deg, #fff5f5 0%, #ffffff 52%); }
+.office-kpi-card.kpi-orange { background: linear-gradient(180deg, #fff8ec 0%, #ffffff 52%); }
+.office-kpi-card.kpi-green { background: linear-gradient(180deg, #f0faf5 0%, #ffffff 52%); }
+.office-kpi-card.kpi-purple { background: linear-gradient(180deg, #f7f3ff 0%, #ffffff 52%); }
+.office-kpi-card.kpi-rose { background: linear-gradient(180deg, #fff3f6 0%, #ffffff 52%); }
+
+.office-kpi-value {
+  overflow: visible;
+  font-size: clamp(18px, 1.25vw, 23px);
+  text-overflow: clip;
+}
+
+.office-kpi-full-value {
+  display: block;
+  margin-top: 5px;
+  color: #40566d;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.office-tax-breakdown-layout {
+  min-height: 300px;
+  grid-template-columns: minmax(230px, 0.95fr) minmax(245px, 1.05fr);
+  gap: 12px;
+  padding: 10px 12px 12px;
+}
+
+.office-tax-donut-center { width: 145px; }
+
+.office-tax-donut-center .office-tax-center-label {
+  margin: 0 0 4px;
+  color: #65788c;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+.office-tax-donut-center strong {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.office-tax-donut-center .office-tax-center-full {
+  display: block;
+  margin-top: 4px;
+  color: #3f5870;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.office-tax-legend { gap: 8px; }
+
+.office-tax-legend-item {
+  min-height: 54px;
+  grid-template-columns: 11px 46px minmax(0, 1fr);
+  gap: 8px;
+  padding: 7px 9px;
+  background: #fbfcfe;
+  border-color: #dbe4ed;
+}
+
+.office-tax-legend-color {
+  width: 10px;
+  height: 10px;
+}
+
+.office-tax-legend-name { font-size: 11.5px; }
+
+.office-tax-legend-value strong {
+  max-width: 100%;
+  color: #102f4d;
+  font-size: 11px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.office-tax-legend-value span {
+  margin-top: 3px;
+  color: #64788d;
+  font-size: 9.5px;
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  .office-tax-breakdown-layout {
+    grid-template-columns: minmax(210px, 0.9fr) minmax(220px, 1.1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .office-tax-breakdown-layout { grid-template-columns: 1fr; }
+  .office-tax-legend { padding: 0 4px 8px; }
+}
+
+
+/* =========================================================
+   CHART CARD HEADERS + TAX COMPONENT BREAKDOWN
+   Production readability overrides
+========================================================= */
+
+/* Clear, official section header */
+.office-chart-card .office-card-heading {
+  min-height: 54px;
+  padding: 10px 14px 9px;
+  background: linear-gradient(180deg, #17365d 0%, #0b2c4d 100%);
+  border-bottom: 1px solid #08243f;
+}
+
+.office-chart-card .office-card-heading h3 {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1px;
+}
+
+.office-chart-card .office-card-heading p {
+  margin-top: 3px;
+  color: #dce8f3;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Tax component card gets more usable horizontal space internally */
+.tax-component-card .office-chart-content {
+  min-height: 270px;
+  padding: 8px 10px 10px;
+}
+
+.tax-component-card .office-tax-breakdown-layout {
+  min-height: 270px;
+  grid-template-columns: minmax(180px, 0.92fr) minmax(205px, 1.08fr);
+  gap: 8px;
+  padding: 4px 2px 6px;
+  align-items: center;
+}
+
+/* Prevent donut from consuming the legend's amount area */
+.tax-component-card .office-tax-donut {
+  min-width: 0;
+  max-width: 225px;
+  margin: 0 auto;
+}
+
+.tax-component-card .office-tax-donut-center {
+  width: 118px;
+}
+
+.tax-component-card .office-tax-donut-center strong {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.tax-component-card .office-tax-donut-center .office-tax-center-full {
+  font-size: 7.5px;
+  line-height: 1.15;
+}
+
+/* Component rows: label on first line, full amount on its own line */
+.tax-component-card .office-tax-legend {
+  min-width: 0;
+  width: 100%;
+  gap: 6px;
+}
+
+.tax-component-card .office-tax-legend-item {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 10px 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  overflow: hidden;
+}
+
+.tax-component-card .office-tax-legend-name {
+  min-width: 0;
+  color: #203c57;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.tax-component-card .office-tax-legend-value {
+  min-width: 0;
+  width: 100%;
+  align-items: flex-start;
+  overflow: hidden;
+}
+
+.tax-component-card .office-tax-legend-value strong {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  color: #102f4d;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.tax-component-card .office-tax-legend-value span {
+  display: block;
+  width: 100%;
+  margin-top: 2px;
+  color: #687c90;
+  font-size: 8.5px;
+  font-weight: 650;
+  line-height: 1.15;
+  text-align: left;
+  white-space: normal;
+}
+
+/* Keep chart row usable on common office desktop resolutions */
+@media (max-width: 1360px) {
+  .office-chart-grid-main {
+    grid-template-columns:
+      minmax(0, 1.35fr)
+      minmax(390px, 1.08fr)
+      minmax(0, 1fr);
+  }
+
+  .tax-component-card .office-tax-breakdown-layout {
+    grid-template-columns: minmax(165px, 0.85fr) minmax(205px, 1.15fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  .office-chart-grid-main {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tax-component-card {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .office-chart-grid-main {
+    grid-template-columns: 1fr;
+  }
+
+  .tax-component-card .office-tax-breakdown-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .tax-component-card .office-tax-donut {
+    max-width: 260px;
+  }
+
+  .tax-component-card .office-tax-legend-value strong,
+  .tax-component-card .office-tax-legend-value span {
+    text-align: right;
+  }
+
+  .tax-component-card .office-tax-legend-value {
+    align-items: flex-end;
+  }
+}

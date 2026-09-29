@@ -3,13 +3,14 @@ import { NavLink } from "react-router-dom";
 
 import {
   FaHome,
-  FaBrain, 
+  FaBrain,
   FaCog,
   FaBars,
-  FaTimes,  
+  FaTimes,
   FaUserShield,
   FaFileInvoiceDollar,
-  FaCoins 
+  FaChartPie,
+  FaChartLine
 } from "react-icons/fa";
 
 import "./sidebar.css";
@@ -23,8 +24,8 @@ const Sidebar = () => {
   return (
     <>
       {/* MOBILE TOGGLE BUTTON */}
-      <button 
-        className="sidebar-toggle-btn" 
+      <button
+        className="sidebar-toggle-btn"
         onClick={toggleSidebar}
         aria-label="Toggle navigation menu"
       >
@@ -40,6 +41,7 @@ const Sidebar = () => {
       <aside className={`sidebar ${open ? "open" : ""}`}>
         {/* MENU */}
         <ul className="sidebar-menu">
+          {/* HOME / DASHBOARD */}
           <li>
             <NavLink to="/" end onClick={closeSidebar}>
               <FaHome />
@@ -47,19 +49,15 @@ const Sidebar = () => {
             </NavLink>
           </li>
 
+          {/* REVENUE DASHBOARD */}
           <li>
-            <NavLink to="/monthly-revenue" onClick={closeSidebar}>
-              <FaCoins />
-              <span>Monthly Revenue</span>
-            </NavLink>
-          </li>  
-          <li>
-            <NavLink to="/audit-desk" onClick={closeSidebar}>
-              <FaUserShield />
-              <span>Audit Desk</span>
+            <NavLink to="/revenue-dashboard" onClick={closeSidebar}>
+              <FaChartPie />
+              <span>Revenue Summary</span>
             </NavLink>
           </li>
 
+           {/* RETURN DEFAULTERS */}
           <li>
             <NavLink to="/return-defaulters" onClick={closeSidebar}>
               <FaFileInvoiceDollar />
@@ -67,12 +65,33 @@ const Sidebar = () => {
             </NavLink>
           </li>
 
+          {/* GST ANALYSIS */}
+          <li>
+            <NavLink to="/gst-analysis" onClick={closeSidebar}>
+              <FaChartLine />
+              <span>Taxpayer View</span>
+            </NavLink>
+          </li>
+
+          {/* AUDIT DESK */}
+          {/* <li>
+            <NavLink to="/audit-desk" onClick={closeSidebar}>
+              <FaUserShield />
+              <span>Audit Desk</span>
+            </NavLink>
+          </li> */}
+
+         
+
+          {/* PREDICTION */}
           <li>
             <NavLink to="/prediction" onClick={closeSidebar}>
               <FaBrain />
               <span>Prediction</span>
             </NavLink>
-          </li> 
+          </li>
+
+          {/* SETTINGS */}
           <li>
             <NavLink to="/settings" onClick={closeSidebar}>
               <FaCog />
