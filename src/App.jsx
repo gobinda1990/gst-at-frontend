@@ -4,6 +4,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import PredictionPage from "./pages/prediction/PredictionPage";
 import TaxpayerView from "./pages/prediction/taxpayerview";
 import GstReturnDefaulterDashboard from "./pages/GstReturnDefaulterDashboard";
+import GstDefaulterProceeding from "./pages/GstDefaulterProceeding";
 import GstReturn3BGrowth from "./pages/GstReturn3BGrowth";
 import RevenueDashboard from "./pages/OfficeRevenueDashboard";
 
@@ -46,6 +47,10 @@ function App() {
             path="return-defaulters"
             element={<GstReturnDefaulterDashboard />}
           />
+          <Route
+  path="/defaulter-proceedings"
+  element={<GstDefaulterProceeding />}
+/>
 
         </Route>
       </Routes>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import {
@@ -7,10 +7,10 @@ import {
   FaCog,
   FaBars,
   FaTimes,
-  FaUserShield,
   FaFileInvoiceDollar,
   FaChartPie,
-  FaChartLine
+  FaChartLine,
+  FaGavel,
 } from "react-icons/fa";
 
 import "./sidebar.css";
@@ -18,86 +18,129 @@ import "./sidebar.css";
 const Sidebar = () => {
   const [open, setOpen] = useState(false);
 
-  const toggleSidebar = () => setOpen(!open);
-  const closeSidebar = () => setOpen(false);
+  const toggleSidebar = useCallback(() => {
+    setOpen((current) => !current);
+  }, []);
+
+  const closeSidebar = useCallback(() => {
+    setOpen(false);
+  }, []);
 
   return (
     <>
-      {/* MOBILE TOGGLE BUTTON */}
+      {/* =====================================================
+          MOBILE MENU BUTTON
+      ====================================================== */}
       <button
+        type="button"
         className="sidebar-toggle-btn"
         onClick={toggleSidebar}
-        aria-label="Toggle navigation menu"
+        aria-label={open ? "Close navigation menu" : "Open navigation menu"}
+        aria-expanded={open}
+        aria-controls="main-sidebar"
       >
         {open ? <FaTimes /> : <FaBars />}
       </button>
 
-      {/* OVERLAY */}
+      {/* =====================================================
+          MOBILE OVERLAY
+      ====================================================== */}
       {open && (
-        <div className="sidebar-overlay" onClick={closeSidebar} />
+        <div
+          className="sidebar-overlay"
+          onClick={closeSidebar}
+          aria-hidden="true"
+        />
       )}
 
-      {/* SIDEBAR */}
-      <aside className={`sidebar ${open ? "open" : ""}`}>
-        {/* MENU */}
+      {/* =====================================================
+          SIDEBAR
+      ====================================================== */}
+      <aside
+        id="main-sidebar"
+        className={`sidebar ${open ? "open" : ""}`}
+        aria-label="Main navigation"
+      >
         <ul className="sidebar-menu">
-          {/* HOME / DASHBOARD */}
+
+          {/* Dashboard */}
           <li>
-            <NavLink to="/" end onClick={closeSidebar}>
+            <NavLink
+              to="/"
+              end
+              onClick={closeSidebar}
+            >
               <FaHome />
               <span>Dashboard</span>
             </NavLink>
           </li>
 
-          {/* REVENUE DASHBOARD */}
+          {/* Revenue */}
           <li>
-            <NavLink to="/revenue-dashboard" onClick={closeSidebar}>
+            <NavLink
+              to="/revenue-dashboard"
+              onClick={closeSidebar}
+            >
               <FaChartPie />
               <span>Revenue Summary</span>
             </NavLink>
           </li>
 
-           {/* RETURN DEFAULTERS */}
+          {/* Return Defaulters / Analytics */}
           <li>
-            <NavLink to="/return-defaulters" onClick={closeSidebar}>
+            <NavLink
+              to="/return-defaulters"
+              onClick={closeSidebar}
+            >
               <FaFileInvoiceDollar />
               <span>Return Defaulters</span>
             </NavLink>
           </li>
 
-          {/* GST ANALYSIS */}
+          {/* Defaulter Statutory Proceedings */}
           <li>
-            <NavLink to="/gst-analysis" onClick={closeSidebar}>
-              <FaChartLine />
-              <span>Taxpayer View</span>
+            <NavLink
+              to="/defaulter-proceedings"
+              onClick={closeSidebar}
+            >
+              <FaGavel />
+              <span>Defaulter Proceedings</span>
             </NavLink>
           </li>
 
-          {/* AUDIT DESK */}
-          {/* <li>
-            <NavLink to="/audit-desk" onClick={closeSidebar}>
-              <FaUserShield />
-              <span>Audit Desk</span>
-            </NavLink>
-          </li> */}
-
-         
-
-          {/* PREDICTION */}
+          {/* Taxpayer Analysis */}
           <li>
-            <NavLink to="/prediction" onClick={closeSidebar}>
+            <NavLink
+              to="/gst-analysis"
+              onClick={closeSidebar}
+            >
+              <FaChartLine />
+              <span>Taxpayer Search</span>
+            </NavLink>
+          </li>
+
+          {/* Prediction */}
+          <li>
+            <NavLink
+              to="/prediction"
+              onClick={closeSidebar}
+            >
               <FaBrain />
               <span>Prediction</span>
             </NavLink>
           </li>
 
-          {/* SETTINGS */}
+          {/* Settings */}
           <li>
-            <NavLink to="/settings" onClick={closeSidebar}>
+            <NavLink
+              to="/settings"
+              onClick={closeSidebar}
+            >
               <FaCog />
               <span>Settings</span>
             </NavLink>
           </li>
+
         </ul>
       </aside>
     </>

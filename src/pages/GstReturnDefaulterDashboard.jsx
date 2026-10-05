@@ -498,7 +498,10 @@ export default function GstReturnDefaulterDashboard() {
       // an error body can arrive with HTTP 200 in some proxies
       if (blob.type && blob.type.includes("json")) {
         throw new Error(
-          await readErrorMessage({ response: { data: blob } }, "CSV export failed."),
+          await readErrorMessage(
+            { response: { data: blob } },
+            "CSV export failed.",
+          ),
         );
       }
 
@@ -561,7 +564,11 @@ export default function GstReturnDefaulterDashboard() {
 
     const chart = [
       { name: "Not Filed", value: counts.NOT_FILED, color: CHART_COLORS.red },
-      { name: "Filed Late", value: counts.FILED_LATE, color: CHART_COLORS.amber },
+      {
+        name: "Filed Late",
+        value: counts.FILED_LATE,
+        color: CHART_COLORS.amber,
+      },
       {
         name: "Filed On Time",
         value: counts.FILED_ON_TIME,
@@ -627,204 +634,196 @@ export default function GstReturnDefaulterDashboard() {
 
   return (
     <>
-      <main className="def-dashboard">     
-       
-
+      <main className="def-dashboard">
         <section className="def-filter-panel">
-  {/* =====================================================
+          {/* =====================================================
       FILTER HEADER
   ====================================================== */}
-  <div className="def-filter-topline">
-    <div className="def-filter-title">
-      <div className="def-filter-title-icon">
-        <Filter size={18} />
-      </div>
+          <div className="def-filter-topline">
+            <div className="def-filter-title">
+              <div className="def-filter-title-icon">
+                <Filter size={18} />
+              </div>
 
-      <div>
-        <h2>Return Defaulter Analysis</h2>
-        <p>
-          GSTR-3B filing compliance, default classification and
-          GSTR-3A eligibility monitoring
-        </p>
-      </div>
-    </div>
+              <div>
+                <h2>Return Defaulter Analysis</h2>
+                <p>
+                  GSTR-3B filing compliance, default classification and GSTR-3A
+                  eligibility monitoring
+                </p>
+              </div>
+            </div>
 
-    <div className="def-filter-meta">
-      <div className="def-last-updated">
-        <CalendarDays size={14} />
+            <div className="def-filter-meta">
+              <div className="def-last-updated">
+                <CalendarDays size={14} />
 
-        <span>
-          Return Period:
-          <strong>
-            {period
-              ? ` ${
-                  periods.find((item) => item.value === period)?.label ||
-                  period
-                }`
-              : " —"}
-          </strong>
-        </span>
-      </div>
-    </div>
-  </div>
+                <span>
+                  Return Period:
+                  <strong>
+                    {period
+                      ? ` ${
+                          periods.find((item) => item.value === period)
+                            ?.label || period
+                        }`
+                      : " —"}
+                  </strong>
+                </span>
+              </div>
+            </div>
+          </div>
 
-  {/* =====================================================
+          {/* =====================================================
       FILTER GRID
   ====================================================== */}
-  <div className="def-filter-grid">
-    {/* RETURN PERIOD */}
-    <div className="def-filter-field">
-      <label htmlFor="def-period">
-        Return Period <span>*</span>
-      </label>
+          <div className="def-filter-grid">
+            {/* RETURN PERIOD */}
+            <div className="def-filter-field">
+              <label htmlFor="def-period">
+                Return Period <span>*</span>
+              </label>
 
-      <select
-        id="def-period"
-        value={period}
-        onChange={changePeriod}
-      >
-        <option value="">Select Period</option>
+              <select id="def-period" value={period} onChange={changePeriod}>
+                <option value="">Select Period</option>
 
-        {periods.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </select>
-    </div>
+                {periods.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-    {/* OFFICE */}
-    <div className="def-filter-field">
-      <label htmlFor="def-office">Office / Jurisdiction</label>
+            {/* OFFICE */}
+            <div className="def-filter-field">
+              <label htmlFor="def-office">Office / Jurisdiction</label>
 
-      <select
-        id="def-office"
-        value={office}
-        onChange={changeFilter(setOffice)}
-      >
-        <option value="">All Offices</option>
+              <select
+                id="def-office"
+                value={office}
+                onChange={changeFilter(setOffice)}
+              >
+                <option value="">All Offices</option>
 
-        {offices.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </select>
-    </div>
+                {offices.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-    {/* FILING STATUS */}
-    <div className="def-filter-field">
-      <label htmlFor="def-filing">Filing Status</label>
+            {/* FILING STATUS */}
+            <div className="def-filter-field">
+              <label htmlFor="def-filing">Filing Status</label>
 
-      <select
-        id="def-filing"
-        value={filingStatus}
-        onChange={changeFilter(setFilingStatus)}
-      >
-        <option value="">All Filing Status</option>
-        <option value="NOT_FILED">Not Filed</option>
-        <option value="FILED_LATE">Filed Late</option>
-        <option value="FILED_ON_TIME">Filed On Time</option>
-        <option value="NOT_DUE">Not Due</option>
-      </select>
-    </div>
+              <select
+                id="def-filing"
+                value={filingStatus}
+                onChange={changeFilter(setFilingStatus)}
+              >
+                <option value="">All Filing Status</option>
+                <option value="NOT_FILED">Not Filed</option>
+                <option value="FILED_LATE">Filed Late</option>
+                <option value="FILED_ON_TIME">Filed On Time</option>
+                <option value="NOT_DUE">Not Due</option>
+              </select>
+            </div>
 
-    {/* DEFAULT LEVEL */}
-    <div className="def-filter-field">
-      <label htmlFor="def-default">Default Level</label>
+            {/* DEFAULT LEVEL */}
+            <div className="def-filter-field">
+              <label htmlFor="def-default">Default Level</label>
 
-      <select
-        id="def-default"
-        value={defaultLevel}
-        onChange={changeFilter(setDefaultLevel)}
-      >
-        <option value="">All Default Levels</option>
-        <option value="CRITICAL">Critical</option>
-        <option value="HIGH">High</option>
-        <option value="WARNING">Warning</option>
-        <option value="NORMAL">Normal</option>
-      </select>
-    </div>
+              <select
+                id="def-default"
+                value={defaultLevel}
+                onChange={changeFilter(setDefaultLevel)}
+              >
+                <option value="">All Default Levels</option>
+                <option value="CRITICAL">Critical</option>
+                <option value="HIGH">High</option>
+                <option value="WARNING">Warning</option>
+                <option value="NORMAL">Normal</option>
+              </select>
+            </div>
 
-    {/* GSTR-3A */}
-    <div className="def-filter-field">
-      <label htmlFor="def-gstr3a">GSTR-3A Eligible</label>
+            {/* GSTR-3A */}
+            <div className="def-filter-field">
+              <label htmlFor="def-gstr3a">GSTR-3A Eligible</label>
 
-      <select
-        id="def-gstr3a"
-        value={gstr3aEligible}
-        onChange={changeFilter(setGstr3aEligible)}
-      >
-        <option value="">All Eligibility</option>
-        <option value="Y">Eligible</option>
-        <option value="N">Not Eligible</option>
-      </select>
-    </div>
+              <select
+                id="def-gstr3a"
+                value={gstr3aEligible}
+                onChange={changeFilter(setGstr3aEligible)}
+              >
+                <option value="">All Eligibility</option>
+                <option value="Y">Eligible</option>
+                <option value="N">Not Eligible</option>
+              </select>
+            </div>
 
-    {/* SEARCH */}
-    <div className="def-filter-field">
-      <label htmlFor="def-search">
-        GSTIN / Taxpayer / Office
-      </label>
+            {/* SEARCH */}
+            <div className="def-filter-field">
+              <label htmlFor="def-search">GSTIN / Taxpayer / Office</label>
 
-      <div className="def-search-input">
-        <Search size={16} />
+              <div className="def-search-input">
+                <Search size={16} />
 
-        <input
-          id="def-search"
-          type="text"
-          value={searchText}
-          maxLength={100}
-          placeholder="GSTIN, taxpayer or office"
-          onChange={(event) => setSearchText(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              submitSearch(event);
-            }
-          }}
-        />
-      </div>
-    </div>
+                <input
+                  id="def-search"
+                  type="text"
+                  value={searchText}
+                  maxLength={100}
+                  placeholder="GSTIN, taxpayer or office"
+                  onChange={(event) => setSearchText(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      submitSearch(event);
+                    }
+                  }}
+                />
+              </div>
+            </div>
 
-    {/* ACTIONS */}
-    <div className="def-filter-actions">
-      <button
-        type="button"
-        className="def-btn def-btn-search"
-        onClick={submitSearch}
-        disabled={!period}
-      >
-        <Search size={15} />
-        Search
-      </button>
+            {/* ACTIONS */}
+            <div className="def-filter-actions">
+              <button
+                type="button"
+                className="def-btn def-btn-search"
+                onClick={submitSearch}
+                disabled={!period}
+              >
+                <Search size={15} />
+                Search
+              </button>
 
-      <button
-        type="button"
-        className="def-btn def-btn-reset"
-        onClick={resetFilters}
-      >
-        <RotateCcw size={15} />
-        Reset
-      </button>
+              <button
+                type="button"
+                className="def-btn def-btn-reset"
+                onClick={resetFilters}
+              >
+                <RotateCcw size={15} />
+                Reset
+              </button>
 
-      <button
-        type="button"
-        className="def-btn def-btn-export"
-        onClick={exportCsv}
-        disabled={!period || exporting}
-      >
-        {exporting ? (
-          <Loader2 size={15} className="def-spin" />
-        ) : (
-          <Download size={15} />
-        )}
+              <button
+                type="button"
+                className="def-btn def-btn-export"
+                onClick={exportCsv}
+                disabled={!period || exporting}
+              >
+                {exporting ? (
+                  <Loader2 size={15} className="def-spin" />
+                ) : (
+                  <Download size={15} />
+                )}
 
-        {exporting ? "Exporting..." : "Export CSV"}
-      </button>
-    </div>
-  </div>
-</section>
+                {exporting ? "Exporting..." : "Export CSV"}
+              </button>
+            </div>
+          </div>
+        </section>
 
         {error && (
           <div className="def-error" role="alert">
@@ -1024,7 +1023,9 @@ export default function GstReturnDefaulterDashboard() {
                 <button
                   type="button"
                   aria-label="Next page"
-                  disabled={!totalPages || page >= totalPages - 1 || listLoading}
+                  disabled={
+                    !totalPages || page >= totalPages - 1 || listLoading
+                  }
                   onClick={() => setPage((value) => value + 1)}
                 >
                   <ChevronRight size={14} />
@@ -1207,6 +1208,9 @@ export default function GstReturnDefaulterDashboard() {
         open={viewModalOpen}
         data={selectedDefaulter}
         onClose={closeDefaulterView}
+        onGenerateNotice={() => {
+          setRefreshKey((value) => value + 1);
+        }}
       />
     </>
   );
