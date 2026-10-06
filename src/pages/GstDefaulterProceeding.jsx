@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   AlertTriangle,
@@ -99,6 +105,7 @@ const isYes = (value) =>
   value === true ||
   String(value || "")
     .trim()
+
     .toUpperCase() === "Y";
 
 const isDeadlineOver = (value) => {
@@ -177,6 +184,13 @@ export default function GstDefaulterProceeding() {
   const [gstr3aOpen, setGstr3aOpen] = useState(false);
 
   const [asmt13Open, setAsmt13Open] = useState(false);
+
+  /*
+   * Prevent repeated automatic Section 62 scans/opening for the same
+   * proceeding while React re-renders or the list refreshes.
+   */
+  const section62AutoScanRef = useRef(new Set());
+  const section62AutoOpenRef = useRef(new Set());
 
   const filters = useMemo(
     () => ({
@@ -261,6 +275,146 @@ export default function GstDefaulterProceeding() {
       setPage(data.totalPages - 1);
   }, [data.totalPages, page]);
 
+  /* =========================================================
+     AUTOMATIC SECTION 62 DEADLINE TRANSITION
+     =========================================================
+     Frontend deadline detection is only a trigger. The backend scan is
+     authoritative and must re-check filing status, service/deadline and
+     jurisdiction before changing the proceeding to SECTION62_ELIGIBLE.
+     ASMT-13 is never issued automatically.
+  */
+
+  useEffect(() => {
+    if (loading || scanBusy || mutationBusy || !data.content?.length) {
+      return;
+    }
+
+    const expiredPending = data.content.find((row) => {
+      const rowStatus = norm(row?.status);
+      const gstr3aIssued = Boolean(row?.gstr3aRefNo);
+      const deadlineOver =
+        gstr3aIssued && isDeadlineOver(row?.gstr3aDeadline) && !row?.filingDate;
+
+      const section62Eligible =
+        isYes(row?.section62Eligible) || rowStatus === "SECTION62_ELIGIBLE";
+
+      return (
+        deadlineOver &&
+        !section62Eligible &&
+        ["GSTR3A_COMPLIANCE_PENDING", "GSTR3A_ELIGIBLE"].includes(rowStatus)
+      );
+    });
+
+    if (!expiredPending) {
+      return;
+    }
+
+    const key = String(
+      expiredPending.id ??
+        `${expiredPending.gstin || ""}-${expiredPending.retPeriod || ""}`,
+    );
+
+    if (section62AutoScanRef.current.has(key)) {
+      return;
+    }
+
+    section62AutoScanRef.current.add(key);
+
+    let active = true;
+
+    const transition = async () => {
+      setScanBusy(true);
+      setError("");
+      setActionError("");
+
+      try {
+        const result = await scanSection62();
+
+        if (!active) return;
+
+        setSuccess(
+          `GSTR-3A deadline expired. Section 62 eligibility rechecked: ${count(
+            result?.section62Eligible,
+          )} eligible, ${count(result?.complied)} complied.`,
+        );
+
+        /*
+         * Reload the authoritative proceeding list. The assessment modal
+         * is opened only after the refreshed row is SECTION62_ELIGIBLE.
+         */
+        setRefreshKey((value) => value + 1);
+      } catch (error) {
+        if (!active) return;
+
+        section62AutoScanRef.current.delete(key);
+        setError(
+          apiMessage(
+            error,
+            "GSTR-3A deadline has expired, but Section 62 eligibility could not be rechecked.",
+          ),
+        );
+      } finally {
+        if (active) {
+          setScanBusy(false);
+        }
+      }
+    };
+
+    transition();
+
+    return () => {
+      active = false;
+    };
+  }, [data.content, loading, mutationBusy, scanBusy]);
+
+  /*
+   * After the server scan refreshes the row as SECTION62_ELIGIBLE,
+   * automatically open the manual proper-officer assessment review.
+   * This opens the review UI only; it does NOT issue ASMT-13.
+   */
+  useEffect(() => {
+    if (loading || mutationBusy || asmt13Open || !data.content?.length) {
+      return;
+    }
+
+    const eligible = data.content.find((row) => {
+      const rowStatus = norm(row?.status);
+      const section62Eligible =
+        isYes(row?.section62Eligible) || rowStatus === "SECTION62_ELIGIBLE";
+
+      return (
+        section62Eligible &&
+        rowStatus === "SECTION62_ELIGIBLE" &&
+        !row?.filingDate &&
+        !row?.asmt13RefNo
+      );
+    });
+
+    if (!eligible) {
+      return;
+    }
+
+    const key = String(
+      eligible.id ?? `${eligible.gstin || ""}-${eligible.retPeriod || ""}`,
+    );
+
+    /*
+     * Auto-open only for a case that was observed as deadline-expired
+     * in this page session. Existing historical Section 62 rows remain
+     * available through the normal manual Gavel action.
+     */
+    if (
+      !section62AutoScanRef.current.has(key) ||
+      section62AutoOpenRef.current.has(key)
+    ) {
+      return;
+    }
+
+    section62AutoOpenRef.current.add(key);
+    setSelected(eligible);
+    setActionError("");
+    setAsmt13Open(true);
+  }, [data.content, loading, mutationBusy, asmt13Open]);
   const submitSearch = (event) => {
     event?.preventDefault?.();
 
@@ -278,10 +432,24 @@ export default function GstDefaulterProceeding() {
   };
 
   const openAsmt13 = (row) => {
+    const rowStatus = norm(row?.status);
+    const eligible =
+      isYes(row?.section62Eligible) || rowStatus === "SECTION62_ELIGIBLE";
+
+    if (
+      !eligible ||
+      rowStatus !== "SECTION62_ELIGIBLE" ||
+      row?.filingDate ||
+      row?.asmt13RefNo
+    ) {
+      setError(
+        "Section 62 assessment review is not currently available for this proceeding.",
+      );
+      return;
+    }
+
     setSelected(row);
-
     setActionError("");
-
     setAsmt13Open(true);
   };
 
@@ -569,6 +737,7 @@ export default function GstDefaulterProceeding() {
               value={size}
               onChange={(e) => {
                 setSize(Number(e.target.value));
+
                 setPage(0);
               }}
             >
@@ -586,17 +755,23 @@ export default function GstDefaulterProceeding() {
             <thead>
               <tr>
                 <th>#</th>
+
                 <th>GSTIN / Period</th>
+
                 <th>Office / Jurisdiction</th>
 
                 <th>Return Compliance</th>
+
                 <th>Proceeding Status</th>
 
                 <th>GSTR-3A Proceeding</th>
+
                 <th>Section 62</th>
 
                 <th>ASMT-13 Assessment</th>
+
                 <th>Assessed Total</th>
+
                 <th>Officer Action</th>
               </tr>
             </thead>
@@ -798,6 +973,7 @@ export default function GstDefaulterProceeding() {
                             title="View complete proceeding"
                             onClick={() => {
                               setSelected(row);
+
                               setDetailOpen(true);
                             }}
                           >

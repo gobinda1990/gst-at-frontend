@@ -140,9 +140,21 @@ const apiError = (error, fallback) =>
 
 /* =========================================================
 
+
+
+
+
+
+
    COMMON COMPONENTS
 
-\\========================================================= */
+
+
+
+
+
+
+\\\\========================================================= */
 
 function DetailRow({ label, value, children, className = "" }) {
   return (
@@ -186,9 +198,21 @@ function SectionHeader({ icon: Icon, title }) {
 
 /* =========================================================
 
+
+
+
+
+
+
    MAIN MODAL
 
-\\========================================================= */
+
+
+
+
+
+
+\\\\========================================================= */
 
 export default function GstDefaulterViewModal({
   open,
@@ -200,6 +224,7 @@ export default function GstDefaulterViewModal({
   onGenerateNotice,
 
   onViewTrend,
+  onSection62Review,
 }) {
   const [activeTab, setActiveTab] = useState("summary");
 
@@ -211,7 +236,19 @@ export default function GstDefaulterViewModal({
 
   /* ---------------------------------------------------------
 
+
+
+
+
+
+
      NOTICE STATE
+
+
+
+
+
+
 
   --------------------------------------------------------- */
 
@@ -225,7 +262,19 @@ export default function GstDefaulterViewModal({
 
   /* ---------------------------------------------------------
 
+
+
+
+
+
+
      RESET MODAL
+
+
+
+
+
+
 
   --------------------------------------------------------- */
 
@@ -243,7 +292,19 @@ export default function GstDefaulterViewModal({
 
   /* ---------------------------------------------------------
 
+
+
+
+
+
+
      BODY SCROLL / ESCAPE
+
+
+
+
+
+
 
   --------------------------------------------------------- */
 
@@ -271,7 +332,19 @@ export default function GstDefaulterViewModal({
 
   /* ---------------------------------------------------------
 
+
+
+
+
+
+
      RETURN HISTORY
+
+
+
+
+
+
 
   --------------------------------------------------------- */
 
@@ -333,7 +406,19 @@ export default function GstDefaulterViewModal({
 
   /* ---------------------------------------------------------
 
+
+
+
+
+
+
      DERIVED VALUES
+
+
+
+
+
+
 
   --------------------------------------------------------- */
 
@@ -343,27 +428,58 @@ export default function GstDefaulterViewModal({
 
   const riskLevel = normalize(data?.riskLevel);
 
-  const gstrIssued = normalize(data?.gstr3aStatus) === "ISSUED";
+  const proceedingStatus = normalize(data?.status || data?.proceedingStatus);
+
+  const gstrIssued =
+    normalize(data?.gstr3aStatus) === "ISSUED" || Boolean(data?.gstr3aRefNo);
 
   const gstrEligible = yesNo(data?.gstr3aEligible);
 
-  const section62Candidate = yesNo(data?.section62Candidate);
+  const section62Eligible =
+    yesNo(data?.section62Eligible) ||
+    yesNo(data?.section62Candidate) ||
+    proceedingStatus === "SECTION62_ELIGIBLE";
 
-  /*
+  const gstr3aDeadlineExpired = useMemo(() => {
+    if (!data?.gstr3aDeadline) return false;
 
-   * GSTR-3A is a non-filer notice.
+    const raw = String(data.gstr3aDeadline).trim();
 
-   *
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
 
-   * Section 62 candidacy MUST NOT enable
+    const deadline = iso
+      ? new Date(
+          Number(iso[1]),
 
-   * the GSTR-3A Send button.
+          Number(iso[2]) - 1,
 
-   */
+          Number(iso[3]),
+
+          23,
+
+          59,
+
+          59,
+
+          999,
+        )
+      : new Date(raw);
+
+    return !Number.isNaN(deadline.getTime()) && deadline.getTime() < Date.now();
+  }, [data?.gstr3aDeadline]);
+
+  const showSection62Review =
+    section62Eligible &&
+    proceedingStatus === "SECTION62_ELIGIBLE" &&
+    !data?.filingDate &&
+    !data?.asmt13RefNo;
 
   const canSendGstr3a =
     gstrEligible &&
     !gstrIssued &&
+    !section62Eligible &&
+    proceedingStatus !== "SECTION62_ELIGIBLE" &&
+    !data?.filingDate &&
     ["NOT_FILED", "RETURN_PENDING", "PENDING"].includes(filingStatus);
 
   const taxpayerName =
@@ -374,7 +490,19 @@ export default function GstDefaulterViewModal({
 
   /* ---------------------------------------------------------
 
+
+
+
+
+
+
      SEND GSTR-3A
+
+
+
+
+
+
 
   --------------------------------------------------------- */
 
@@ -428,9 +556,27 @@ export default function GstDefaulterViewModal({
 
       /*
 
+
+
+
+
+
+
        * Parent dashboard can reload
 
+
+
+
+
+
+
        * summary and table.
+
+
+
+
+
+
 
        */
 
@@ -456,7 +602,19 @@ export default function GstDefaulterViewModal({
 
   /* ---------------------------------------------------------
 
+
+
+
+
+
+
      HISTORY TABLE
+
+
+
+
+
+
 
   --------------------------------------------------------- */
 
@@ -530,7 +688,19 @@ export default function GstDefaulterViewModal({
 
   /* =========================================================
 
+
+
+
+
+
+
      SUMMARY TAB
+
+
+
+
+
+
 
   ========================================================= */
 
@@ -624,7 +794,7 @@ export default function GstDefaulterViewModal({
             </DetailRow>
 
             <DetailRow label="Section 62 Candidate">
-              <YesNoBadge value={section62Candidate} />
+              <YesNoBadge value={section62Eligible} />
             </DetailRow>
 
             <DetailRow
@@ -670,7 +840,19 @@ export default function GstDefaulterViewModal({
 
   /* =========================================================
 
+
+
+
+
+
+
      HISTORY TAB
+
+
+
+
+
+
 
   ========================================================= */
 
@@ -710,7 +892,19 @@ export default function GstDefaulterViewModal({
 
   /* =========================================================
 
+
+
+
+
+
+
      RISK TAB
+
+
+
+
+
+
 
   ========================================================= */
 
@@ -777,14 +971,26 @@ export default function GstDefaulterViewModal({
 
         <span>Section 62</span>
 
-        <strong>{section62Candidate ? "Candidate" : "No"}</strong>
+        <strong>{section62Eligible ? "Candidate" : "No"}</strong>
       </article>
     </div>
   );
 
   /* =========================================================
 
+
+
+
+
+
+
      ACTION TAB
+
+
+
+
+
+
 
   ========================================================= */
 
@@ -828,7 +1034,7 @@ export default function GstDefaulterViewModal({
             </div>
 
             <YesNoBadge
-              value={section62Candidate}
+              value={section62Eligible}
               yesLabel="Candidate"
               noLabel="No"
             />
@@ -852,9 +1058,27 @@ export default function GstDefaulterViewModal({
 
       {/* ===============================================
 
+
+
+
+
+
+
           INLINE GSTR-3A NOTICE ACTION
 
+
+
+
+
+
+
           NO SECOND POPUP / MODAL
+
+
+
+
+
+
 
       ================================================ */}
 
@@ -973,12 +1197,119 @@ export default function GstDefaulterViewModal({
           </div>
         </div>
       </section>
+
+      {showSection62Review && (
+        <section className="gdm-section gdm-section62-review">
+          <SectionHeader
+            icon={Gavel}
+            title="Section 62 — Best Judgment Assessment Review"
+          />
+
+          <div className="gdm-section-body">
+            <div className="gdm-section62-alert" role="status">
+              <ShieldAlert size={20} />
+
+              <div>
+                <strong>Officer Review Required</strong>
+
+                <p>
+                  The GSTR-3A compliance period has expired and GSTR-3B remains
+                  unfiled. The proceeding is eligible for proper-officer review
+                  under Section 62.
+                </p>
+              </div>
+            </div>
+
+            <div className="gdm-notice-inline-summary">
+              <DetailRow label="GSTIN" value={data.gstin} />
+
+              <DetailRow label="Taxpayer" value={taxpayerName} />
+
+              <DetailRow label="Return Period">
+                {formatPeriod(data.retPeriod)}
+              </DetailRow>
+
+              <DetailRow label="Due Date">{formatDate(data.dueDate)}</DetailRow>
+
+              <DetailRow label="GSTR-3A Reference">
+                {textValue(data.gstr3aRefNo)}
+              </DetailRow>
+
+              <DetailRow label="GSTR-3A Issue Date">
+                {formatDate(data.gstr3aIssueDate)}
+              </DetailRow>
+
+              <DetailRow label="GSTR-3A Service Date">
+                {formatDate(data.gstr3aServiceDate)}
+              </DetailRow>
+
+              <DetailRow label="GSTR-3A Deadline">
+                <strong
+                  className={
+                    gstr3aDeadlineExpired ? "gdm-deadline-expired" : ""
+                  }
+                >
+                  {formatDate(data.gstr3aDeadline)}
+
+                  {gstr3aDeadlineExpired ? " · Expired" : ""}
+                </strong>
+              </DetailRow>
+
+              <DetailRow label="Current Return Status">
+                <StatusBadge value={filingStatus} type="filing" />
+              </DetailRow>
+
+              <DetailRow label="Proceeding Status">
+                <StatusBadge value={proceedingStatus} type="status" />
+              </DetailRow>
+
+              <DetailRow label="Section 62">
+                <span className="gdm-section62-badge">Eligible</span>
+              </DetailRow>
+            </div>
+
+            <div className="gdm-section62-warning">
+              <AlertTriangle size={18} />
+
+              <span>
+                ASMT-13 is not generated automatically. The proper officer must
+                review the available material and determine the best-judgment
+                assessment before the assessment-order action is enabled.
+              </span>
+            </div>
+
+            <div className="gdm-inline-notice-actions">
+              <button
+                type="button"
+                className="gdm-primary-button"
+                onClick={() => onSection62Review?.(data)}
+                disabled={!onSection62Review}
+              >
+                <Gavel size={16} />
+                Review for Section 62
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 
   /* =========================================================
 
+
+
+
+
+
+
      COMPLIANCE TAB
+
+
+
+
+
+
 
   ========================================================= */
 
@@ -1033,7 +1364,19 @@ export default function GstDefaulterViewModal({
 
   /* =========================================================
 
+
+
+
+
+
+
      MODAL
+
+
+
+
+
+
 
   ========================================================= */
 

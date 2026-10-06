@@ -52,7 +52,9 @@ const EMPTY_ROWS = [];
 
 const EMPTY_PAGE = {
   content: EMPTY_ROWS,
+
   totalElements: 0,
+
   totalPages: 0,
 };
 
@@ -60,27 +62,37 @@ const NO_ERRORS = { periods: "", summary: "", list: "", export: "" };
 
 const CHART_COLORS = {
   green: "#3fa867",
+
   amber: "#f7b91c",
+
   orange: "#ff8618",
+
   red: "#ef3b3b",
 };
 
 /* Formatters are created once - building an Intl formatter per cell is slow. */
+
 const INTEGER_FORMAT = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0,
 });
 
 const DATE_FORMAT = new Intl.DateTimeFormat("en-IN", {
   day: "2-digit",
+
   month: "2-digit",
+
   year: "numeric",
 });
 
 const DATE_TIME_FORMAT = new Intl.DateTimeFormat("en-IN", {
   day: "2-digit",
+
   month: "short",
+
   year: "numeric",
+
   hour: "2-digit",
+
   minute: "2-digit",
 });
 
@@ -105,8 +117,11 @@ const percentage = (value, total) => {
 const normalizeLevel = (value) =>
   String(value || "")
     .trim()
+
     .toUpperCase()
+
     .replaceAll("-", "_")
+
     .replaceAll(" ", "_");
 
 const badgeClass = (value) =>
@@ -118,8 +133,11 @@ const humanize = (value) => {
   if (!normalized) return "—";
 
   return normalized
+
     .toLowerCase()
+
     .replaceAll("_", " ")
+
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
@@ -146,10 +164,13 @@ const normalizePage = (response) => {
 
   return {
     ...source,
+
     content,
+
     totalElements: toNumber(
       source.totalElements ?? source.totalRecords ?? source.total,
     ),
+
     totalPages: toNumber(source.totalPages),
   };
 };
@@ -160,10 +181,15 @@ const isAbortError = (error) =>
   error?.code === "ERR_CANCELED";
 
 /*
+
  * Reads the message from an API error body. The server returns a problem+json
+
  * body ({ message, detail, correlationId }) - the correlation id is shown so
+
  * support can find the matching server log line.
+
  */
+
 const messageFromBody = (body) => {
   if (!body || typeof body !== "object") return "";
 
@@ -178,9 +204,13 @@ const apiError = (error, fallback) =>
   messageFromBody(error?.response?.data) || error?.message || fallback;
 
 /*
+
  * A blob request returns its error body as a Blob, so the usual
+
  * error.response.data.message is undefined - read the blob as JSON first.
+
  */
+
 const readErrorMessage = async (error, fallback) => {
   const data = error?.response?.data;
 
@@ -203,6 +233,7 @@ const formatDate = (value) => {
   if (/^\d{2}[-/]\d{2}[-/]\d{4}$/.test(text)) return text;
 
   // ISO date: format the parts directly - new Date("YYYY-MM-DD") is UTC and can show the previous day
+
   const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
 
   if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
@@ -213,6 +244,7 @@ const formatDate = (value) => {
 };
 
 /* Counts the rows of the current page by a field (pure, so it can live outside the component). */
+
 const countRowsBy = (rows, field, values) => {
   const result = Object.fromEntries(values.map((value) => [value, 0]));
 
@@ -228,9 +260,13 @@ const countRowsBy = (rows, field, values) => {
 };
 
 /*
+
  * Prefer the server-side totals. Only when the summary has no usable numbers do
+
  * we count the rows of the CURRENT PAGE - and the chart says so.
+
  */
+
 const pickCounts = (serverCounts, pageCounts) =>
   Object.values(serverCounts).some((value) => value > 0)
     ? { counts: serverCounts, fromPage: false }
@@ -250,10 +286,15 @@ function Spinner({ size = "md", label = "Loading" }) {
 
 function KpiCard({
   title,
+
   value,
+
   subtitle,
+
   icon: Icon,
+
   tone,
+
   loading = false,
 }) {
   return (
@@ -330,42 +371,64 @@ function TableMessage({ loading, icon: Icon = FileWarning, children }) {
 
 export default function GstReturnDefaulterDashboard() {
   const [periods, setPeriods] = useState([]);
+
   const [offices, setOffices] = useState([]);
 
   const [period, setPeriod] = useState("");
+
   const [office, setOffice] = useState("");
+
   const [filingStatus, setFilingStatus] = useState("");
+
   const [defaultLevel, setDefaultLevel] = useState("");
+
   const [gstr3aEligible, setGstr3aEligible] = useState("");
+
   const [searchText, setSearchText] = useState("");
+
   const [search, setSearch] = useState("");
 
   const [page, setPage] = useState(0);
+
   const [size, setSize] = useState(25);
 
   const [summary, setSummary] = useState(null);
+
   const [data, setData] = useState(EMPTY_PAGE);
 
   const [periodsLoading, setPeriodsLoading] = useState(true);
+
   const [officesLoading, setOfficesLoading] = useState(false);
+
   const [summaryLoading, setSummaryLoading] = useState(false);
+
   const [listLoading, setListLoading] = useState(false);
+
   const [exporting, setExporting] = useState(false);
 
   // one slot per source, so a later request cannot wipe another request's error
+
   const [errors, setErrors] = useState(NO_ERRORS);
+
   const [refreshKey, setRefreshKey] = useState(0);
+
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const [selectedDefaulter, setSelectedDefaulter] = useState(null);
+
   const [viewModalOpen, setViewModalOpen] = useState(false);
+
+  const [section62ReviewRequested, setSection62ReviewRequested] =
+    useState(false);
 
   const setError = useCallback(
     (key, message) => setErrors((current) => ({ ...current, [key]: message })),
+
     [],
   );
 
   const openDefaulterView = useCallback((row) => {
+    setSection62ReviewRequested(false);
     setSelectedDefaulter(row);
     setViewModalOpen(true);
   }, []);
@@ -373,6 +436,24 @@ export default function GstReturnDefaulterDashboard() {
   const closeDefaulterView = useCallback(() => {
     setViewModalOpen(false);
     setSelectedDefaulter(null);
+    setSection62ReviewRequested(false);
+  }, []);
+
+  const handleNoticeIssued = useCallback(() => {
+    setRefreshKey((current) => current + 1);
+  }, []);
+
+  const handleSection62Review = useCallback((row) => {
+    if (!row?.gstin || !row?.retPeriod) return;
+
+    // This opens/marks the manual proper-officer review stage only.
+    // ASMT-13 must be issued through the separate assessment workflow.
+    setSelectedDefaulter((current) => ({
+      ...(current || row),
+      ...row,
+      section62ReviewRequested: true,
+    }));
+    setSection62ReviewRequested(true);
   }, []);
 
   /* ---------------------------------------------------------------- periods */
@@ -381,6 +462,7 @@ export default function GstReturnDefaulterDashboard() {
     const controller = new AbortController();
 
     setPeriodsLoading(true);
+
     setError("periods", "");
 
     fetchDefaulterPeriods({ signal: controller.signal })
@@ -393,14 +475,17 @@ export default function GstReturnDefaulterDashboard() {
           setPeriod((current) => current || String(list[0]?.value ?? ""));
         }
       })
+
       .catch((err) => {
         if (!isAbortError(err)) {
           setError(
             "periods",
+
             apiError(err, "Unable to load GST return periods."),
           );
         }
       })
+
       .finally(() => {
         if (!controller.signal.aborted) setPeriodsLoading(false);
       });
@@ -413,6 +498,7 @@ export default function GstReturnDefaulterDashboard() {
   useEffect(() => {
     if (!period) {
       setOffices([]);
+
       setOfficesLoading(false);
 
       return undefined;
@@ -424,9 +510,11 @@ export default function GstReturnDefaulterDashboard() {
 
     fetchDefaulterOffices(period, { signal: controller.signal })
       .then((response) => setOffices(normalizeList(response)))
+
       .catch((err) => {
         if (!isAbortError(err)) setOffices([]);
       })
+
       .finally(() => {
         if (!controller.signal.aborted) setOfficesLoading(false);
       });
@@ -437,29 +525,41 @@ export default function GstReturnDefaulterDashboard() {
   /* ---------------------------------------------------------------- requests */
 
   // filters only: the summary does not depend on the page or page size
+
   const filters = useMemo(
     () => ({
       retPeriod: period,
+
       office,
+
       filingStatus,
+
       defaultLevel,
+
       gstr3aEligible,
+
       search,
     }),
+
     [period, office, filingStatus, defaultLevel, gstr3aEligible, search],
   );
 
   const listParams = useMemo(
     () => ({ ...filters, page, size }),
+
     [filters, page, size],
   );
 
   // summary: reloaded when a filter changes, NOT on every page / page-size change
+
   useEffect(() => {
     if (!period) {
       // no period selected: clear anything left from the previous one
+
       setSummary(null);
+
       setSummaryLoading(false);
+
       setError("summary", "");
 
       return undefined;
@@ -469,6 +569,7 @@ export default function GstReturnDefaulterDashboard() {
 
     const load = async () => {
       setSummaryLoading(true);
+
       setError("summary", "");
 
       try {
@@ -482,9 +583,12 @@ export default function GstReturnDefaulterDashboard() {
       } catch (err) {
         if (!isAbortError(err)) {
           // do not keep showing the previous filter's numbers next to an error
+
           setSummary(null);
+
           setError(
             "summary",
+
             apiError(err, "Unable to load the defaulter summary."),
           );
         }
@@ -499,10 +603,13 @@ export default function GstReturnDefaulterDashboard() {
   }, [filters, period, refreshKey, setError]);
 
   // list
+
   useEffect(() => {
     if (!period) {
       setData(EMPTY_PAGE);
+
       setListLoading(false);
+
       setError("list", "");
 
       return undefined;
@@ -512,6 +619,7 @@ export default function GstReturnDefaulterDashboard() {
 
     const load = async () => {
       setListLoading(true);
+
       setError("list", "");
 
       try {
@@ -522,10 +630,12 @@ export default function GstReturnDefaulterDashboard() {
         if (controller.signal.aborted) return;
 
         setData(normalizePage(response));
+
         setLastUpdated(new Date());
       } catch (err) {
         if (!isAbortError(err)) {
           setData(EMPTY_PAGE);
+
           setError("list", apiError(err, "Unable to load the defaulter list."));
         }
       } finally {
@@ -539,6 +649,7 @@ export default function GstReturnDefaulterDashboard() {
   }, [listParams, period, refreshKey, setError]);
 
   // if the result set shrinks (refresh / new data) while on a later page, go to the last page
+
   useEffect(() => {
     const pages = toNumber(data.totalPages);
 
@@ -549,13 +660,17 @@ export default function GstReturnDefaulterDashboard() {
 
   const changeFilter = (setter) => (event) => {
     setter(event.target.value);
+
     setPage(0);
   };
 
   const changePeriod = (event) => {
     setPeriod(event.target.value);
+
     // an office from the previous period may not exist in the new one
+
     setOffice("");
+
     setPage(0);
   };
 
@@ -563,16 +678,23 @@ export default function GstReturnDefaulterDashboard() {
     event.preventDefault();
 
     setSearch(searchText.trim());
+
     setPage(0);
   };
 
   const resetFilters = () => {
     setOffice("");
+
     setFilingStatus("");
+
     setDefaultLevel("");
+
     setGstr3aEligible("");
+
     setSearchText("");
+
     setSearch("");
+
     setPage(0);
   };
 
@@ -580,6 +702,7 @@ export default function GstReturnDefaulterDashboard() {
     if (!period || exporting) return;
 
     setExporting(true);
+
     setError("export", "");
 
     try {
@@ -590,10 +713,12 @@ export default function GstReturnDefaulterDashboard() {
       }
 
       // an error body can arrive with HTTP 200 in some proxies
+
       if (blob.type && blob.type.includes("json")) {
         throw new Error(
           await readErrorMessage(
             { response: { data: blob } },
+
             "CSV export failed.",
           ),
         );
@@ -604,13 +729,17 @@ export default function GstReturnDefaulterDashboard() {
       const anchor = document.createElement("a");
 
       anchor.href = url;
+
       anchor.download = `gst-3b-defaulters-${period}.csv`;
 
       document.body.appendChild(anchor);
+
       anchor.click();
+
       anchor.remove();
 
       // revoking immediately can cancel the download in some browsers
+
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       setError("export", await readErrorMessage(err, "CSV export failed."));
@@ -627,7 +756,9 @@ export default function GstReturnDefaulterDashboard() {
     errors.export || errors.list || errors.summary || errors.periods;
 
   const totalRecords = safeCount(summary?.total ?? data.totalElements);
+
   const notFiled = safeCount(summary?.notFiled);
+
   const filedLate = safeCount(summary?.filedLate);
 
   const filedOnTime =
@@ -639,33 +770,46 @@ export default function GstReturnDefaulterDashboard() {
     const { counts, fromPage } = pickCounts(
       {
         NOT_FILED: notFiled,
+
         FILED_LATE: filedLate,
+
         FILED_ON_TIME: filedOnTime,
       },
+
       countRowsBy(records, "filingStatus", [
         "NOT_FILED",
+
         "FILED_LATE",
+
         "FILED_ON_TIME",
       ]),
     );
 
     const chart = [
       { name: "Not Filed", value: counts.NOT_FILED, color: CHART_COLORS.red },
+
       {
         name: "Filed Late",
+
         value: counts.FILED_LATE,
+
         color: CHART_COLORS.amber,
       },
+
       {
         name: "Filed On Time",
+
         value: counts.FILED_ON_TIME,
+
         color: CHART_COLORS.green,
       },
     ];
 
     return {
       chart,
+
       fromPage,
+
       total: chart.reduce((sum, item) => sum + safeCount(item.value), 0),
     };
   }, [notFiled, filedLate, filedOnTime, records]);
@@ -676,49 +820,64 @@ export default function GstReturnDefaulterDashboard() {
         NORMAL: safeCount(
           summary?.normal ?? summary?.normalDefaults ?? summary?.defaultNormal,
         ),
+
         WARNING: safeCount(
           summary?.warning ??
             summary?.warningDefaults ??
             summary?.defaultWarning,
         ),
+
         HIGH: safeCount(
           summary?.high ?? summary?.highDefaults ?? summary?.defaultHigh,
         ),
+
         CRITICAL: safeCount(
           summary?.critical ??
             summary?.criticalDefaults ??
             summary?.defaultCritical,
         ),
       },
+
       countRowsBy(records, "defaultLevel", [
         "NORMAL",
+
         "WARNING",
+
         "HIGH",
+
         "CRITICAL",
       ]),
     );
 
     const chart = [
       { name: "Normal", value: counts.NORMAL, color: CHART_COLORS.green },
+
       { name: "Warning", value: counts.WARNING, color: CHART_COLORS.amber },
+
       { name: "High", value: counts.HIGH, color: CHART_COLORS.orange },
+
       { name: "Critical", value: counts.CRITICAL, color: CHART_COLORS.red },
     ];
 
     return {
       chart,
+
       fromPage,
+
       total: chart.reduce((sum, item) => sum + safeCount(item.value), 0),
     };
   }, [summary, records]);
 
   const totalPages = toNumber(data.totalPages);
+
   const totalElements = toNumber(data.totalElements);
 
   const firstRecord = totalElements ? page * size + 1 : 0;
+
   const lastRecord = Math.min((page + 1) * size, totalElements);
 
   // anything in flight: drives the thin progress bar at the top of the page
+
   const busy =
     periodsLoading ||
     officesLoading ||
@@ -727,6 +886,7 @@ export default function GstReturnDefaulterDashboard() {
     exporting;
 
   // old rows stay visible (dimmed) under the overlay while the next page loads
+
   const tableOverlay = listLoading && records.length > 0;
 
   /* ---------------------------------------------------------------- render */
@@ -744,8 +904,11 @@ export default function GstReturnDefaulterDashboard() {
 
         <section className="def-filter-panel">
           {/* =====================================================
+
       FILTER HEADER
+
   ====================================================== */}
+
           <div className="def-filter-topline">
             <div className="def-filter-title">
               <div className="def-filter-title-icon">
@@ -754,6 +917,7 @@ export default function GstReturnDefaulterDashboard() {
 
               <div>
                 <h2>Return Defaulter Analysis</h2>
+
                 <p>
                   GSTR-3B filing compliance, default classification and GSTR-3A
                   eligibility monitoring
@@ -792,10 +956,14 @@ export default function GstReturnDefaulterDashboard() {
           </div>
 
           {/* =====================================================
+
       FILTER GRID
+
   ====================================================== */}
+
           <div className="def-filter-grid">
             {/* RETURN PERIOD */}
+
             <div className="def-filter-field">
               <label htmlFor="def-period">
                 Return Period <span>*</span>
@@ -823,6 +991,7 @@ export default function GstReturnDefaulterDashboard() {
             </div>
 
             {/* OFFICE */}
+
             <div className="def-filter-field">
               <label htmlFor="def-office">
                 Office / Jurisdiction
@@ -850,6 +1019,7 @@ export default function GstReturnDefaulterDashboard() {
             </div>
 
             {/* FILING STATUS */}
+
             <div className="def-filter-field">
               <label htmlFor="def-filing">Filing Status</label>
 
@@ -859,14 +1029,19 @@ export default function GstReturnDefaulterDashboard() {
                 onChange={changeFilter(setFilingStatus)}
               >
                 <option value="">All Filing Status</option>
+
                 <option value="NOT_FILED">Not Filed</option>
+
                 <option value="FILED_LATE">Filed Late</option>
+
                 <option value="FILED_ON_TIME">Filed On Time</option>
+
                 <option value="NOT_DUE">Not Due</option>
               </select>
             </div>
 
             {/* DEFAULT LEVEL */}
+
             <div className="def-filter-field">
               <label htmlFor="def-default">Default Level</label>
 
@@ -876,14 +1051,19 @@ export default function GstReturnDefaulterDashboard() {
                 onChange={changeFilter(setDefaultLevel)}
               >
                 <option value="">All Default Levels</option>
+
                 <option value="CRITICAL">Critical</option>
+
                 <option value="HIGH">High</option>
+
                 <option value="WARNING">Warning</option>
+
                 <option value="NORMAL">Normal</option>
               </select>
             </div>
 
             {/* GSTR-3A */}
+
             <div className="def-filter-field">
               <label htmlFor="def-gstr3a">GSTR-3A Eligible</label>
 
@@ -893,12 +1073,15 @@ export default function GstReturnDefaulterDashboard() {
                 onChange={changeFilter(setGstr3aEligible)}
               >
                 <option value="">All Eligibility</option>
+
                 <option value="Y">Eligible</option>
+
                 <option value="N">Not Eligible</option>
               </select>
             </div>
 
             {/* SEARCH */}
+
             <div className="def-filter-field">
               <label htmlFor="def-search">GSTIN / Taxpayer / Office</label>
 
@@ -915,6 +1098,7 @@ export default function GstReturnDefaulterDashboard() {
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
                       event.preventDefault();
+
                       submitSearch(event);
                     }
                   }}
@@ -923,6 +1107,7 @@ export default function GstReturnDefaulterDashboard() {
             </div>
 
             {/* ACTIONS */}
+
             <div className="def-filter-actions">
               <button
                 type="button"
@@ -1053,6 +1238,7 @@ export default function GstReturnDefaulterDashboard() {
                       <Tooltip
                         formatter={(value, name) => [
                           `${integer(value)} (${percentage(value, filing.total)})`,
+
                           name,
                         ]}
                       />
@@ -1141,6 +1327,7 @@ export default function GstReturnDefaulterDashboard() {
                 value={size}
                 onChange={(event) => {
                   setSize(Number(event.target.value));
+
                   setPage(0);
                 }}
               >
@@ -1191,19 +1378,31 @@ export default function GstReturnDefaulterDashboard() {
                 <thead>
                   <tr>
                     <th>#</th>
+
                     <th className="col-gstin">GSTIN</th>
+
                     <th className="col-taxpayer">Taxpayer Name</th>
+
                     <th className="col-office">Office</th>
+
                     <th>Due Date</th>
+
                     <th>Filing Status</th>
+
                     <th>Filing Date</th>
+
                     <th>
                       Delay <span>(Days)</span>
                     </th>
+
                     <th>Output Tax (₹)</th>
+
                     <th>Default Level</th>
+
                     <th>GSTR-3A</th>
+
                     <th>Sec 62</th>
+
                     <th className="col-action">Action</th>
                   </tr>
                 </thead>
@@ -1228,6 +1427,7 @@ export default function GstReturnDefaulterDashboard() {
                   ) : (
                     records.map((row, index) => {
                       const filingValue = normalizeLevel(row.filingStatus);
+
                       const defaultValue = normalizeLevel(row.defaultLevel);
 
                       const issued =
@@ -1344,6 +1544,7 @@ export default function GstReturnDefaulterDashboard() {
                               aria-label={`View details for ${row.gstin || "GSTIN"}`}
                             >
                               <Eye size={13} />
+
                               <span>View</span>
                             </button>
                           </td>
@@ -1374,11 +1575,14 @@ export default function GstReturnDefaulterDashboard() {
 
       <GstDefaulterViewModal
         open={viewModalOpen}
-        data={selectedDefaulter}
+        data={
+          selectedDefaulter
+            ? { ...selectedDefaulter, section62ReviewRequested }
+            : null
+        }
         onClose={closeDefaulterView}
-        onGenerateNotice={() => {
-          setRefreshKey((value) => value + 1);
-        }}
+        onGenerateNotice={handleNoticeIssued}
+        onSection62Review={handleSection62Review}
       />
     </>
   );
