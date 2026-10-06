@@ -1,35 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
-  AlertCircle,
   AlertTriangle,
   Bell,
-  Calendar,
   CalendarDays,
   CheckCircle2,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Clock3,
   Download,
   Eye,
-  FileText,
   FileWarning,
   Filter,
-  FilterX,
   Loader2,
-  RefreshCw,
   RotateCcw,
   Search,
-  Send,
-  ShieldAlert,
-  SlidersHorizontal,
   UserRoundX,
   Users,
-  UserX,
-  X,
 } from "lucide-react";
 
 import {
@@ -61,11 +48,15 @@ const PAGE_SIZES = [10, 25, 50, 100];
 
 const TABLE_COLUMNS = 13;
 
+const EMPTY_ROWS = [];
+
 const EMPTY_PAGE = {
-  content: [],
+  content: EMPTY_ROWS,
   totalElements: 0,
   totalPages: 0,
 };
+
+const NO_ERRORS = { periods: "", summary: "", list: "", export: "" };
 
 const CHART_COLORS = {
   green: "#3fa867",
@@ -151,7 +142,7 @@ const normalizePage = (response) => {
     ? source.content
     : Array.isArray(source.items)
       ? source.items
-      : [];
+      : EMPTY_ROWS;
 
   return {
     ...source,
@@ -168,11 +159,23 @@ const isAbortError = (error) =>
   error?.name === "AbortError" ||
   error?.code === "ERR_CANCELED";
 
+/*
+ * Reads the message from an API error body. The server returns a problem+json
+ * body ({ message, detail, correlationId }) - the correlation id is shown so
+ * support can find the matching server log line.
+ */
+const messageFromBody = (body) => {
+  if (!body || typeof body !== "object") return "";
+
+  const text = body.message || body.detail || body.error;
+
+  if (!text || typeof text !== "string") return "";
+
+  return body.correlationId ? `${text} (Ref: ${body.correlationId})` : text;
+};
+
 const apiError = (error, fallback) =>
-  error?.response?.data?.message ||
-  error?.response?.data?.error ||
-  error?.message ||
-  fallback;
+  messageFromBody(error?.response?.data) || error?.message || fallback;
 
 /*
  * A blob request returns its error body as a Blob, so the usual
@@ -183,9 +186,7 @@ const readErrorMessage = async (error, fallback) => {
 
   if (typeof Blob !== "undefined" && data instanceof Blob) {
     try {
-      const parsed = JSON.parse(await data.text());
-
-      return parsed?.message || parsed?.error || fallback;
+      return messageFromBody(JSON.parse(await data.text())) || fallback;
     } catch {
       return fallback;
     }
@@ -211,6 +212,21 @@ const formatDate = (value) => {
   return Number.isNaN(date.getTime()) ? text : DATE_FORMAT.format(date);
 };
 
+/* Counts the rows of the current page by a field (pure, so it can live outside the component). */
+const countRowsBy = (rows, field, values) => {
+  const result = Object.fromEntries(values.map((value) => [value, 0]));
+
+  rows.forEach((row) => {
+    const value = normalizeLevel(row?.[field]);
+
+    if (Object.prototype.hasOwnProperty.call(result, value)) {
+      result[value] += 1;
+    }
+  });
+
+  return result;
+};
+
 /*
  * Prefer the server-side totals. Only when the summary has no usable numbers do
  * we count the rows of the CURRENT PAGE - and the chart says so.
@@ -220,29 +236,42 @@ const pickCounts = (serverCounts, pageCounts) =>
     ? { counts: serverCounts, fromPage: false }
     : { counts: pageCounts, fromPage: true };
 
-function FilterField({ id, label, required = false, children }) {
+/* ------------------------------------------------------------------ UI parts */
+
+function Spinner({ size = "md", label = "Loading" }) {
   return (
-    <div className="def-filter-field">
-      <label htmlFor={id}>
-        {label}
-
-        {required && <span className="def-required"> *</span>}
-      </label>
-
-      {children}
-    </div>
+    <span
+      className={`def-spinner def-spinner--${size}`}
+      role="status"
+      aria-label={label}
+    />
   );
 }
 
-function KpiCard({ title, value, subtitle, icon: Icon, tone }) {
+function KpiCard({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  tone,
+  loading = false,
+}) {
   return (
-    <article className={`def-kpi def-kpi-${tone}`}>
+    <article className={`def-kpi def-kpi-${tone}`} aria-busy={loading}>
       <div className="def-kpi-content">
         <span className="def-kpi-title">{title}</span>
 
-        <strong className="def-kpi-value">{integer(value)}</strong>
+        {loading ? (
+          <strong className="def-kpi-value def-kpi-value--loading">
+            <Spinner size="sm" label={`Loading ${title}`} />
+          </strong>
+        ) : (
+          <strong className="def-kpi-value">{integer(value)}</strong>
+        )}
 
-        <span className="def-kpi-subtitle">{subtitle}</span>
+        <span className="def-kpi-subtitle">
+          {loading ? "Loading..." : subtitle}
+        </span>
       </div>
 
       <div className="def-kpi-icon">
@@ -277,6 +306,28 @@ function ChartLegend({ data, total }) {
   );
 }
 
+function ChartLoading() {
+  return (
+    <div className="def-chart-loading">
+      <Spinner size="md" label="Loading chart" />
+    </div>
+  );
+}
+
+function TableMessage({ loading, icon: Icon = FileWarning, children }) {
+  return (
+    <tr>
+      <td className="def-table-message" colSpan={TABLE_COLUMNS}>
+        {loading ? <Spinner size="sm" label="Loading" /> : <Icon size={17} />}
+
+        {children}
+      </td>
+    </tr>
+  );
+}
+
+/* ------------------------------------------------------------------ page */
+
 export default function GstReturnDefaulterDashboard() {
   const [periods, setPeriods] = useState([]);
   const [offices, setOffices] = useState([]);
@@ -295,16 +346,24 @@ export default function GstReturnDefaulterDashboard() {
   const [summary, setSummary] = useState(null);
   const [data, setData] = useState(EMPTY_PAGE);
 
+  const [periodsLoading, setPeriodsLoading] = useState(true);
+  const [officesLoading, setOfficesLoading] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [listLoading, setListLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const [error, setError] = useState("");
+  // one slot per source, so a later request cannot wipe another request's error
+  const [errors, setErrors] = useState(NO_ERRORS);
   const [refreshKey, setRefreshKey] = useState(0);
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const [selectedDefaulter, setSelectedDefaulter] = useState(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
+
+  const setError = useCallback(
+    (key, message) => setErrors((current) => ({ ...current, [key]: message })),
+    [],
+  );
 
   const openDefaulterView = useCallback((row) => {
     setSelectedDefaulter(row);
@@ -321,6 +380,9 @@ export default function GstReturnDefaulterDashboard() {
   useEffect(() => {
     const controller = new AbortController();
 
+    setPeriodsLoading(true);
+    setError("periods", "");
+
     fetchDefaulterPeriods({ signal: controller.signal })
       .then((response) => {
         const list = normalizeList(response);
@@ -333,28 +395,40 @@ export default function GstReturnDefaulterDashboard() {
       })
       .catch((err) => {
         if (!isAbortError(err)) {
-          setError(apiError(err, "Unable to load GST return periods."));
+          setError(
+            "periods",
+            apiError(err, "Unable to load GST return periods."),
+          );
         }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setPeriodsLoading(false);
       });
 
     return () => controller.abort();
-  }, []);
+  }, [setError]);
 
   /* ---------------------------------------------------------------- offices */
 
   useEffect(() => {
     if (!period) {
       setOffices([]);
+      setOfficesLoading(false);
 
       return undefined;
     }
 
     const controller = new AbortController();
 
+    setOfficesLoading(true);
+
     fetchDefaulterOffices(period, { signal: controller.signal })
       .then((response) => setOffices(normalizeList(response)))
       .catch((err) => {
         if (!isAbortError(err)) setOffices([]);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setOfficesLoading(false);
       });
 
     return () => controller.abort();
@@ -382,12 +456,20 @@ export default function GstReturnDefaulterDashboard() {
 
   // summary: reloaded when a filter changes, NOT on every page / page-size change
   useEffect(() => {
-    if (!period) return undefined;
+    if (!period) {
+      // no period selected: clear anything left from the previous one
+      setSummary(null);
+      setSummaryLoading(false);
+      setError("summary", "");
+
+      return undefined;
+    }
 
     const controller = new AbortController();
 
     const load = async () => {
       setSummaryLoading(true);
+      setError("summary", "");
 
       try {
         const response = await fetchDefaulterSummary(filters, {
@@ -399,7 +481,12 @@ export default function GstReturnDefaulterDashboard() {
         setSummary(response?.data ?? response ?? null);
       } catch (err) {
         if (!isAbortError(err)) {
-          setError(apiError(err, "Unable to load the defaulter summary."));
+          // do not keep showing the previous filter's numbers next to an error
+          setSummary(null);
+          setError(
+            "summary",
+            apiError(err, "Unable to load the defaulter summary."),
+          );
         }
       } finally {
         if (!controller.signal.aborted) setSummaryLoading(false);
@@ -409,17 +496,23 @@ export default function GstReturnDefaulterDashboard() {
     load();
 
     return () => controller.abort();
-  }, [filters, period, refreshKey]);
+  }, [filters, period, refreshKey, setError]);
 
   // list
   useEffect(() => {
-    if (!period) return undefined;
+    if (!period) {
+      setData(EMPTY_PAGE);
+      setListLoading(false);
+      setError("list", "");
+
+      return undefined;
+    }
 
     const controller = new AbortController();
 
     const load = async () => {
       setListLoading(true);
-      setError("");
+      setError("list", "");
 
       try {
         const response = await fetchDefaulters(listParams, {
@@ -432,7 +525,8 @@ export default function GstReturnDefaulterDashboard() {
         setLastUpdated(new Date());
       } catch (err) {
         if (!isAbortError(err)) {
-          setError(apiError(err, "Unable to load the defaulter list."));
+          setData(EMPTY_PAGE);
+          setError("list", apiError(err, "Unable to load the defaulter list."));
         }
       } finally {
         if (!controller.signal.aborted) setListLoading(false);
@@ -442,7 +536,7 @@ export default function GstReturnDefaulterDashboard() {
     load();
 
     return () => controller.abort();
-  }, [listParams, period, refreshKey]);
+  }, [listParams, period, refreshKey, setError]);
 
   // if the result set shrinks (refresh / new data) while on a later page, go to the last page
   useEffect(() => {
@@ -486,7 +580,7 @@ export default function GstReturnDefaulterDashboard() {
     if (!period || exporting) return;
 
     setExporting(true);
-    setError("");
+    setError("export", "");
 
     try {
       const blob = await exportDefaultersCsv(filters);
@@ -519,29 +613,18 @@ export default function GstReturnDefaulterDashboard() {
       // revoking immediately can cancel the download in some browsers
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
-      setError(await readErrorMessage(err, "CSV export failed."));
+      setError("export", await readErrorMessage(err, "CSV export failed."));
     } finally {
       setExporting(false);
     }
-  }, [period, exporting, filters]);
+  }, [period, exporting, filters, setError]);
 
   /* ---------------------------------------------------------------- derived data */
 
-  const records = Array.isArray(data.content) ? data.content : [];
+  const records = Array.isArray(data.content) ? data.content : EMPTY_ROWS;
 
-  const countRowsBy = (field, values) => {
-    const result = Object.fromEntries(values.map((value) => [value, 0]));
-
-    records.forEach((row) => {
-      const value = normalizeLevel(row?.[field]);
-
-      if (Object.prototype.hasOwnProperty.call(result, value)) {
-        result[value] += 1;
-      }
-    });
-
-    return result;
-  };
+  const error =
+    errors.export || errors.list || errors.summary || errors.periods;
 
   const totalRecords = safeCount(summary?.total ?? data.totalElements);
   const notFiled = safeCount(summary?.notFiled);
@@ -559,7 +642,11 @@ export default function GstReturnDefaulterDashboard() {
         FILED_LATE: filedLate,
         FILED_ON_TIME: filedOnTime,
       },
-      countRowsBy("filingStatus", ["NOT_FILED", "FILED_LATE", "FILED_ON_TIME"]),
+      countRowsBy(records, "filingStatus", [
+        "NOT_FILED",
+        "FILED_LATE",
+        "FILED_ON_TIME",
+      ]),
     );
 
     const chart = [
@@ -581,8 +668,7 @@ export default function GstReturnDefaulterDashboard() {
       fromPage,
       total: chart.reduce((sum, item) => sum + safeCount(item.value), 0),
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notFiled, filedLate, filedOnTime, data.content]);
+  }, [notFiled, filedLate, filedOnTime, records]);
 
   const defaults = useMemo(() => {
     const { counts, fromPage } = pickCounts(
@@ -604,7 +690,12 @@ export default function GstReturnDefaulterDashboard() {
             summary?.defaultCritical,
         ),
       },
-      countRowsBy("defaultLevel", ["NORMAL", "WARNING", "HIGH", "CRITICAL"]),
+      countRowsBy(records, "defaultLevel", [
+        "NORMAL",
+        "WARNING",
+        "HIGH",
+        "CRITICAL",
+      ]),
     );
 
     const chart = [
@@ -619,8 +710,7 @@ export default function GstReturnDefaulterDashboard() {
       fromPage,
       total: chart.reduce((sum, item) => sum + safeCount(item.value), 0),
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [summary, data.content]);
+  }, [summary, records]);
 
   const totalPages = toNumber(data.totalPages);
   const totalElements = toNumber(data.totalElements);
@@ -628,13 +718,30 @@ export default function GstReturnDefaulterDashboard() {
   const firstRecord = totalElements ? page * size + 1 : 0;
   const lastRecord = Math.min((page + 1) * size, totalElements);
 
-  const refreshing = summaryLoading || listLoading;
+  // anything in flight: drives the thin progress bar at the top of the page
+  const busy =
+    periodsLoading ||
+    officesLoading ||
+    summaryLoading ||
+    listLoading ||
+    exporting;
+
+  // old rows stay visible (dimmed) under the overlay while the next page loads
+  const tableOverlay = listLoading && records.length > 0;
 
   /* ---------------------------------------------------------------- render */
 
   return (
     <>
-      <main className="def-dashboard">
+      <main className="def-dashboard" aria-busy={busy}>
+        {busy && (
+          <div
+            className="def-progress"
+            role="progressbar"
+            aria-label="Loading data"
+          />
+        )}
+
         <section className="def-filter-panel">
           {/* =====================================================
       FILTER HEADER
@@ -670,6 +777,17 @@ export default function GstReturnDefaulterDashboard() {
                   </strong>
                 </span>
               </div>
+
+              {lastUpdated && (
+                <div className="def-last-updated">
+                  <Clock3 size={14} />
+
+                  <span>
+                    Updated:
+                    <strong> {DATE_TIME_FORMAT.format(lastUpdated)}</strong>
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -681,10 +799,20 @@ export default function GstReturnDefaulterDashboard() {
             <div className="def-filter-field">
               <label htmlFor="def-period">
                 Return Period <span>*</span>
+                {periodsLoading && (
+                  <Loader2 size={11} className="def-spin def-label-spin" />
+                )}
               </label>
 
-              <select id="def-period" value={period} onChange={changePeriod}>
-                <option value="">Select Period</option>
+              <select
+                id="def-period"
+                value={period}
+                onChange={changePeriod}
+                disabled={periodsLoading}
+              >
+                <option value="">
+                  {periodsLoading ? "Loading periods..." : "Select Period"}
+                </option>
 
                 {periods.map((item) => (
                   <option key={item.value} value={item.value}>
@@ -696,14 +824,22 @@ export default function GstReturnDefaulterDashboard() {
 
             {/* OFFICE */}
             <div className="def-filter-field">
-              <label htmlFor="def-office">Office / Jurisdiction</label>
+              <label htmlFor="def-office">
+                Office / Jurisdiction
+                {officesLoading && (
+                  <Loader2 size={11} className="def-spin def-label-spin" />
+                )}
+              </label>
 
               <select
                 id="def-office"
                 value={office}
                 onChange={changeFilter(setOffice)}
+                disabled={!period || officesLoading}
               >
-                <option value="">All Offices</option>
+                <option value="">
+                  {officesLoading ? "Loading offices..." : "All Offices"}
+                </option>
 
                 {offices.map((item) => (
                   <option key={item.value} value={item.value}>
@@ -794,7 +930,11 @@ export default function GstReturnDefaulterDashboard() {
                 onClick={submitSearch}
                 disabled={!period}
               >
-                <Search size={15} />
+                {listLoading ? (
+                  <Loader2 size={15} className="def-spin" />
+                ) : (
+                  <Search size={15} />
+                )}
                 Search
               </button>
 
@@ -840,6 +980,7 @@ export default function GstReturnDefaulterDashboard() {
             subtitle="Selected return period"
             icon={Users}
             tone="blue"
+            loading={summaryLoading}
           />
 
           <KpiCard
@@ -848,6 +989,7 @@ export default function GstReturnDefaulterDashboard() {
             subtitle={`${percentage(notFiled, totalRecords)} of total`}
             icon={UserRoundX}
             tone="red"
+            loading={summaryLoading}
           />
 
           <KpiCard
@@ -856,6 +998,7 @@ export default function GstReturnDefaulterDashboard() {
             subtitle={`${percentage(filedLate, totalRecords)} of total`}
             icon={Clock3}
             tone="amber"
+            loading={summaryLoading}
           />
 
           <KpiCard
@@ -864,6 +1007,7 @@ export default function GstReturnDefaulterDashboard() {
             subtitle={`${percentage(filedOnTime, totalRecords)} of total`}
             icon={CheckCircle2}
             tone="green"
+            loading={summaryLoading}
           />
 
           <KpiCard
@@ -872,15 +1016,16 @@ export default function GstReturnDefaulterDashboard() {
             subtitle="Pending statutory action"
             icon={Bell}
             tone="orange"
+            loading={summaryLoading}
           />
         </section>
 
         <section className="def-chart-grid def-chart-grid--two">
-          <article className="def-chart-card">
+          <article className="def-chart-card" aria-busy={summaryLoading}>
             <div className="def-chart-header">
               <h3>Filing Status Distribution</h3>
 
-              {filing.fromPage && filing.total > 0 && (
+              {filing.fromPage && filing.total > 0 && !summaryLoading && (
                 <small className="def-chart-note">Current page only</small>
               )}
             </div>
@@ -920,13 +1065,15 @@ export default function GstReturnDefaulterDashboard() {
             ) : (
               <div className="def-chart-empty">No filing status data.</div>
             )}
+
+            {summaryLoading && <ChartLoading />}
           </article>
 
-          <article className="def-chart-card">
+          <article className="def-chart-card" aria-busy={summaryLoading}>
             <div className="def-chart-header">
               <h3>Default Level Distribution</h3>
 
-              {defaults.fromPage && defaults.total > 0 && (
+              {defaults.fromPage && defaults.total > 0 && !summaryLoading && (
                 <small className="def-chart-note">Current page only</small>
               )}
             </div>
@@ -975,6 +1122,8 @@ export default function GstReturnDefaulterDashboard() {
             ) : (
               <div className="def-chart-empty">No default level data.</div>
             )}
+
+            {summaryLoading && <ChartLoading />}
           </article>
         </section>
 
@@ -1034,166 +1183,185 @@ export default function GstReturnDefaulterDashboard() {
             </div>
           </div>
 
-          <div className="def-table-scroll">
-            <table className="def-reference-table" aria-busy={listLoading}>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th className="col-gstin">GSTIN</th>
-                  <th className="col-taxpayer">Taxpayer Name</th>
-                  <th className="col-office">Office</th>
-                  <th>Due Date</th>
-                  <th>Filing Status</th>
-                  <th>Filing Date</th>
-                  <th>
-                    Delay <span>(Days)</span>
-                  </th>
-                  <th>Output Tax (₹)</th>
-                  <th>Default Level</th>
-                  <th>GSTR-3A</th>
-                  <th>Sec 62</th>
-                  <th className="col-action">Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {!period ? (
+          <div
+            className={`def-table-body-wrap${tableOverlay ? " is-loading" : ""}`}
+          >
+            <div className="def-table-scroll">
+              <table className="def-reference-table" aria-busy={listLoading}>
+                <thead>
                   <tr>
-                    <td className="def-table-message" colSpan={TABLE_COLUMNS}>
-                      <FileWarning size={17} /> Select a return period to view
-                      defaulters.
-                    </td>
+                    <th>#</th>
+                    <th className="col-gstin">GSTIN</th>
+                    <th className="col-taxpayer">Taxpayer Name</th>
+                    <th className="col-office">Office</th>
+                    <th>Due Date</th>
+                    <th>Filing Status</th>
+                    <th>Filing Date</th>
+                    <th>
+                      Delay <span>(Days)</span>
+                    </th>
+                    <th>Output Tax (₹)</th>
+                    <th>Default Level</th>
+                    <th>GSTR-3A</th>
+                    <th>Sec 62</th>
+                    <th className="col-action">Action</th>
                   </tr>
-                ) : listLoading ? (
-                  <tr>
-                    <td className="def-table-message" colSpan={TABLE_COLUMNS}>
-                      <Loader2 size={17} className="def-spin" /> Loading
-                      records...
-                    </td>
-                  </tr>
-                ) : records.length === 0 ? (
-                  <tr>
-                    <td className="def-table-message" colSpan={TABLE_COLUMNS}>
-                      <FileWarning size={17} /> No records found.
-                    </td>
-                  </tr>
-                ) : (
-                  records.map((row, index) => {
-                    const filingValue = normalizeLevel(row.filingStatus);
-                    const defaultValue = normalizeLevel(row.defaultLevel);
+                </thead>
 
-                    const issued =
-                      normalizeLevel(row.gstr3aStatus) === "ISSUED";
+                <tbody>
+                  {!period ? (
+                    periodsLoading ? (
+                      <TableMessage loading>
+                        Loading return periods...
+                      </TableMessage>
+                    ) : (
+                      <TableMessage>
+                        Select a return period to view defaulters.
+                      </TableMessage>
+                    )
+                  ) : records.length === 0 ? (
+                    listLoading ? (
+                      <TableMessage loading>Loading records...</TableMessage>
+                    ) : (
+                      <TableMessage>No records found.</TableMessage>
+                    )
+                  ) : (
+                    records.map((row, index) => {
+                      const filingValue = normalizeLevel(row.filingStatus);
+                      const defaultValue = normalizeLevel(row.defaultLevel);
 
-                    const eligible =
-                      String(row.gstr3aEligible || "").toUpperCase() === "Y";
+                      const issued =
+                        normalizeLevel(row.gstr3aStatus) === "ISSUED";
 
-                    const sec62 =
-                      String(row.section62Candidate || "").toUpperCase() ===
-                      "Y";
+                      const eligible =
+                        String(row.gstr3aEligible || "").toUpperCase() === "Y";
 
-                    const delay = toNumber(row.delayDays);
+                      const sec62 =
+                        String(row.section62Candidate || "").toUpperCase() ===
+                        "Y";
 
-                    return (
-                      <tr
-                        key={`${row.gstin || "gstin"}-${
-                          row.retPeriod || period
-                        }-${index}`}
-                      >
-                        <td className="cell-sl">{page * size + index + 1}</td>
+                      const delay = toNumber(row.delayDays);
 
-                        <td className="cell-gstin">{row.gstin || "—"}</td>
+                      const taxpayer =
+                        row.taxpayerName ||
+                        row.tradeName ||
+                        row.legalName ||
+                        "—";
 
-                        <td className="cell-taxpayer">
-                          {row.taxpayerName ||
-                            row.tradeName ||
-                            row.legalName ||
-                            "—"}
-                        </td>
-
-                        <td
-                          className="cell-office"
-                          title={row.officeName || row.stJuri || undefined}
+                      return (
+                        <tr
+                          key={`${row.gstin || "gstin"}-${
+                            row.retPeriod || period
+                          }-${index}`}
                         >
-                          {row.officeName || row.stJuri || "—"}
-                        </td>
+                          <td className="cell-sl">{page * size + index + 1}</td>
 
-                        <td className="cell-date">{formatDate(row.dueDate)}</td>
+                          <td className="cell-gstin">{row.gstin || "—"}</td>
 
-                        <td>
-                          <span
-                            className={`ref-status filing-${badgeClass(
-                              filingValue,
-                            )}`}
+                          <td className="cell-taxpayer" title={taxpayer}>
+                            {taxpayer}
+                          </td>
+
+                          <td
+                            className="cell-office"
+                            title={row.officeName || row.stJuri || undefined}
                           >
-                            {humanize(filingValue)}
-                          </span>
-                        </td>
+                            {row.officeName || row.stJuri || "—"}
+                          </td>
 
-                        <td className="cell-date">
-                          {formatDate(row.filingDate)}
-                        </td>
+                          <td className="cell-date">
+                            {formatDate(row.dueDate)}
+                          </td>
 
-                        <td
-                          className={`cell-delay ${
-                            delay >= 30
-                              ? "delay-critical"
-                              : delay > 0
-                                ? "delay-warning"
-                                : "delay-normal"
-                          }`}
-                        >
-                          {integer(row.delayDays)}
-                        </td>
+                          <td>
+                            <span
+                              className={`ref-status filing-${badgeClass(
+                                filingValue,
+                              )}`}
+                            >
+                              {humanize(filingValue)}
+                            </span>
+                          </td>
 
-                        <td className="cell-money">{integer(row.outputTax)}</td>
+                          <td className="cell-date">
+                            {formatDate(row.filingDate)}
+                          </td>
 
-                        <td>
-                          <span
-                            className={`ref-level level-${badgeClass(
-                              defaultValue,
-                            )}`}
+                          <td
+                            className={`cell-delay ${
+                              delay >= 30
+                                ? "delay-critical"
+                                : delay > 0
+                                  ? "delay-warning"
+                                  : "delay-normal"
+                            }`}
                           >
-                            {humanize(defaultValue)}
-                          </span>
-                        </td>
+                            {row.delayDays == null || row.delayDays === ""
+                              ? "—"
+                              : integer(row.delayDays)}
+                          </td>
 
-                        <td>
-                          {issued ? (
-                            <span className="ref-gstr issued">Issued</span>
-                          ) : eligible ? (
-                            <span className="ref-gstr eligible">Eligible</span>
-                          ) : (
-                            <span className="ref-neutral">No</span>
-                          )}
-                        </td>
+                          <td className="cell-money">
+                            {integer(row.outputTax)}
+                          </td>
 
-                        <td>
-                          {sec62 ? (
-                            <span className="ref-sec62 yes">Yes</span>
-                          ) : (
-                            <span className="ref-neutral">No</span>
-                          )}
-                        </td>
+                          <td>
+                            <span
+                              className={`ref-level level-${badgeClass(
+                                defaultValue,
+                              )}`}
+                            >
+                              {humanize(defaultValue)}
+                            </span>
+                          </td>
 
-                        <td className="cell-action">
-                          <button
-                            type="button"
-                            className="ref-view-btn"
-                            onClick={() => openDefaulterView(row)}
-                            title={`View details for ${row.gstin || "GSTIN"}`}
-                            aria-label={`View details for ${row.gstin || "GSTIN"}`}
-                          >
-                            <Eye size={13} />
-                            <span>View</span>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                          <td>
+                            {issued ? (
+                              <span className="ref-gstr issued">Issued</span>
+                            ) : eligible ? (
+                              <span className="ref-gstr eligible">
+                                Eligible
+                              </span>
+                            ) : (
+                              <span className="ref-neutral">No</span>
+                            )}
+                          </td>
+
+                          <td>
+                            {sec62 ? (
+                              <span className="ref-sec62 yes">Yes</span>
+                            ) : (
+                              <span className="ref-neutral">No</span>
+                            )}
+                          </td>
+
+                          <td className="cell-action">
+                            <button
+                              type="button"
+                              className="ref-view-btn"
+                              onClick={() => openDefaulterView(row)}
+                              title={`View details for ${row.gstin || "GSTIN"}`}
+                              aria-label={`View details for ${row.gstin || "GSTIN"}`}
+                            >
+                              <Eye size={13} />
+                              <span>View</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {tableOverlay && (
+              <div className="def-loading-overlay">
+                <Spinner size="lg" label="Loading records" />
+
+                <span>Loading records...</span>
+              </div>
+            )}
           </div>
 
           <div className="def-table-footer">
