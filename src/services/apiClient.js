@@ -29,7 +29,7 @@ export const apiClient = axios.create({
     Accept: "application/json",
   },
 
-  withCredentials: false,
+  withCredentials: true,
 
   timeout: DEFAULT_TIMEOUT,
 });
@@ -40,15 +40,10 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    /*
-     * Authentication can be enabled here when required.
-     *
-     * const token = localStorage.getItem("accessToken");
-     *
-     * if (token) {
-     *   config.headers.Authorization = `Bearer ${token}`;
-     * }
-     */
+    const token = localStorage.getItem("accessToken");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }   
 
     return config;
   },
