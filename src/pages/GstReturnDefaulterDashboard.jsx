@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 
 import {
   AlertTriangle,
@@ -182,11 +183,19 @@ const isAbortError = (error) =>
 
 /*
 
+
+
  * Reads the message from an API error body. The server returns a problem+json
+
+
 
  * body ({ message, detail, correlationId }) - the correlation id is shown so
 
+
+
  * support can find the matching server log line.
+
+
 
  */
 
@@ -202,14 +211,6 @@ const messageFromBody = (body) => {
 
 const apiError = (error, fallback) =>
   messageFromBody(error?.response?.data) || error?.message || fallback;
-
-/*
-
- * A blob request returns its error body as a Blob, so the usual
-
- * error.response.data.message is undefined - read the blob as JSON first.
-
- */
 
 const readErrorMessage = async (error, fallback) => {
   const data = error?.response?.data;
@@ -259,13 +260,6 @@ const countRowsBy = (rows, field, values) => {
   return result;
 };
 
-/*
-
- * Prefer the server-side totals. Only when the summary has no usable numbers do
-
- * we count the rows of the CURRENT PAGE - and the chart says so.
-
- */
 
 const pickCounts = (serverCounts, pageCounts) =>
   Object.values(serverCounts).some((value) => value > 0)
@@ -369,7 +363,33 @@ function TableMessage({ loading, icon: Icon = FileWarning, children }) {
 
 /* ------------------------------------------------------------------ page */
 
+const normalizePortalRole = (value) =>
+  String(value ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/^ROLE_/, "")
+    .replace(/[\s-]+/g, "_");
+const normalizeOfficeOptions = (response) =>
+  normalizeList(response)
+    .map((item) => ({
+      value: String(
+        item?.value ?? item?.officeId ?? item?.chargeCd ?? "",
+      ).trim(),
+      label: String(
+        item?.label ?? item?.officeName ?? item?.name ?? item?.value ?? "",
+      ).trim(),
+    }))
+    .filter((item) => item.value);
+
 export default function GstReturnDefaulterDashboard() {
+  const portalContext = useOutletContext();
+  const authUser = portalContext?.authUser ?? null;
+  const role = normalizePortalRole(authUser?.roleName ?? portalContext?.role);
+  const isSuperAdmin = role === "SUPER_ADMIN";
+  const isAuthorized = ["SUPER_ADMIN", "ADMIN", "USER"].includes(role);
+  const [officesReady, setOfficesReady] = useState(false);
+  const [officeError, setOfficeError] = useState("");
+
   const [periods, setPeriods] = useState([]);
 
   const [offices, setOffices] = useState([]);
@@ -429,13 +449,17 @@ export default function GstReturnDefaulterDashboard() {
 
   const openDefaulterView = useCallback((row) => {
     setSection62ReviewRequested(false);
+
     setSelectedDefaulter(row);
+
     setViewModalOpen(true);
   }, []);
 
   const closeDefaulterView = useCallback(() => {
     setViewModalOpen(false);
+
     setSelectedDefaulter(null);
+
     setSection62ReviewRequested(false);
   }, []);
 
@@ -447,12 +471,17 @@ export default function GstReturnDefaulterDashboard() {
     if (!row?.gstin || !row?.retPeriod) return;
 
     // This opens/marks the manual proper-officer review stage only.
+
     // ASMT-13 must be issued through the separate assessment workflow.
+
     setSelectedDefaulter((current) => ({
       ...(current || row),
+
       ...row,
+
       section62ReviewRequested: true,
     }));
+
     setSection62ReviewRequested(true);
   }, []);
 
@@ -494,33 +523,43 @@ export default function GstReturnDefaulterDashboard() {
   }, [setError]);
 
   /* ---------------------------------------------------------------- offices */
-
   useEffect(() => {
-    if (!period) {
-      setOffices([]);
-
+    setOfficesReady(false);
+    setOffice("");
+    setOffices([]);
+    setOfficeError("");
+    if (!period || !isAuthorized) {
       setOfficesLoading(false);
-
       return undefined;
     }
-
     const controller = new AbortController();
-
     setOfficesLoading(true);
-
     fetchDefaulterOffices(period, { signal: controller.signal })
-      .then((response) => setOffices(normalizeList(response)))
-
-      .catch((err) => {
-        if (!isAbortError(err)) setOffices([]);
+      .then((response) => {
+        if (controller.signal.aborted) return;
+        // Server MUST scope this response using verified JWT + assigned offices.
+        const list = normalizeOfficeOptions(response);
+        setOffices(list);
+        if (!isSuperAdmin && list.length === 1) setOffice(list[0].value);
+        setOfficesReady(true);
       })
-
+      .catch((err) => {
+        if (controller.signal.aborted || isAbortError(err)) return;
+        setOfficeError(apiError(err, "Unable to load assigned offices."));
+        setOfficesReady(false);
+      })
       .finally(() => {
         if (!controller.signal.aborted) setOfficesLoading(false);
       });
-
     return () => controller.abort();
-  }, [period]);
+  }, [period, isAuthorized, isSuperAdmin]);
+
+  const canQuery = Boolean(
+    period &&
+    isAuthorized &&
+    officesReady &&
+    (isSuperAdmin || (office && offices.some((item) => item.value === office))),
+  );
 
   /* ---------------------------------------------------------------- requests */
 
@@ -600,7 +639,7 @@ export default function GstReturnDefaulterDashboard() {
     load();
 
     return () => controller.abort();
-  }, [filters, period, refreshKey, setError]);
+  }, [filters, period, canQuery, refreshKey, setError]);
 
   // list
 
@@ -646,7 +685,7 @@ export default function GstReturnDefaulterDashboard() {
     load();
 
     return () => controller.abort();
-  }, [listParams, period, refreshKey, setError]);
+  }, [listParams, period, canQuery, refreshKey, setError]);
 
   // if the result set shrinks (refresh / new data) while on a later page, go to the last page
 
@@ -699,7 +738,7 @@ export default function GstReturnDefaulterDashboard() {
   };
 
   const exportCsv = useCallback(async () => {
-    if (!period || exporting) return;
+    if (!canQuery || exporting) return;
 
     setExporting(true);
 
@@ -746,7 +785,7 @@ export default function GstReturnDefaulterDashboard() {
     } finally {
       setExporting(false);
     }
-  }, [period, exporting, filters, setError]);
+  }, [period, canQuery, exporting, filters, setError]);
 
   /* ---------------------------------------------------------------- derived data */
 
@@ -905,7 +944,11 @@ export default function GstReturnDefaulterDashboard() {
         <section className="def-filter-panel">
           {/* =====================================================
 
+
+
       FILTER HEADER
+
+
 
   ====================================================== */}
 
@@ -957,7 +1000,11 @@ export default function GstReturnDefaulterDashboard() {
 
           {/* =====================================================
 
+
+
       FILTER GRID
+
+
 
   ====================================================== */}
 
@@ -1004,7 +1051,13 @@ export default function GstReturnDefaulterDashboard() {
                 id="def-office"
                 value={office}
                 onChange={changeFilter(setOffice)}
-                disabled={!period || officesLoading}
+                disabled={
+                  !period ||
+                  officesLoading ||
+                  !officesReady ||
+                  !isAuthorized ||
+                  (!isSuperAdmin && offices.length === 1)
+                }
               >
                 <option value="">
                   {officesLoading ? "Loading offices..." : "All Offices"}
@@ -1113,7 +1166,7 @@ export default function GstReturnDefaulterDashboard() {
                 type="button"
                 className="def-btn def-btn-search"
                 onClick={submitSearch}
-                disabled={!period}
+                disabled={!canQuery}
               >
                 {listLoading ? (
                   <Loader2 size={15} className="def-spin" />
@@ -1136,7 +1189,7 @@ export default function GstReturnDefaulterDashboard() {
                 type="button"
                 className="def-btn def-btn-export"
                 onClick={exportCsv}
-                disabled={!period || exporting}
+                disabled={!canQuery || exporting}
               >
                 {exporting ? (
                   <Loader2 size={15} className="def-spin" />
@@ -1150,6 +1203,25 @@ export default function GstReturnDefaulterDashboard() {
           </div>
         </section>
 
+        {!isAuthorized && (
+          <div className="def-error" role="alert">
+            Authorization information unavailable. Open this module through the
+            portal.
+          </div>
+        )}
+        {officeError && (
+          <div className="def-error" role="alert">
+            {officeError}
+          </div>
+        )}
+        {isAuthorized &&
+          officesReady &&
+          !isSuperAdmin &&
+          offices.length === 0 && (
+            <div className="def-error" role="alert">
+              No assigned offices were returned for this period.
+            </div>
+          )}
         {error && (
           <div className="def-error" role="alert">
             <AlertTriangle size={18} />
@@ -1418,6 +1490,10 @@ export default function GstReturnDefaulterDashboard() {
                         Select a return period to view defaulters.
                       </TableMessage>
                     )
+                  ) : !canQuery ? (
+                    <TableMessage>
+                      Select an authorized office to view defaulters.
+                    </TableMessage>
                   ) : records.length === 0 ? (
                     listLoading ? (
                       <TableMessage loading>Loading records...</TableMessage>

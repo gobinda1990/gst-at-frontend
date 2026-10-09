@@ -6,6 +6,8 @@ import React, {
   useState,
 } from "react";
 
+import { useOutletContext } from "react-router-dom";
+
 import {
   AlertCircle,
   BarChart3,
@@ -41,6 +43,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+
 import {
   downloadGrowthCsv,
   fetchGrowthOffices,
@@ -54,54 +57,81 @@ import {
 import "../styles/GstReturn3bGrowth.css";
 
 /* =========================================================
-   CONFIG
-\\========================================================= */
+
+   CONFIGURATION
+
+========================================================= */
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
-const GROWTH_COLORS = {
+const COLORS = {
   strongGrowth: "#047857",
+
   growth: "#22c55e",
+
   stable: "#2563eb",
+
   declining: "#f59e0b",
-  sharpDecline: "#dc2626",
+
+  strongDecline: "#dc2626",
 };
 
 const EMPTY_PAGE = {
   content: [],
+
   totalElements: 0,
+
   totalPages: 0,
+
   page: 0,
+
   size: 10,
+
   first: true,
+
   last: true,
 };
 
 const EMPTY_SUMMARY = {
   totalGstins: 0,
+
   totalTaxableValue: 0,
+
   totalOutputTax: 0,
+
   totalEligibleItc: 0,
+
   totalCashTaxPaid: 0,
+
   avgMomTaxableGrowth: 0,
+
   avgMomOutputTaxGrowth: 0,
+
   avgYoyTaxableGrowth: 0,
+
   avgYoyOutputTaxGrowth: 0,
+
   strongGrowthCount: 0,
+
   growthCount: 0,
+
   stableCount: 0,
+
   declineCount: 0,
+
   strongDeclineCount: 0,
 };
 
 /* =========================================================
-   FORMATTERS
-\\========================================================= */
+
+   COMMON HELPERS
+
+========================================================= */
 
 const numberValue = (value) => {
-  const parsed = Number(value);
+  const n = Number(value);
 
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number.isFinite(n) ? n : 0;
 };
 
 const formatNumber = (value) =>
@@ -110,12 +140,12 @@ const formatNumber = (value) =>
 const formatMoney = (value) => {
   const amount = numberValue(value);
 
-  if (Math.abs(amount) >= 10_000_000) {
-    return `₹${(amount / 10_000_000).toFixed(2)} Cr`;
+  if (Math.abs(amount) >= 10000000) {
+    return `₹${(amount / 10000000).toFixed(2)} Cr`;
   }
 
-  if (Math.abs(amount) >= 100_000) {
-    return `₹${(amount / 100_000).toFixed(2)} L`;
+  if (Math.abs(amount) >= 100000) {
+    return `₹${(amount / 100000).toFixed(2)} L`;
   }
 
   return new Intl.NumberFormat("en-IN", {
@@ -128,17 +158,17 @@ const formatMoney = (value) => {
 };
 
 const formatPercent = (value) => {
-  const amount = numberValue(value);
+  if (value == null || value === "") {
+    return "N/A";
+  }
 
-  return `${amount > 0 ? "+" : ""}${amount.toFixed(2)}%`;
+  const n = numberValue(value);
+
+  return `${n > 0 ? "+" : ""}${n.toFixed(2)}%`;
 };
 
 const getErrorMessage = (error) =>
-  getGrowthApiErrorMessage?.(
-    error,
-
-    "Unable to load GST growth analytics.",
-  ) ||
+  getGrowthApiErrorMessage?.(error, "Unable to load GST growth analytics.") ||
   error?.response?.data?.message ||
   error?.message ||
   "Unable to load GST growth analytics.";
@@ -148,23 +178,148 @@ const isCancelled = (error) =>
   error?.name === "CanceledError" ||
   error?.name === "AbortError";
 
-/* =========================================================
-
-
-
-   BADGES
-
-
-
-\\========================================================= */
-
-const GrowthBadge = ({ value }) => {
-  const normalized = String(value || "NA")
+const normalizeRole = (value) =>
+  String(value ?? "")
     .trim()
 
     .toUpperCase()
 
-    .replace(/[\s-]+/g, "\_");
+    .replace(/^ROLE_/, "")
+
+    .replace(/[\s-]+/g, "_");
+
+/*
+
+ * Role handling:
+
+ *
+
+ * SUPER_ADMIN -> all offices
+
+ * ADMIN       -> backend assigned offices
+
+ * USER        -> backend assigned offices
+
+ *
+
+ * Both roleId and roleName null:
+
+ * legacy SUPER_ADMIN, as requested.
+
+ *
+
+ * The backend must independently validate this rule.
+
+ */
+
+const resolveRole = (authUser) => {
+  if (!authUser) return "UNAUTHORIZED";
+
+  const roleId = authUser.roleId;
+  const roleName = normalizeRole(authUser.roleName);
+  const emptyId = roleId == null || String(roleId).trim() === "";
+
+  // Legacy portal convention: both fields absent = Super Admin.
+  // The API must verify this privilege independently.
+  if (emptyId && !roleName) return "SUPER_ADMIN";
+
+  switch (roleName) {
+    case "SUPER_ADMIN":
+      return "SUPER_ADMIN";
+    case "ADMIN":
+      return "ADMIN";
+    case "USER":
+      return "USER";
+    default:
+      return "UNAUTHORIZED";
+  }
+};
+
+/* =========================================================
+
+   API RESPONSE NORMALIZATION
+
+========================================================= */
+
+const unwrapList = (response) => {
+  if (Array.isArray(response)) return response;
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  if (Array.isArray(response?.content)) {
+    return response.content;
+  }
+
+  if (Array.isArray(response?.data?.content)) {
+    return response.data.content;
+  }
+
+  return [];
+};
+
+const normalizeOptions = (response, type) =>
+  unwrapList(response)
+    .map((item) => {
+      if (typeof item === "string" || typeof item === "number") {
+        return {
+          value: String(item),
+
+          label: String(item),
+        };
+      }
+
+      const value = String(
+        item?.value ??
+          (type === "office"
+            ? (item?.officeId ?? item?.officeCode)
+            : (item?.period ?? item?.retPeriod)) ??
+          "",
+      ).trim();
+
+      const label = String(
+        item?.label ??
+          (type === "office" ? item?.officeName : item?.periodLabel) ??
+          value,
+      ).trim();
+
+      return { value, label };
+    })
+
+    .filter((item) => item.value);
+
+const normalizePage = (response, size) => {
+  const data = response?.data ?? response ?? {};
+
+  return {
+    ...EMPTY_PAGE,
+
+    ...data,
+
+    content: Array.isArray(data.content) ? data.content : [],
+
+    totalElements: numberValue(data.totalElements),
+
+    totalPages: numberValue(data.totalPages),
+
+    size,
+  };
+};
+
+/* =========================================================
+
+   GROWTH BADGE
+
+========================================================= */
+
+const GrowthBadge = ({ value }) => {
+  const status = String(value || "NA")
+    .trim()
+
+    .toUpperCase()
+
+    .replace(/[\s-]+/g, "_");
 
   const labels = {
     STRONG_GROWTH: "Strong Growth",
@@ -182,14 +337,24 @@ const GrowthBadge = ({ value }) => {
 
   return (
     <span
-      className={`growth-badge growth-${normalized.toLowerCase().replaceAll("\_", "-")}`}
+      className={`growth-badge growth-${status
+
+        .toLowerCase()
+
+        .replaceAll("_", "-")}`}
     >
       <span className="badge-dot" />
 
-      {labels[normalized] || value || "Not Available"}
+      {labels[status] || value || "Not Available"}
     </span>
   );
 };
+
+/* =========================================================
+
+   RISK BADGE
+
+========================================================= */
 
 const RiskBadge = ({ value }) => {
   if (!value) {
@@ -212,7 +377,17 @@ const RiskBadge = ({ value }) => {
   );
 };
 
+/* =========================================================
+
+   GROWTH VALUE
+
+========================================================= */
+
 const GrowthValue = ({ value }) => {
+  if (value == null) {
+    return <span className="growth-value neutral">N/A</span>;
+  }
+
   const amount = numberValue(value);
 
   return (
@@ -238,13 +413,9 @@ const GrowthValue = ({ value }) => {
 
 /* =========================================================
 
-
-
    KPI CARD
 
-
-
-\\========================================================= */
+========================================================= */
 
 const MetricCard = ({
   icon: Icon,
@@ -265,7 +436,7 @@ const MetricCard = ({
         <Icon size={20} />
       </div>
 
-      {trend !== undefined && trend !== null && <GrowthValue value={trend} />}
+      {trend != null && <GrowthValue value={trend} />}
     </div>
 
     <div className="growth-metric-content">
@@ -288,15 +459,53 @@ const EmptyChart = ({ message }) => (
 
 /* =========================================================
 
+   MAIN DASHBOARD
 
-
-   MAIN PAGE
-
-
-
-\\========================================================= */
+========================================================= */
 
 export default function GstReturn3bGrowth() {
+  /*
+
+   * AuthGate should pass:
+
+   *
+
+   * <Outlet context={{ authUser }} />
+
+   *
+
+   * authUser:
+
+   * {
+
+   *   roleId,
+
+   *   roleName,
+
+   *   projectId,
+
+   *   user
+
+   * }
+
+   */
+
+  const context = useOutletContext();
+
+  const authUser = context?.authUser ?? null;
+
+  const role = useMemo(() => resolveRole(authUser), [authUser]);
+
+  const isSuperAdmin = role === "SUPER_ADMIN";
+
+  const authorized = role !== "UNAUTHORIZED";
+
+  /* -------------------------------------------------------
+
+     STATE
+
+  ------------------------------------------------------- */
+
   const [periods, setPeriods] = useState([]);
 
   const [offices, setOffices] = useState([]);
@@ -325,41 +534,91 @@ export default function GstReturn3bGrowth() {
 
   const [initialLoading, setInitialLoading] = useState(true);
 
+  const [officesLoading, setOfficesLoading] = useState(false);
+
+  const [officePeriodReady, setOfficePeriodReady] = useState("");
+
   const [loading, setLoading] = useState(false);
 
   const [exporting, setExporting] = useState(false);
 
   const [error, setError] = useState("");
 
-  const refreshControllerRef = useRef(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const exportControllerRef = useRef(null);
 
   /* =======================================================
 
-
-
-     LOAD PERIODS
-
-
+     EFFECTIVE OFFICE
 
   ======================================================= */
 
-  const loadPeriods = useCallback(async (signal) => {
-    const result = await fetchGrowthPeriods({ signal });
+  /*
 
-    const valid = Array.isArray(result)
-      ? result.filter((item) => item?.value)
-      : [];
+   * Backend /offices already filters by JWT.
 
-    setPeriods(valid);
+   *
 
-    if (valid.length) {
-      setPeriod((current) => current || valid[0].value);
+   * SUPER_ADMIN:
+
+   *   "" means All Offices.
+
+   *
+
+   * ADMIN / USER:
+
+   *   One office -> automatically selected.
+
+   *   Multiple -> select an authorized office.
+
+   *
+
+   * Never allow a restricted user to request office="".
+
+   */
+
+  const officesReady = Boolean(period) && officePeriodReady === period;
+
+  const effectiveOffice = useMemo(() => {
+    if (!officesReady || !authorized) {
+      return "";
     }
-  }, []);
+
+    if (isSuperAdmin) {
+      return office;
+    }
+
+    if (offices.length === 1) {
+      return offices[0].value;
+    }
+
+    const permitted = offices.some((item) => item.value === office);
+
+    return permitted ? office : "";
+  }, [officesReady, authorized, isSuperAdmin, office, offices]);
+
+  const canLoadDashboard =
+    authorized &&
+    Boolean(period) &&
+    officesReady &&
+    (isSuperAdmin ||
+      (Boolean(effectiveOffice) &&
+        offices.some((item) => item.value === effectiveOffice)));
+
+  /* =======================================================
+
+     LOAD RETURN PERIODS
+
+  ======================================================= */
 
   useEffect(() => {
+    if (!authorized) {
+      setInitialLoading(false);
+
+      return undefined;
+    }
+
     const controller = new AbortController();
 
     const load = async () => {
@@ -368,9 +627,23 @@ export default function GstReturn3bGrowth() {
 
         setError("");
 
-        await loadPeriods(controller.signal);
+        const response = await fetchGrowthPeriods({
+          signal: controller.signal,
+        });
+
+        if (controller.signal.aborted) return;
+
+        const list = normalizeOptions(response, "period");
+
+        setPeriods(list);
+
+        setPeriod((current) =>
+          list.some((item) => item.value === current)
+            ? current
+            : (list[0]?.value ?? ""),
+        );
       } catch (err) {
-        if (!isCancelled(err)) {
+        if (!controller.signal.aborted && !isCancelled(err)) {
           setError(getErrorMessage(err));
         }
       } finally {
@@ -383,21 +656,19 @@ export default function GstReturn3bGrowth() {
     load();
 
     return () => controller.abort();
-  }, [loadPeriods]);
+  }, [authorized]);
 
   /* =======================================================
 
-
-
-     LOAD OFFICES
-
-
+     LOAD OFFICES FROM BACKEND
 
   ======================================================= */
 
   useEffect(() => {
-    if (!period) {
+    if (!period || !authorized) {
       setOffices([]);
+
+      setOfficePeriodReady("");
 
       return undefined;
     }
@@ -405,17 +676,61 @@ export default function GstReturn3bGrowth() {
     const controller = new AbortController();
 
     const load = async () => {
+      setOfficesLoading(true);
+
+      setOfficePeriodReady("");
+
+      setOffices([]);
+
+      setSummary(EMPTY_SUMMARY);
+
+      setTrendData([]);
+
+      setPageData(EMPTY_PAGE);
+
       try {
-        const result = await fetchGrowthOffices(period, {
+        /*
+
+         * GET /gst/return-3b/growth/offices
+
+         *
+
+         * Backend decides office access:
+
+         *
+
+         * SUPER_ADMIN -> service.getOffices(period)
+
+         *
+
+         * ADMIN/USER ->
+
+         * service.findChargeCdOffices(officeId)
+
+         */
+
+        const response = await fetchGrowthOffices(period, {
           signal: controller.signal,
         });
 
-        if (!controller.signal.aborted) {
-          setOffices(Array.isArray(result) ? result : []);
-        }
+        if (controller.signal.aborted) return;
+
+        const list = normalizeOptions(response, "office");
+
+        const unique = Array.from(
+          new Map(list.map((item) => [item.value, item])).values(),
+        );
+
+        setOffices(unique);
+
+        setOfficePeriodReady(period);
       } catch (err) {
-        if (!isCancelled(err)) {
+        if (!controller.signal.aborted && !isCancelled(err)) {
           setError(getErrorMessage(err));
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setOfficesLoading(false);
         }
       }
     };
@@ -423,89 +738,106 @@ export default function GstReturn3bGrowth() {
     load();
 
     return () => controller.abort();
-  }, [period]);
+  }, [period, authorized]);
 
   /* =======================================================
 
+     AUTO SELECT OFFICE
 
+  ======================================================= */
 
-     LOAD DASHBOARD
+  useEffect(() => {
+    if (!officesReady) return;
 
+    if (isSuperAdmin) {
+      setOffice((current) =>
+        current && !offices.some((item) => item.value === current)
+          ? ""
+          : current,
+      );
 
+      return;
+    }
+
+    if (offices.length === 1) {
+      setOffice(offices[0].value);
+
+      setPage(0);
+
+      return;
+    }
+
+    setOffice((current) =>
+      offices.some((item) => item.value === current) ? current : "",
+    );
+  }, [officesReady, isSuperAdmin, offices]);
+
+  /* =======================================================
+
+     DASHBOARD DATA
 
   ======================================================= */
 
   const loadDashboard = useCallback(
     async (signal) => {
-      if (!period) return;
+      if (!canLoadDashboard) return;
 
       setLoading(true);
 
       setError("");
 
+      const params = {
+        period,
+
+        office: effectiveOffice,
+      };
+
       try {
-        const [summaryResult, trendResult, rowsResult] = await Promise.all([
-          fetchGrowthSummary(
-            {
-              period,
+        const [summaryResponse, trendResponse, rowsResponse] =
+          await Promise.all([
+            fetchGrowthSummary(params, { signal }),
 
-              office,
-            },
+            fetchGrowthTrend(params, { signal }),
 
-            { signal },
-          ),
+            fetchGrowthTaxpayers(
+              {
+                ...params,
 
-          fetchGrowthTrend(
-            {
-              period,
+                search,
 
-              office,
-            },
+                trend: trendFilter,
 
-            { signal },
-          ),
+                riskLevel,
 
-          fetchGrowthTaxpayers(
-            {
-              period,
+                page,
 
-              office,
+                size,
+              },
 
-              search,
-
-              trend: trendFilter,
-
-              riskLevel,
-
-              page,
-
-              size,
-            },
-
-            { signal },
-          ),
-        ]);
+              { signal },
+            ),
+          ]);
 
         if (signal.aborted) return;
 
         setSummary({
           ...EMPTY_SUMMARY,
 
-          ...(summaryResult || {}),
+          ...(summaryResponse?.data ?? summaryResponse ?? {}),
         });
 
-        setTrendData(Array.isArray(trendResult) ? trendResult : []);
+        setTrendData(unwrapList(trendResponse));
 
-        setPageData({
-          ...EMPTY_PAGE,
-
-          ...(rowsResult || {}),
-
-          content: Array.isArray(rowsResult?.content) ? rowsResult.content : [],
-        });
+        setPageData(normalizePage(rowsResponse, size));
       } catch (err) {
-        if (!isCancelled(err)) {
+        if (!signal.aborted && !isCancelled(err)) {
           setError(getErrorMessage(err));
+
+          setSummary(EMPTY_SUMMARY);
+
+          setTrendData([]);
+
+          setPageData(EMPTY_PAGE);
         }
       } finally {
         if (!signal.aborted) {
@@ -514,28 +846,80 @@ export default function GstReturn3bGrowth() {
       }
     },
 
-    [period, office, search, trendFilter, riskLevel, page, size],
+    [
+      canLoadDashboard,
+
+      period,
+
+      effectiveOffice,
+
+      search,
+
+      trendFilter,
+
+      riskLevel,
+
+      page,
+
+      size,
+    ],
   );
 
   useEffect(() => {
-    if (!period) return undefined;
+    if (!canLoadDashboard) {
+      setSummary(EMPTY_SUMMARY);
+
+      setTrendData([]);
+
+      setPageData(EMPTY_PAGE);
+
+      return undefined;
+    }
 
     const controller = new AbortController();
 
     loadDashboard(controller.signal);
 
     return () => controller.abort();
-  }, [period, loadDashboard]);
+  }, [canLoadDashboard, loadDashboard, refreshKey]);
 
   /* =======================================================
 
-
-
-     SEARCH / FILTERS
-
-
+     FILTER HANDLERS
 
   ======================================================= */
+
+  const handlePeriod = (value) => {
+    setPeriod(value);
+
+    setOffice("");
+
+    setPage(0);
+  };
+
+  const handleOffice = (value) => {
+    if (!isSuperAdmin) {
+      const permitted = offices.some((item) => item.value === value);
+
+      if (!permitted) return;
+    }
+
+    setOffice(value);
+
+    setPage(0);
+  };
+
+  const handleTrend = (value) => {
+    setTrendFilter(value);
+
+    setPage(0);
+  };
+
+  const handleRisk = (value) => {
+    setRiskLevel(value);
+
+    setPage(0);
+  };
 
   const submitSearch = (event) => {
     event.preventDefault();
@@ -554,7 +938,11 @@ export default function GstReturn3bGrowth() {
   };
 
   const resetFilters = () => {
-    setOffice("");
+    if (isSuperAdmin) {
+      setOffice("");
+    } else {
+      setOffice(offices.length === 1 ? offices[0].value : "");
+    }
 
     setTrendFilter("");
 
@@ -567,66 +955,28 @@ export default function GstReturn3bGrowth() {
     setPage(0);
   };
 
-  const handlePeriod = (value) => {
-    setPeriod(value);
-
-    setOffice("");
-
-    setPage(0);
-  };
-
-  const handleOffice = (value) => {
-    setOffice(value);
-
-    setPage(0);
-  };
-
-  const handleTrend = (value) => {
-    setTrendFilter(value);
-
-    setPage(0);
-  };
-
-  const handleRisk = (value) => {
-    setRiskLevel(value);
-
-    setPage(0);
-  };
-
   /* =======================================================
 
-
-
      REFRESH
-
-
 
   ======================================================= */
 
   const handleRefresh = () => {
-    if (!period || loading) return;
+    if (!canLoadDashboard || loading) return;
 
-    refreshControllerRef.current?.abort();
-
-    const controller = new AbortController();
-
-    refreshControllerRef.current = controller;
-
-    loadDashboard(controller.signal);
+    setRefreshKey((current) => current + 1);
   };
 
   /* =======================================================
 
-
-
-     EXPORT
-
-
+     EXPORT CSV
 
   ======================================================= */
 
   const handleExport = async () => {
-    if (!period || exporting) return;
+    if (!canLoadDashboard || exporting || loading) {
+      return;
+    }
 
     exportControllerRef.current?.abort();
 
@@ -643,7 +993,7 @@ export default function GstReturn3bGrowth() {
         {
           period,
 
-          office,
+          office: effectiveOffice,
 
           search,
 
@@ -652,12 +1002,10 @@ export default function GstReturn3bGrowth() {
           riskLevel,
         },
 
-        {
-          signal: controller.signal,
-        },
+        { signal: controller.signal },
       );
     } catch (err) {
-      if (!isCancelled(err)) {
+      if (!controller.signal.aborted && !isCancelled(err)) {
         setError(getErrorMessage(err));
       }
     } finally {
@@ -669,8 +1017,6 @@ export default function GstReturn3bGrowth() {
 
   useEffect(
     () => () => {
-      refreshControllerRef.current?.abort();
-
       exportControllerRef.current?.abort();
     },
 
@@ -679,11 +1025,7 @@ export default function GstReturn3bGrowth() {
 
   /* =======================================================
 
-
-
      CHART DATA
-
-
 
   ======================================================= */
 
@@ -713,7 +1055,7 @@ export default function GstReturn3bGrowth() {
 
         value: numberValue(summary.strongGrowthCount),
 
-        color: GROWTH_COLORS.strongGrowth,
+        color: COLORS.strongGrowth,
       },
 
       {
@@ -723,7 +1065,7 @@ export default function GstReturn3bGrowth() {
 
         value: numberValue(summary.growthCount),
 
-        color: GROWTH_COLORS.growth,
+        color: COLORS.growth,
       },
 
       {
@@ -733,7 +1075,7 @@ export default function GstReturn3bGrowth() {
 
         value: numberValue(summary.stableCount),
 
-        color: GROWTH_COLORS.stable,
+        color: COLORS.stable,
       },
 
       {
@@ -743,7 +1085,7 @@ export default function GstReturn3bGrowth() {
 
         value: numberValue(summary.declineCount),
 
-        color: GROWTH_COLORS.declining,
+        color: COLORS.declining,
       },
 
       {
@@ -753,109 +1095,82 @@ export default function GstReturn3bGrowth() {
 
         value: numberValue(summary.strongDeclineCount),
 
-        color: GROWTH_COLORS.sharpDecline,
+        color: COLORS.strongDecline,
       },
     ],
 
     [summary],
   );
 
-  const distributionTotal = useMemo(
-    () =>
-      distribution.reduce(
-        (total, item) => total + numberValue(item.value),
+  const distributionTotal = distribution.reduce(
+    (total, item) => total + item.value,
 
-        0,
-      ),
-
-    [distribution],
+    0,
   );
 
   /* =======================================================
 
-
-
      ACTIVE FILTERS
-
-
 
   ======================================================= */
 
-  const activeFilters = useMemo(() => {
-    const values = [];
+  const activeFilters = [];
 
-    if (office) {
-      const selected = offices.find(
-        (item) => String(item.value) === String(office),
-      );
+  if (office && isSuperAdmin) {
+    activeFilters.push({
+      key: "office",
 
-      values.push({
-        key: "office",
+      label: offices.find((item) => item.value === office)?.label || office,
 
-        label: selected?.label || office,
+      clear: () => {
+        setOffice("");
 
-        clear: () => {
-          setOffice("");
+        setPage(0);
+      },
+    });
+  }
 
-          setPage(0);
-        },
-      });
-    }
+  if (trendFilter) {
+    activeFilters.push({
+      key: "trend",
 
-    if (trendFilter) {
-      values.push({
-        key: "trend",
+      label: trendFilter.replaceAll("_", " "),
 
-        label: trendFilter
+      clear: () => {
+        setTrendFilter("");
 
-          .replaceAll("\_", " ")
+        setPage(0);
+      },
+    });
+  }
 
-          .toLowerCase()
+  if (riskLevel) {
+    activeFilters.push({
+      key: "risk",
 
-          .replace(/\b\w/g, (letter) => letter.toUpperCase()),
+      label: `${riskLevel} Risk`,
 
-        clear: () => {
-          setTrendFilter("");
+      clear: () => {
+        setRiskLevel("");
 
-          setPage(0);
-        },
-      });
-    }
+        setPage(0);
+      },
+    });
+  }
 
-    if (riskLevel) {
-      values.push({
-        key: "risk",
+  if (search) {
+    activeFilters.push({
+      key: "search",
 
-        label: `${riskLevel} Risk`,
+      label: `Search: ${search}`,
 
-        clear: () => {
-          setRiskLevel("");
-
-          setPage(0);
-        },
-      });
-    }
-
-    if (search) {
-      values.push({
-        key: "search",
-
-        label: `Search: ${search}`,
-
-        clear: clearSearch,
-      });
-    }
-
-    return values;
-  }, [office, offices, trendFilter, riskLevel, search]);
+      clear: clearSearch,
+    });
+  }
 
   /* =======================================================
 
-
-
      PAGINATION
-
-
 
   ======================================================= */
 
@@ -873,11 +1188,7 @@ export default function GstReturn3bGrowth() {
 
   /* =======================================================
 
-
-
      INITIAL LOADING
-
-
 
   ======================================================= */
 
@@ -885,12 +1196,12 @@ export default function GstReturn3bGrowth() {
     return (
       <div className="growth-page-state">
         <div className="growth-loading-card">
-          <Loader2 className="spin" size={28} />
+          <Loader2 size={28} className="spin" />
 
           <div>
             <strong>Loading GST Growth Analytics</strong>
 
-            <span>Preparing return periods and dashboard data...</span>
+            <span>Preparing return periods and office access...</span>
           </div>
         </div>
       </div>
@@ -899,25 +1210,13 @@ export default function GstReturn3bGrowth() {
 
   /* =======================================================
 
-
-
      RENDER
-
-
 
   ======================================================= */
 
   return (
     <div className="gst-growth-page">
-      {/* ===================================================
-
-
-
-          HERO
-
-
-
-      =================================================== */}
+      {/* HERO */}
 
       <section className="growth-hero">
         <div className="growth-hero-main">
@@ -940,7 +1239,7 @@ export default function GstReturn3bGrowth() {
             type="button"
             className="growth-export-btn"
             onClick={handleExport}
-            disabled={!period || loading || exporting}
+            disabled={!canLoadDashboard || loading || exporting}
           >
             {exporting ? (
               <Loader2 size={16} className="spin" />
@@ -955,7 +1254,7 @@ export default function GstReturn3bGrowth() {
             type="button"
             className="growth-refresh-btn"
             onClick={handleRefresh}
-            disabled={!period || loading}
+            disabled={!canLoadDashboard || loading}
           >
             <RefreshCw size={16} className={loading ? "spin" : ""} />
 
@@ -964,15 +1263,7 @@ export default function GstReturn3bGrowth() {
         </div>
       </section>
 
-      {/* ===================================================
-
-
-
-          FILTERS
-
-
-
-      =================================================== */}
+      {/* FILTERS */}
 
       <section className="growth-filter-card">
         <header className="growth-filter-header">
@@ -998,6 +1289,8 @@ export default function GstReturn3bGrowth() {
         </header>
 
         <div className="growth-filter-grid">
+          {/* PERIOD */}
+
           <label>
             <span>
               Return Period <b>*</b>
@@ -1006,7 +1299,7 @@ export default function GstReturn3bGrowth() {
             <select
               value={period}
               onChange={(event) => handlePeriod(event.target.value)}
-              disabled={periods.length === 0}
+              disabled={!authorized || periods.length === 0}
             >
               {periods.length === 0 && (
                 <option value="">No return periods</option>
@@ -1020,14 +1313,32 @@ export default function GstReturn3bGrowth() {
             </select>
           </label>
 
+          {/* OFFICE */}
+
           <label>
-            <span>Office</span>
+            <span>Office {!isSuperAdmin && <b>*</b>}</span>
 
             <select
-              value={office}
+              value={isSuperAdmin ? office : effectiveOffice}
               onChange={(event) => handleOffice(event.target.value)}
+              disabled={
+                !authorized ||
+                officesLoading ||
+                !officesReady ||
+                (!isSuperAdmin && offices.length <= 1)
+              }
             >
-              <option value="">All Offices</option>
+              {isSuperAdmin && <option value="">All Offices</option>}
+
+              {!isSuperAdmin && offices.length !== 1 && (
+                <option value="">
+                  {officesLoading
+                    ? "Loading offices..."
+                    : offices.length === 0
+                      ? "No Assigned Office"
+                      : "Select Assigned Office"}
+                </option>
+              )}
 
               {offices.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -1036,6 +1347,8 @@ export default function GstReturn3bGrowth() {
               ))}
             </select>
           </label>
+
+          {/* GROWTH STATUS */}
 
           <label>
             <span>Growth Status</span>
@@ -1058,6 +1371,8 @@ export default function GstReturn3bGrowth() {
             </select>
           </label>
 
+          {/* RISK */}
+
           <label>
             <span>Risk Level</span>
 
@@ -1074,6 +1389,8 @@ export default function GstReturn3bGrowth() {
               <option value="LOW">Low Risk</option>
             </select>
           </label>
+
+          {/* SEARCH */}
 
           <form className="growth-search" onSubmit={submitSearch}>
             <span>GSTIN / Trade Name</span>
@@ -1103,7 +1420,7 @@ export default function GstReturn3bGrowth() {
               <button
                 type="submit"
                 className="growth-search-button"
-                disabled={loading}
+                disabled={!canLoadDashboard || loading}
               >
                 Search
               </button>
@@ -1140,15 +1457,41 @@ export default function GstReturn3bGrowth() {
         )}
       </section>
 
-      {/* ===================================================
+      {/* AUTHORIZATION WARNING */}
 
+      {!authorized && (
+        <div className="growth-error" role="alert">
+          <ShieldAlert size={19} />
 
+          <div>
+            <strong>Authorization information unavailable</strong>
 
-          ERROR
+            <span>
+              Open this module through the portal with a valid authenticated
+              session.
+            </span>
+          </div>
+        </div>
+      )}
 
+      {/* OFFICE WARNING */}
 
+      {authorized && !isSuperAdmin && officesReady && offices.length === 0 && (
+        <div className="growth-error" role="alert">
+          <ShieldAlert size={19} />
 
-      =================================================== */}
+          <div>
+            <strong>No assigned office available</strong>
+
+            <span>
+              Your account has no office assignment for the selected return
+              period.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ERROR */}
 
       {error && (
         <div className="growth-error" role="alert">
@@ -1170,15 +1513,7 @@ export default function GstReturn3bGrowth() {
         </div>
       )}
 
-      {/* ===================================================
-
-
-
-          KPI CARDS
-
-
-
-      =================================================== */}
+      {/* KPI CARDS */}
 
       <section className="growth-metrics-grid">
         <MetricCard
@@ -1251,18 +1586,10 @@ export default function GstReturn3bGrowth() {
         />
       </section>
 
-      {/* ===================================================
-
-
-
-          CHARTS
-
-
-
-      =================================================== */}
+      {/* CHARTS */}
 
       <section className="growth-chart-grid">
-        {/* Revenue trend */}
+        {/* REVENUE TREND */}
 
         <article className="growth-chart-card growth-chart-wide">
           <header>
@@ -1278,7 +1605,7 @@ export default function GstReturn3bGrowth() {
           </header>
 
           <div className="growth-chart-body">
-            {chartData.length ? (
+            {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={285}>
                 <LineChart
                   data={chartData}
@@ -1315,40 +1642,14 @@ export default function GstReturn3bGrowth() {
                     width={78}
                     axisLine={false}
                     tickLine={false}
-                    tick={{
-                      fontSize: 11,
-
-                      fontWeight: 600,
-
-                      fill: "#475569",
-                    }}
                     tickFormatter={formatMoney}
                   />
 
                   <Tooltip
                     formatter={(value, name) => [formatMoney(value), name]}
-                    contentStyle={{
-                      borderRadius: "8px",
-
-                      border: "1px solid #dbe4ed",
-
-                      boxShadow: "0 8px 24px rgba(15,23,42,.08)",
-
-                      fontSize: "12px",
-
-                      fontWeight: 600,
-                    }}
                   />
 
-                  <Legend
-                    wrapperStyle={{
-                      fontSize: "12px",
-
-                      fontWeight: 600,
-
-                      color: "#334155",
-                    }}
-                  />
+                  <Legend />
 
                   <Line
                     type="monotone"
@@ -1356,11 +1657,7 @@ export default function GstReturn3bGrowth() {
                     name="Taxable Value"
                     stroke="#15579a"
                     strokeWidth={2.5}
-                    dot={{
-                      r: 3,
-
-                      fill: "#15579a",
-                    }}
+                    dot={{ r: 3 }}
                     activeDot={{ r: 5 }}
                   />
 
@@ -1370,11 +1667,7 @@ export default function GstReturn3bGrowth() {
                     name="Output Tax"
                     stroke="#047857"
                     strokeWidth={2.5}
-                    dot={{
-                      r: 3,
-
-                      fill: "#047857",
-                    }}
+                    dot={{ r: 3 }}
                     activeDot={{ r: 5 }}
                   />
                 </LineChart>
@@ -1385,7 +1678,7 @@ export default function GstReturn3bGrowth() {
           </div>
         </article>
 
-        {/* Tax composition */}
+        {/* TAX COMPOSITION */}
 
         <article className="growth-chart-card">
           <header>
@@ -1399,7 +1692,7 @@ export default function GstReturn3bGrowth() {
           </header>
 
           <div className="growth-chart-body">
-            {chartData.length ? (
+            {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={285}>
                 <BarChart
                   data={chartData}
@@ -1419,55 +1712,20 @@ export default function GstReturn3bGrowth() {
                     vertical={false}
                   />
 
-                  <XAxis
-                    dataKey="label"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{
-                      fontSize: 12,
-
-                      fontWeight: 600,
-
-                      fill: "#475569",
-                    }}
-                  />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} />
 
                   <YAxis
                     width={78}
                     axisLine={false}
                     tickLine={false}
-                    tick={{
-                      fontSize: 11,
-
-                      fontWeight: 600,
-
-                      fill: "#475569",
-                    }}
                     tickFormatter={formatMoney}
                   />
 
                   <Tooltip
                     formatter={(value, name) => [formatMoney(value), name]}
-                    contentStyle={{
-                      borderRadius: "8px",
-
-                      border: "1px solid #dbe4ed",
-
-                      fontSize: "12px",
-
-                      fontWeight: 600,
-                    }}
                   />
 
-                  <Legend
-                    wrapperStyle={{
-                      fontSize: "12px",
-
-                      fontWeight: 600,
-
-                      color: "#334155",
-                    }}
-                  />
+                  <Legend />
 
                   <Bar
                     dataKey="outputTax"
@@ -1497,7 +1755,7 @@ export default function GstReturn3bGrowth() {
           </div>
         </article>
 
-        {/* Growth distribution */}
+        {/* DISTRIBUTION */}
 
         <article className="growth-chart-card growth-distribution-card">
           <header>
@@ -1534,15 +1792,6 @@ export default function GstReturn3bGrowth() {
 
                     <Tooltip
                       formatter={(value, name) => [formatNumber(value), name]}
-                      contentStyle={{
-                        borderRadius: "8px",
-
-                        border: "1px solid #dbe4ed",
-
-                        fontSize: "12px",
-
-                        fontWeight: 600,
-                      }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -1577,15 +1826,7 @@ export default function GstReturn3bGrowth() {
         </article>
       </section>
 
-      {/* ===================================================
-
-
-
-          TABLE
-
-
-
-      =================================================== */}
+      {/* TABLE */}
 
       <section className="growth-table-card">
         <header className="growth-table-header">
@@ -1604,7 +1845,7 @@ export default function GstReturn3bGrowth() {
           <div className="growth-record-count">
             <span>Total Records</span>
 
-            <strong>{formatNumber(pageData.totalElements)}</strong>
+            <strong>{formatNumber(totalElements)}</strong>
           </div>
         </header>
 
@@ -1646,6 +1887,20 @@ export default function GstReturn3bGrowth() {
                       <Loader2 className="spin" size={22} />
 
                       <span>Loading growth records...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : !canLoadDashboard ? (
+                <tr>
+                  <td colSpan={12} className="growth-table-state">
+                    <div className="growth-empty-table">
+                      <ShieldAlert size={25} />
+
+                      <strong>Office selection required</strong>
+
+                      <span>
+                        Select an authorized office to view GST growth records.
+                      </span>
                     </div>
                   </td>
                 </tr>
@@ -1709,6 +1964,7 @@ export default function GstReturn3bGrowth() {
                     <td className="numeric">
                       <GrowthValue value={row.yoyOutputTaxGrowth} />
                     </td>
+
                     <td>
                       <GrowthBadge value={row.growthTrend} />
                     </td>
@@ -1723,15 +1979,7 @@ export default function GstReturn3bGrowth() {
           </table>
         </div>
 
-        {/* =================================================
-
-
-
-            PAGINATION
-
-
-
-        ================================================= */}
+        {/* PAGINATION */}
 
         <footer className="growth-pagination">
           <div className="growth-pagination-info">
@@ -1782,7 +2030,7 @@ export default function GstReturn3bGrowth() {
 
               <button
                 type="button"
-                disabled={pageData.last || loading || totalPages === 0}
+                disabled={loading || totalPages === 0 || page + 1 >= totalPages}
                 onClick={() => setPage((current) => current + 1)}
                 aria-label="Next page"
                 title="Next page"

@@ -1,5 +1,9 @@
+
 import React from "react";
-import { Outlet } from "react-router-dom";
+import {
+  Outlet,
+  useOutletContext,
+} from "react-router-dom";
 
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
@@ -8,6 +12,22 @@ import Footer from "../components/layout/Footer";
 import "./dashboardLayout.css";
 
 const DashboardLayout = () => {
+  /*
+   * Receive authentication context from AuthGate.
+   *
+   * Expected:
+   * {
+   *   authUser: {
+   *     roleId: "R2",
+   *     roleName: "Admin",
+   *     projectId: "19",
+   *     user: {...}
+   *   },
+   *   role: "ADMIN"
+   * }
+   */
+  const authContext = useOutletContext();
+
   return (
     <div className="dashboard-wrapper">
 
@@ -24,7 +44,10 @@ const DashboardLayout = () => {
         <div className="main-content-area">
 
           <main className="main-content">
-            <Outlet />
+
+            {/* Forward authentication context */}
+            <Outlet context={authContext} />
+
           </main>
 
           <Footer />

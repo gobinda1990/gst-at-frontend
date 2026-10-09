@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 
 import {
   AlertCircle,
@@ -51,9 +52,13 @@ import "./OfficeRevenueDashboard.css";
 
 /* =========================================================
 
+
+
    CONFIGURATION
 
-\========================================================= */
+
+
+\\========================================================= */
 
 const DEFAULT_PAGE_SIZE = 25;
 
@@ -125,9 +130,13 @@ const EMPTY_SUMMARY = {
 
 /* =========================================================
 
+
+
    HELPERS
 
-\========================================================= */
+
+
+\\========================================================= */
 
 const number = (value) => {
   const parsed = Number(value);
@@ -175,6 +184,7 @@ const formatCrore = (value, decimals = 2) =>
 const formatFullRupees = (value, decimals = 2) =>
   `₹ ${new Intl.NumberFormat("en-IN", {
     minimumFractionDigits: decimals,
+
     maximumFractionDigits: decimals,
   }).format(number(value))}`;
 
@@ -465,6 +475,7 @@ const statusClass = (status) => {
   switch (
     String(status || "")
       .trim()
+
       .toUpperCase()
   ) {
     case "HIGH":
@@ -492,9 +503,13 @@ const statusClass = (status) => {
 
 /* =========================================================
 
+
+
    SMALL COMPONENTS
 
-\========================================================= */
+
+
+\\========================================================= */
 
 const GrowthValue = ({ value }) => {
   const parsed = nullableNumber(value);
@@ -518,6 +533,7 @@ const KpiCard = ({
   value,
 
   fullValue,
+
   subtitle,
 
   growth,
@@ -577,16 +593,43 @@ const EmptyChart = ({ message = "No data available" }) => (
 
 /* =========================================================
 
+
+
    MAIN COMPONENT
 
-\========================================================= */
+
+
+\\========================================================= */
+
+const normalizePortalRole = (value) =>
+  String(value ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/^ROLE_/, "")
+    .replace(/[\s-]+/g, "_");
+
+const resolveRevenueRole = (authUser) => {
+  const name = normalizePortalRole(
+    authUser?.roleName ?? authUser?.user?.roleName,
+  );
+  if (["SUPER_ADMIN", "ADMIN", "USER"].includes(name)) return name;
+  return "UNAUTHORIZED";
+};
 
 const OfficeRevenueDashboard = ({ onViewOffice }) => {
+  const outletContext = useOutletContext();
+  const authUser = outletContext?.authUser ?? null;
+  const role = resolveRevenueRole(authUser);
+  const isSuperAdmin = role === "SUPER_ADMIN";
+  const isAuthorized = role !== "UNAUTHORIZED";
+
   const showActions = typeof onViewOffice === "function";
 
   const [periodOptions, setPeriodOptions] = useState([]);
 
   const [officeOptions, setOfficeOptions] = useState([]);
+  const [officesLoading, setOfficesLoading] = useState(false);
+  const [officesResolved, setOfficesResolved] = useState(false);
 
   const [selectedPeriod, setSelectedPeriod] = useState("");
 
@@ -640,7 +683,11 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
 
   /* -------------------------------------------------------
 
+
+
      PERIODS
+
+
 
   ------------------------------------------------------- */
 
@@ -683,47 +730,78 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
 
   /* -------------------------------------------------------
 
+
+
      OFFICES
+
+
 
   ------------------------------------------------------- */
 
   useEffect(() => {
-    if (!selectedPeriod) {
-      setOfficeOptions([]);
-
+    setOffice("");
+    setOfficeOptions([]);
+    setOfficesResolved(false);
+    if (!selectedPeriod || !isAuthorized) {
+      setOfficesLoading(false);
       return undefined;
     }
-
     const controller = new AbortController();
-
+    setOfficesLoading(true);
+    setError("offices", "");
     fetchOfficeRevenueOffices({
       period: selectedPeriod,
-
       signal: controller.signal,
     })
       .then((response) => {
-        setOfficeOptions(normalizeOptions(response));
+        if (controller.signal.aborted) return;
+        // This endpoint must return only JWT-authorized offices for Admin/User.
+        const options = normalizeOptions(response);
+        setOfficeOptions(options);
+        if (!isSuperAdmin && options.length === 1) setOffice(options[0].value);
+        setOfficesResolved(true);
       })
-
       .catch((err) => {
-        if (isAbort(err)) return;
-
-        console.error("Unable to load office options", err);
-
+        if (controller.signal.aborted || isAbort(err)) return;
         setOfficeOptions([]);
+        setError(
+          "offices",
+          apiMessage(err, "Unable to load authorized offices."),
+        );
+        setOfficesResolved(false);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setOfficesLoading(false);
       });
-
     return () => controller.abort();
-  }, [selectedPeriod]);
+  }, [selectedPeriod, isAuthorized, isSuperAdmin, setError]);
+
+  const officeReady =
+    isAuthorized &&
+    officesResolved &&
+    !officesLoading &&
+    (isSuperAdmin || officeOptions.some((item) => item.value === office));
+
+  useEffect(() => {
+    setSummary(EMPTY_SUMMARY);
+    setRows([]);
+    setTrend([]);
+    setTotalElements(0);
+    setTotalPages(0);
+  }, [selectedPeriod, office, officeReady]);
 
   /* -------------------------------------------------------
 
+
+
      SUMMARY
+
+
 
   ------------------------------------------------------- */
 
   useEffect(() => {
-    if (!selectedPeriod) return undefined;
+    if (!selectedPeriod || !officeReady) return undefined;
 
     const controller = new AbortController();
 
@@ -767,16 +845,28 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
       });
 
     return () => controller.abort();
-  }, [selectedPeriod, office, growthStatus, search, reloadKey, setError]);
+  }, [
+    selectedPeriod,
+    office,
+    officeReady,
+    growthStatus,
+    search,
+    reloadKey,
+    setError,
+  ]);
 
   /* -------------------------------------------------------
 
+
+
      TABLE
+
+
 
   ------------------------------------------------------- */
 
   useEffect(() => {
-    if (!selectedPeriod) return undefined;
+    if (!selectedPeriod || !officeReady) return undefined;
 
     const controller = new AbortController();
 
@@ -862,6 +952,7 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
     selectedPeriod,
 
     office,
+    officeReady,
 
     growthStatus,
 
@@ -878,12 +969,16 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
 
   /* -------------------------------------------------------
 
+
+
      TREND
+
+
 
   ------------------------------------------------------- */
 
   useEffect(() => {
-    if (!selectedPeriod) return undefined;
+    if (!selectedPeriod || !officeReady) return undefined;
 
     const controller = new AbortController();
 
@@ -930,11 +1025,15 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
       });
 
     return () => controller.abort();
-  }, [selectedPeriod, office, reloadKey, setError]);
+  }, [selectedPeriod, office, officeReady, reloadKey, setError]);
 
   /* -------------------------------------------------------
 
+
+
      ACTIONS
+
+
 
   ------------------------------------------------------- */
 
@@ -987,7 +1086,7 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
   };
 
   const handleExport = async () => {
-    if (!selectedPeriod || exporting) return;
+    if (!selectedPeriod || !officeReady || exporting) return;
 
     setExporting(true);
 
@@ -1018,7 +1117,11 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
 
   /* -------------------------------------------------------
 
+
+
      TREND DERIVED DATA
+
+
 
   ------------------------------------------------------- */
 
@@ -1130,7 +1233,11 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
 
   /* -------------------------------------------------------
 
+
+
      TAX BREAKDOWN
+
+
 
   ------------------------------------------------------- */
 
@@ -1201,7 +1308,11 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
 
   /* -------------------------------------------------------
 
+
+
      CURRENT PAGE CHARTS
+
+
 
   ------------------------------------------------------- */
 
@@ -1290,7 +1401,11 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
 
   /* -------------------------------------------------------
 
+
+
      PAGINATION
+
+
 
   ------------------------------------------------------- */
 
@@ -1352,7 +1467,7 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
               type="button"
               className="office-btn office-btn-refresh"
               onClick={handleRefresh}
-              disabled={busy || !selectedPeriod}
+              disabled={busy || !selectedPeriod || !officeReady}
             >
               <RefreshCw size={15} className={busy ? "spin" : ""} />
               Refresh
@@ -1388,17 +1503,38 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
 
           <div className="office-filter-field">
             <label htmlFor="revenue-office">Office / Jurisdiction</label>
-
             <select
               id="revenue-office"
               value={office}
+              disabled={
+                !selectedPeriod ||
+                officesLoading ||
+                !officesResolved ||
+                !isAuthorized ||
+                (!isSuperAdmin && officeOptions.length <= 1)
+              }
               onChange={(event) => {
-                setOffice(event.target.value);
-
+                const next = event.target.value;
+                if (
+                  !isSuperAdmin &&
+                  !officeOptions.some((item) => item.value === next)
+                )
+                  return;
+                setOffice(next);
                 setPage(0);
               }}
             >
-              <option value="">All Offices</option>
+              {isSuperAdmin ? (
+                <option value="">All Offices</option>
+              ) : (
+                <option value="">
+                  {officesLoading
+                    ? "Loading assigned offices..."
+                    : officeOptions.length
+                      ? "Select Assigned Office"
+                      : "No assigned offices"}
+                </option>
+              )}
               {officeOptions.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
@@ -1452,7 +1588,7 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
               type="button"
               className="office-btn office-btn-search"
               onClick={handleSearch}
-              disabled={!selectedPeriod}
+              disabled={!selectedPeriod || !officeReady}
             >
               <Search size={15} />
               Search
@@ -1471,7 +1607,7 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
               type="button"
               className="office-btn office-btn-export"
               onClick={handleExport}
-              disabled={!selectedPeriod || exporting}
+              disabled={!selectedPeriod || !officeReady || exporting}
             >
               {exporting ? (
                 <Loader2 size={15} className="spin" />
@@ -1483,6 +1619,22 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
           </div>
         </div>
       </section>
+
+      {!isAuthorized && (
+        <div className="office-dashboard-alert" role="alert">
+          <AlertCircle size={18} />
+          Authorization information unavailable. Open this module through the
+          portal.
+        </div>
+      )}
+      {isAuthorized && selectedPeriod && officesResolved && !officeReady && (
+        <div className="office-dashboard-alert" role="status">
+          <Building2 size={18} />
+          {officeOptions.length === 0
+            ? "No authorized offices are assigned."
+            : "Select an assigned office to load revenue data."}
+        </div>
+      )}
 
       {/* ERROR */}
 
@@ -1503,15 +1655,27 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
       <section className="office-kpi-grid" aria-busy={summaryLoading}>
         {/* <KpiCard
 
+
+
           title="Total Offices"
+
+
 
           value={formatInteger(summary.totalOffices)}
 
+
+
           subtitle="Reporting offices"
+
+
 
           icon={Building2}
 
+
+
           tone="kpi-blue"
+
+
 
         /> */}
 
@@ -1740,8 +1904,10 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
                       formatter={(value, name, item) => {
                         const rawValue =
                           item?.payload?.rawValue ?? value * INR_CRORE;
+
                         return [
                           `${formatFullRupees(rawValue)} (${formatCroreChart(value)})`,
+
                           name,
                         ];
                       }}
@@ -1762,7 +1928,9 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
                   <span className="office-tax-center-label">
                     Total Output Tax
                   </span>
+
                   <strong>{formatCroreChart(totalTaxBreakdown)}</strong>
+
                   <span
                     className="office-tax-center-full"
                     title={formatFullRupees(totalTaxBreakdown * INR_CRORE)}
@@ -1794,6 +1962,7 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
                         <strong title={formatFullRupees(item.rawValue)}>
                           {formatFullRupees(item.rawValue)}
                         </strong>
+
                         <span>
                           {formatCroreChart(item.value)} ·{" "}
                           {percentage.toFixed(2)}%
@@ -2126,26 +2295,34 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
             <thead>
               <tr>
                 <th rowSpan={2}>#</th>
+
                 <th rowSpan={2} className="text-left">
                   Office Name
                 </th>
+
                 <th rowSpan={2}>Filed GSTINs</th>
+
                 <th rowSpan={2}>
                   Taxable Value
                   <small>₹ Crore</small>
                 </th>
+
                 <th colSpan={5}>Output Tax (₹ Crore)</th>
+
                 <th rowSpan={2}>
                   Cash Tax<small>₹ Crore</small>
                 </th>
+
                 <th rowSpan={2}>
                   MoM
                   <small>Growth %</small>
                 </th>
+
                 <th rowSpan={2}>
                   YoY
                   <small>Growth %</small>
                 </th>
+
                 <th rowSpan={2}>Growth Status</th>
 
                 {showActions && <th rowSpan={2}>Action</th>}
@@ -2191,6 +2368,7 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
                     }-${index}`}
                   >
                     <td className="text-center">{page * size + index + 1}</td>
+
                     <td
                       className="text-left office-name"
                       title={row.officeName || ""}
@@ -2205,23 +2383,31 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
                     <td className="money-cell">
                       {formatCroreValue(row.taxableValue)}
                     </td>
+
                     <td className="money-cell output-tax">
                       {formatCroreValue(row.outputTax)}
                     </td>
+
                     <td className="money-cell">{formatCroreValue(row.igst)}</td>
 
                     <td className="money-cell">{formatCroreValue(row.cgst)}</td>
+
                     <td className="money-cell">{formatCroreValue(row.sgst)}</td>
+
                     <td className="money-cell">{formatCroreValue(row.cess)}</td>
+
                     <td className="money-cell cash-tax">
                       {formatCroreValue(row.cashTaxPaid)}
                     </td>
+
                     <td className="text-center">
                       <GrowthValue value={row.momOutputGrowth} />
                     </td>
+
                     <td className="text-center">
                       <GrowthValue value={row.yoyOutputGrowth} />
                     </td>
+
                     <td className="text-center">
                       <span
                         className={`office-status-badge ${statusClass(
