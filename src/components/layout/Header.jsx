@@ -31,7 +31,7 @@ const Header = ({ onMenuClick, menuExpanded = false }) => {
 
         <div className="header-text">
           <h1 className="header-title">Directorate of Commercial Taxes</h1>
-          <p className="header-subtitle">Government GST Intelligence Platform</p>
+          <p className="header-subtitle">Government of West Bengal</p>
         </div>
       </div>
     </header>
