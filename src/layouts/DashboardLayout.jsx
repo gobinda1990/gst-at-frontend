@@ -5,7 +5,7 @@ import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import Footer from "../components/layout/Footer";
 
-import "./DashboardLayout.css";
+import "./dashboardLayout.css";
 
 const MOBILE_QUERY = "(max-width: 768px)";
 const TABLET_QUERY = "(max-width: 992px)";
