@@ -12,6 +12,7 @@ import {
   AlertCircle,
   BarChart3,
   Building2,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -545,6 +546,7 @@ export default function GstReturn3bGrowth() {
   const [error, setError] = useState("");
 
   const [refreshKey, setRefreshKey] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const exportControllerRef = useRef(null);
 
@@ -829,6 +831,7 @@ export default function GstReturn3bGrowth() {
         setTrendData(unwrapList(trendResponse));
 
         setPageData(normalizePage(rowsResponse, size));
+        setLastUpdated(new Date());
       } catch (err) {
         if (!signal.aborted && !isCancelled(err)) {
           setError(getErrorMessage(err));
@@ -1216,76 +1219,62 @@ export default function GstReturn3bGrowth() {
 
   return (
     <div className="gst-growth-page">
-      {/* HERO */}
-
-      <section className="growth-hero">
-        <div className="growth-hero-main">
-          <div className="growth-heading-icon">
-            <BarChart3 size={23} />
-          </div>
-
-          <div>
-            <h1>Growth &amp; Revenue Intelligence</h1>
-
-            <p>
-              Monitor taxpayer turnover, output tax, ITC utilisation, cash
-              payment and growth behaviour.
-            </p>
-          </div>
-        </div>
-
-        <div className="growth-header-actions">
-          <button
-            type="button"
-            className="growth-export-btn"
-            onClick={handleExport}
-            disabled={!canLoadDashboard || loading || exporting}
-          >
-            {exporting ? (
-              <Loader2 size={16} className="spin" />
-            ) : (
-              <Download size={16} />
-            )}
-
-            <span>{exporting ? "Exporting..." : "Export CSV"}</span>
-          </button>
-
-          <button
-            type="button"
-            className="growth-refresh-btn"
-            onClick={handleRefresh}
-            disabled={!canLoadDashboard || loading}
-          >
-            <RefreshCw size={16} className={loading ? "spin" : ""} />
-
-            <span>Refresh</span>
-          </button>
-        </div>
-      </section>
-
       {/* FILTERS */}
 
       <section className="growth-filter-card">
-        <header className="growth-filter-header">
-          <div>
-            <Filter size={17} />
-
-            <div>
-              <strong>Analytical Filters</strong>
-
-              <span>Refine taxpayer growth analysis</span>
+        <header className="growth-filter-header growth-filter-topline">
+          <div className="growth-filter-title">
+            <div className="growth-filter-title-icon">
+              <BarChart3 size={19} />
+            </div>
+            <div className="growth-filter-title-content">
+              <h2>Growth & Revenue Analysis</h2>
+              <p>
+                Monitor taxpayer turnover, output tax, ITC utilisation, cash payment and growth behaviour.
+              </p>
             </div>
           </div>
-
-          {activeFilters.length > 0 && (
+          <div className="growth-filter-meta">
+            <div className="growth-last-updated">
+              <CalendarDays size={15} />
+              <span>
+                Last updated:
+                <strong>
+                  {lastUpdated
+                    ? ` ${lastUpdated.toLocaleDateString("en-IN")} ${lastUpdated.toLocaleTimeString(
+                        "en-IN",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        },
+                      )}`
+                    : " —"}
+                </strong>
+              </span>
+            </div>
             <button
               type="button"
-              className="growth-clear-all"
-              onClick={resetFilters}
+              className="growth-export-btn"
+              onClick={handleExport}
+              disabled={!canLoadDashboard || loading || exporting}
             >
-              Clear all
+              {exporting ? (
+                <Loader2 size={16} className="spin" />
+              ) : (
+                <Download size={16} />
+              )}
+              <span>{exporting ? "Exporting..." : "Export CSV"}</span>
             </button>
-          )}
+            <button
+              type="button"
+              className="growth-header-refresh"
+              onClick={handleRefresh}
+              disabled={!canLoadDashboard || loading}
+            >
+              <RefreshCw size={16} className={loading ? "spin" : ""} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </header>
 
         <div className="growth-filter-grid">
