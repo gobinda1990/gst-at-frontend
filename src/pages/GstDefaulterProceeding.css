@@ -1558,7 +1558,7 @@
   color: #234c69;
 
   transition:
-    background 0.15s ease,
+     background * 0.15s ease,
     border-color 0.15s ease,
     transform 0.15s ease;
 }
@@ -2057,7 +2057,7 @@
 }
 
 .proc-table-card tbody tr {
-  transition:  background  0.14s ease;
+  transition:  background * 0.14s ease;
 }
 
 .proc-table-card td:first-child {
@@ -2253,4 +2253,369 @@
 
 .proc-proceeding-table th:nth-child(10) {
   min-width: 150px;
+}
+
+/* =========================================================
+
+   DYNAMIC RETURN PERIOD SELECT — FINAL
+
+   Compatible with the existing .proc-filter-grid markup.
+
+========================================================= */
+
+.proc-page .proc-filter-grid select {
+  display: block;
+
+  width: 100%;
+
+  min-width: 0;
+
+  min-height: 40px;
+
+  padding: 9px 34px 9px 11px;
+
+  border: 1px solid #afc0cd;
+
+  border-radius: 6px;
+
+  background-color: #fff;
+
+  color: #102a43;
+
+  font: inherit;
+
+  font-size: 12.5px;
+
+  font-weight: 650;
+
+  cursor: pointer;
+}
+
+.proc-page .proc-filter-grid select:hover:not(:disabled) {
+  border-color: #0d6ba8;
+}
+
+.proc-page .proc-filter-grid select:focus-visible {
+  outline: 3px solid rgba(13, 107, 168, 0.18);
+
+  outline-offset: 1px;
+
+  border-color: #0d6ba8;
+}
+
+.proc-page .proc-filter-grid select:disabled {
+  cursor: not-allowed;
+
+  background-color: #f1f5f9;
+
+  color: #64748b;
+
+  opacity: 0.85;
+}
+
+.proc-page .proc-filter-grid label {
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
+  .proc-page .proc-filter-grid select {
+    width: 100%;
+  }
+}
+
+/* ==============================================================
+   KPI-MATCHED STATUTORY PROCEEDINGS DESIGN — FINAL OVERRIDES
+   Blue / Amber / Orange / Red / Navy semantic palette
+   ============================================================== */
+.proc-page {
+  --proc-kpi-blue: #175c9c;
+  --proc-kpi-amber: #c17a08;
+  --proc-kpi-orange: #dc6517;
+  --proc-kpi-red: #b42318;
+  --proc-kpi-navy: #0b2c4d;
+  --proc-success: #047857;
+  background: #f3f6fa;
+  color: #172b40;
+}
+.proc-page .proc-filter-card,
+.proc-page .proc-table-card {
+  background: #ffffff;
+  border: 1px solid #d6e1ea;
+  border-radius: 12px;
+  box-shadow: 0 3px 14px rgba(11, 44, 77, 0.055);
+  overflow: hidden;
+}
+.proc-page .proc-filter-card {
+  padding: 20px;
+}
+.proc-page .proc-filter-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-bottom: 16px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #dce5ee;
+}
+.proc-page .proc-filter-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.proc-page .proc-filter-title-icon {
+  display: grid;
+  place-items: center;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 43px;
+  border-radius: 10px;
+  background: #e7f1fa;
+  color: var(--proc-kpi-blue);
+  border: 1px solid #cbdff0;
+}
+.proc-page .proc-filter-title h2 {
+  margin: 0;
+  color: var(--proc-kpi-navy);
+  font-size: 18px;
+  font-weight: 800;
+}
+.proc-page .proc-filter-title p {
+  margin: 4px 0 0;
+  color: #52667b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.proc-page .proc-filter-period {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: #174b75;
+  background: #edf5fc;
+  border: 1px solid #d4e5f4;
+  font-size: 12px;
+}
+.proc-page .proc-filter-period strong {
+  color: #0b2c4d;
+}
+.proc-page .proc-filter-grid {
+  align-items: end;
+}
+.proc-page .proc-filter-grid label > span {
+  color: #304c63;
+  font-weight: 750;
+}
+.proc-page .proc-filter-grid select,
+.proc-page .proc-filter-grid input {
+  background: #fff;
+  color: #172b40;
+  border-color: #bdcdda;
+}
+.proc-page .proc-filter-grid select:focus,
+.proc-page .proc-filter-grid input:focus {
+  border-color: #175c9c;
+  box-shadow: 0 0 0 3px rgba(23, 92, 156, 0.13);
+}
+.proc-page .proc-btn-primary,
+.proc-page .proc-filter-search-btn {
+  background: #175c9c;
+  border: 1px solid #175c9c;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  gap: 8px;
+  white-space: nowrap;
+}
+.proc-page .proc-btn-primary:hover:not(:disabled),
+.proc-page .proc-filter-search-btn:hover:not(:disabled) {
+  background: #0d477b;
+  border-color: #0d477b;
+}
+/* Five KPI categories: same accent for border, count and icon */
+.proc-page .proc-kpi {
+  position: relative;
+  min-width: 0;
+  border: 1px solid #dbe5ed;
+  border-top: 4px solid var(--kpi-accent);
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(11, 44, 77, 0.055);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.proc-page .proc-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 18px rgba(11, 44, 77, 0.09);
+}
+.proc-page .proc-kpi-blue {
+  --kpi-accent: #175c9c;
+  --kpi-tint: #e8f2fb;
+}
+.proc-page .proc-kpi-amber {
+  --kpi-accent: #b87508;
+  --kpi-tint: #fff3d8;
+}
+.proc-page .proc-kpi-orange {
+  --kpi-accent: #cf6018;
+  --kpi-tint: #fff0e5;
+}
+.proc-page .proc-kpi-red {
+  --kpi-accent: #b42318;
+  --kpi-tint: #fdebea;
+}
+.proc-page .proc-kpi-navy {
+  --kpi-accent: #0b2c4d;
+  --kpi-tint: #e7eef5;
+}
+.proc-page .proc-kpi strong {
+  color: var(--kpi-accent);
+  font-size: 28px;
+  font-weight: 850;
+}
+.proc-page .proc-kpi > i {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: var(--kpi-tint);
+  color: var(--kpi-accent);
+  font-style: normal;
+}
+.proc-page .proc-kpi span {
+  color: #2c4458;
+  font-size: 12px;
+  font-weight: 750;
+}
+.proc-page .proc-kpi small {
+  color: #5b6e7f;
+}
+/* Matching case status colors */
+.proc-page .proc-status {
+  border: 1px solid transparent;
+  font-size: 10px;
+  padding: 5px 9px;
+  font-weight: 800;
+}
+.proc-page .proc-status-gstr3a-eligible {
+  background: #fff3d8;
+  color: #875000;
+  border-color: #f0d6a0;
+}
+.proc-page .proc-status-gstr3a-compliance-pending {
+  background: #fff0e5;
+  color: #a7470d;
+  border-color: #f5cdb0;
+}
+.proc-page .proc-status-section62-eligible {
+  background: #fdebea;
+  color: #a5221a;
+  border-color: #f0c3be;
+}
+.proc-page .proc-status-asmt13-issued,
+.proc-page .proc-status-asmt13-final {
+  background: #e7eef5;
+  color: #0b2c4d;
+  border-color: #c5d4e1;
+}
+.proc-page .proc-status-complied-after-gstr3a,
+.proc-page .proc-status-asmt13-deemed-withdrawn {
+  background: #e6f7ef;
+  color: #07633f;
+  border-color: #bce5d1;
+}
+.proc-page .proc-table-toolbar {
+  background: #f8fbfd;
+  border-bottom: 1px solid #dbe5ed;
+}
+.proc-page .proc-table-toolbar h2 {
+  color: #0b2c4d;
+  font-weight: 800;
+}
+.proc-page .proc-table-card th {
+  background: #17365d;
+  color: #fff;
+  font-weight: 750;
+}
+.proc-page .proc-table-card tbody tr:nth-child(even) {
+  background: #fbfdff;
+}
+.proc-page .proc-table-card tbody tr:hover {
+  background: #edf5fc;
+}
+.proc-page .proc-table-card td {
+  color: #263d50;
+}
+.proc-page .proc-row-actions button {
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+.proc-page .proc-row-actions button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.proc-page .proc-row-actions .action-3a {
+  color: #986000;
+  background: #fff3d8;
+  border-color: #f0d6a0;
+}
+.proc-page .proc-row-actions .action-asmt {
+  color: #a5221a;
+  background: #fdebea;
+  border-color: #f0c3be;
+}
+.proc-page .proc-row-actions .action-reconcile {
+  color: #07633f;
+  background: #e6f7ef;
+  border-color: #bce5d1;
+}
+.proc-page .proc-pagination {
+  background: #fbfdff;
+  border-top: 1px solid #e1e9f0;
+}
+.proc-page .proc-pagination button:hover:not(:disabled) {
+  background: #e8f2fb;
+  border-color: #a9c9e2;
+}
+.proc-page :is(button, select, input):focus-visible {
+  outline: 3px solid rgba(23, 92, 156, 0.25);
+  outline-offset: 2px;
+}
+@media (max-width: 1100px) {
+  .proc-page .proc-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .proc-page .proc-search-field {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 700px) {
+  .proc-page .proc-filter-card {
+    padding: 14px;
+  }
+  .proc-page .proc-filter-topline {
+    align-items: flex-start;
+  }
+  .proc-page .proc-filter-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .proc-page .proc-search-field {
+    grid-column: auto;
+  }
+  .proc-page .proc-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 430px) {
+  .proc-page .proc-kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .proc-page .proc-filter-title h2 {
+    font-size: 16px;
+  }
 }

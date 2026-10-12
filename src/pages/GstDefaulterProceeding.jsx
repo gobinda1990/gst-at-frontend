@@ -33,6 +33,7 @@ import {
   issueGstr3a,
   reconcileProceeding,
   scanSection62,
+  fetchProceedingPeriods,
 } from "../services/defaulterProceedingService";
 
 import Gstr3aIssueModal from "../components/Gstr3aIssueModal";
@@ -149,6 +150,12 @@ export default function GstDefaulterProceeding() {
 
   const [period, setPeriod] = useState("");
 
+  const [periodOptions, setPeriodOptions] = useState([]);
+
+  const [periodsLoading, setPeriodsLoading] = useState(true);
+
+  const [periodsError, setPeriodsError] = useState("");
+
   const [searchText, setSearchText] = useState("");
 
   const [search, setSearch] = useState("");
@@ -185,12 +192,78 @@ export default function GstDefaulterProceeding() {
 
   const [asmt13Open, setAsmt13Open] = useState(false);
 
-  /*
-   * Prevent repeated automatic Section 62 scans/opening for the same
-   * proceeding while React re-renders or the list refreshes.
-   */
   const section62AutoScanRef = useRef(new Set());
+
   const section62AutoOpenRef = useRef(new Set());
+
+  // Return periods are loaded from the backend, never hard-coded.
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadPeriods = async () => {
+      setPeriodsLoading(true);
+
+      setPeriodsError("");
+
+      try {
+        const response = await fetchProceedingPeriods({
+          signal: controller.signal,
+        });
+
+        if (controller.signal.aborted) return;
+
+        const items = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : Array.isArray(response?.content)
+              ? response.content
+              : [];
+
+        const unique = new Map();
+
+        for (const item of items) {
+          const value = String(
+            typeof item === "string"
+              ? item
+              : (item?.value ?? item?.retPeriod ?? item?.period ?? ""),
+          ).trim();
+
+          if (!/^(0[1-9]|1[0-2])\d{4}$/.test(value)) continue;
+
+          const label =
+            typeof item === "object" && item !== null
+              ? String(item.label ?? item.periodLabel ?? formatPeriod(value))
+              : formatPeriod(value);
+
+          unique.set(value, { value, label });
+        }
+
+        const sorted = [...unique.values()].sort(
+          (a, b) =>
+            Number(b.value.slice(2) + b.value.slice(0, 2)) -
+            Number(a.value.slice(2) + a.value.slice(0, 2)),
+        );
+
+        setPeriodOptions(sorted);
+
+        setPeriod((current) =>
+          current && !unique.has(current) ? "" : current,
+        );
+      } catch (err) {
+        if (!controller.signal.aborted && !isAbortError(err)) {
+          setPeriodsError(apiMessage(err, "Unable to load return periods."));
+        }
+      } finally {
+        if (!controller.signal.aborted) setPeriodsLoading(false);
+      }
+    };
+
+    loadPeriods();
+
+    return () => controller.abort();
+  }, []);
 
   const filters = useMemo(
     () => ({
@@ -275,15 +348,6 @@ export default function GstDefaulterProceeding() {
       setPage(data.totalPages - 1);
   }, [data.totalPages, page]);
 
-  /* =========================================================
-     AUTOMATIC SECTION 62 DEADLINE TRANSITION
-     =========================================================
-     Frontend deadline detection is only a trigger. The backend scan is
-     authoritative and must re-check filing status, service/deadline and
-     jurisdiction before changing the proceeding to SECTION62_ELIGIBLE.
-     ASMT-13 is never issued automatically.
-  */
-
   useEffect(() => {
     if (loading || scanBusy || mutationBusy || !data.content?.length) {
       return;
@@ -291,7 +355,9 @@ export default function GstDefaulterProceeding() {
 
     const expiredPending = data.content.find((row) => {
       const rowStatus = norm(row?.status);
+
       const gstr3aIssued = Boolean(row?.gstr3aRefNo);
+
       const deadlineOver =
         gstr3aIssued && isDeadlineOver(row?.gstr3aDeadline) && !row?.filingDate;
 
@@ -324,7 +390,9 @@ export default function GstDefaulterProceeding() {
 
     const transition = async () => {
       setScanBusy(true);
+
       setError("");
+
       setActionError("");
 
       try {
@@ -338,18 +406,16 @@ export default function GstDefaulterProceeding() {
           )} eligible, ${count(result?.complied)} complied.`,
         );
 
-        /*
-         * Reload the authoritative proceeding list. The assessment modal
-         * is opened only after the refreshed row is SECTION62_ELIGIBLE.
-         */
         setRefreshKey((value) => value + 1);
       } catch (error) {
         if (!active) return;
 
         section62AutoScanRef.current.delete(key);
+
         setError(
           apiMessage(
             error,
+
             "GSTR-3A deadline has expired, but Section 62 eligibility could not be rechecked.",
           ),
         );
@@ -367,11 +433,6 @@ export default function GstDefaulterProceeding() {
     };
   }, [data.content, loading, mutationBusy, scanBusy]);
 
-  /*
-   * After the server scan refreshes the row as SECTION62_ELIGIBLE,
-   * automatically open the manual proper-officer assessment review.
-   * This opens the review UI only; it does NOT issue ASMT-13.
-   */
   useEffect(() => {
     if (loading || mutationBusy || asmt13Open || !data.content?.length) {
       return;
@@ -379,6 +440,7 @@ export default function GstDefaulterProceeding() {
 
     const eligible = data.content.find((row) => {
       const rowStatus = norm(row?.status);
+
       const section62Eligible =
         isYes(row?.section62Eligible) || rowStatus === "SECTION62_ELIGIBLE";
 
@@ -398,11 +460,6 @@ export default function GstDefaulterProceeding() {
       eligible.id ?? `${eligible.gstin || ""}-${eligible.retPeriod || ""}`,
     );
 
-    /*
-     * Auto-open only for a case that was observed as deadline-expired
-     * in this page session. Existing historical Section 62 rows remain
-     * available through the normal manual Gavel action.
-     */
     if (
       !section62AutoScanRef.current.has(key) ||
       section62AutoOpenRef.current.has(key)
@@ -411,10 +468,14 @@ export default function GstDefaulterProceeding() {
     }
 
     section62AutoOpenRef.current.add(key);
+
     setSelected(eligible);
+
     setActionError("");
+
     setAsmt13Open(true);
   }, [data.content, loading, mutationBusy, asmt13Open]);
+
   const submitSearch = (event) => {
     event?.preventDefault?.();
 
@@ -433,6 +494,7 @@ export default function GstDefaulterProceeding() {
 
   const openAsmt13 = (row) => {
     const rowStatus = norm(row?.status);
+
     const eligible =
       isYes(row?.section62Eligible) || rowStatus === "SECTION62_ELIGIBLE";
 
@@ -445,11 +507,14 @@ export default function GstDefaulterProceeding() {
       setError(
         "Section 62 assessment review is not currently available for this proceeding.",
       );
+
       return;
     }
 
     setSelected(row);
+
     setActionError("");
+
     setAsmt13Open(true);
   };
 
@@ -608,17 +673,36 @@ export default function GstDefaulterProceeding() {
           <label>
             <span>Return Period</span>
 
-            <input
+            <select
               value={period}
-              maxLength={6}
-              inputMode="numeric"
-              placeholder="MMYYYY"
+              disabled={periodsLoading || Boolean(periodsError)}
               onChange={(e) => {
-                setPeriod(e.target.value.replace(/\D/g, "").slice(0, 6));
+                setPeriod(e.target.value);
 
                 setPage(0);
               }}
-            />
+              aria-label="Select return period"
+            >
+              <option value="">
+                {periodsLoading ? "Loading periods..." : "All Periods"}
+              </option>
+
+              {periodOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+
+            {periodsError && (
+              <small role="alert" className="proc-period-error">
+                {periodsError}
+              </small>
+            )}
+
+            {!periodsLoading && !periodsError && periodOptions.length === 0 && (
+              <small>No return periods available</small>
+            )}
           </label>
 
           <label>
