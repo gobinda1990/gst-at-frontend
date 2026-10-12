@@ -1,52 +1,39 @@
-// =========================================
-// FILE: src/components/layout/Header.jsx
-// =========================================
-
 import React from "react";
-
-import {
-  FaHome,
-  FaBell,
-  FaUser,
-  FaChevronDown,
-  FaBars,
-} from "react-icons/fa";
+import { FaBars } from "react-icons/fa";
 
 import "./header.css";
 
-const Header = ({ toggleSidebar }) => {
+// Tip: download this SVG into src/assets and import it, so the app does not
+// depend on an external host.
+const EMBLEM_SRC =
+  "https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg";
+
+const Header = ({ onMenuClick, menuExpanded = false }) => {
   return (
     <header className="main-header">
-
-      {/* LEFT */}
       <div className="header-left">
+        <button
+          type="button"
+          className="menu-toggle-btn"
+          onClick={onMenuClick}
+          aria-label="Toggle navigation menu"
+          aria-expanded={menuExpanded}
+          aria-controls="main-sidebar"
+        >
+          <FaBars aria-hidden="true" />
+        </button>
 
-        {/* MOBILE MENU */}
-        <FaBars
-          className="mobile-menu-btn"
-          onClick={toggleSidebar}
-        />
-
-        {/* LOGO */}
         <img
-          src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-          alt="logo"
+          src={EMBLEM_SRC}
+          alt="Emblem of India"
           className="gov-logo"
         />
 
-        {/* TEXT */}
         <div className="header-text">
-
-          <h3 className="header-title">
-            Directorate of Commercial Taxes
-          </h3>
-
-          <p className="header-subtitle">
-            Government GST Intelligence Platform
-          </p>
-
+          <h1 className="header-title">Directorate of Commercial Taxes</h1>
+          <p className="header-subtitle">Government GST Intelligence Platform</p>
         </div>
-      </div>     
+      </div>
     </header>
   );
 };

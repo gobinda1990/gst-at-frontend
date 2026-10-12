@@ -1,96 +1,91 @@
 /* =========================================
-   WRAPPER
+   LAYOUT VARIABLES
 ========================================= */
 
-.dashboard-wrapper {
+:root {
+  --header-h: 75px;
+  --sidebar-w: 260px;
+  --sidebar-w-mini: 72px;
+  --accent: #ff6b00;
+  --accent-text: #c2410c; /* darker orange, readable on light backgrounds */
+}
+
+@media (max-width: 768px) {
+  :root { --header-h: 65px; }
+}
+
+@media (max-width: 576px) {
+  :root { --header-h: 60px; }
+}
+
+/* Desktop / tablet: collapsed state shrinks the rail */
+.app-shell.sidebar-collapsed {
+  --sidebar-w: var(--sidebar-w-mini);
+}
+
+/* =========================================
+   SHELL (fixed-height app, only content scrolls)
+========================================= */
+
+.app-shell {
   width: 100%;
   height: 100vh;
+  height: 100dvh; /* mobile browsers: ignores the URL bar */
   overflow: hidden;
 }
 
-/* =========================================
-   BODY LAYOUT
-========================================= */
-
-.dashboard-body {
-  display: flex;
-
-  margin-top: 75px; /* header height */
-
-  height: calc(100vh - 75px);
-}
-
-/* =========================================
-   SIDEBAR AREA IS HANDLED IN SIDEBAR CSS
-========================================= */
-
-/* =========================================
-   MAIN CONTENT AREA
-========================================= */
-
 .main-content-area {
-  flex: 1;
+  height: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 
   display: flex;
   flex-direction: column;
 
-  min-width: 0;
+  /* clears the fixed header and sidebar */
+  padding-top: var(--header-h);
+  margin-left: var(--sidebar-w);
 
   background: #f9fafb;
+
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* SCROLLABLE CONTENT */
-.main-content {
+/* SCROLLABLE CONTENT (footer stays pinned below it) */
+.main-content,
+.page-content {
   flex: 1;
+  min-height: 0;
+  min-width: 0;
 
   padding: 20px;
-
   overflow-y: auto;
-
-  min-height: 0;
 }
-
-/* =========================================
-   FOOTER FIX
-========================================= */
 
 footer {
   flex-shrink: 0;
 }
 
 /* =========================================
-   TABLET
+   RESPONSIVE
 ========================================= */
 
-@media (max-width: 992px) {
-
-  .dashboard-body {
-    margin-top: 75px;
-  }
-}
-
-/* =========================================
-   MOBILE
-========================================= */
-
+/* Mobile: sidebar becomes an overlay drawer, content takes full width */
 @media (max-width: 768px) {
-
-  .dashboard-body {
-    margin-top: 65px;
+  .main-content-area {
+    margin-left: 0;
   }
 }
-
-/* =========================================
-   SMALL MOBILE
-========================================= */
 
 @media (max-width: 576px) {
-
-  .dashboard-body {
-    margin-top: 60px;
-  }
-
-  .main-content {
+  .main-content,
+  .page-content {
     padding: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-content-area {
+    transition: none;
   }
 }
