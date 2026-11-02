@@ -1228,7 +1228,7 @@ export default function GstReturn3bGrowth() {
               <BarChart3 size={19} />
             </div>
             <div className="growth-filter-title-content">
-              <h2>Growth & Revenue Analysis</h2>
+              <h2>Taxpayer Growth Analysis</h2>
               <p>
                 Monitor taxpayer turnover, output tax, ITC utilisation, cash payment and growth behaviour.
               </p>
