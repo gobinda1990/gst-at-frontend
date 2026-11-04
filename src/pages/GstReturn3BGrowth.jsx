@@ -189,29 +189,6 @@ const normalizeRole = (value) =>
 
     .replace(/[\s-]+/g, "_");
 
-/*
-
- * Role handling:
-
- *
-
- * SUPER_ADMIN -> all offices
-
- * ADMIN       -> backend assigned offices
-
- * USER        -> backend assigned offices
-
- *
-
- * Both roleId and roleName null:
-
- * legacy SUPER_ADMIN, as requested.
-
- *
-
- * The backend must independently validate this rule.
-
- */
 
 const resolveRole = (authUser) => {
   if (!authUser) return "UNAUTHORIZED";
@@ -464,32 +441,7 @@ const EmptyChart = ({ message }) => (
 
 ========================================================= */
 
-export default function GstReturn3bGrowth() {
-  /*
-
-   * AuthGate should pass:
-
-   *
-
-   * <Outlet context={{ authUser }} />
-
-   *
-
-   * authUser:
-
-   * {
-
-   *   roleId,
-
-   *   roleName,
-
-   *   projectId,
-
-   *   user
-
-   * }
-
-   */
+export default function GstReturn3bGrowth() {  
 
   const context = useOutletContext();
 
@@ -555,30 +507,6 @@ export default function GstReturn3bGrowth() {
      EFFECTIVE OFFICE
 
   ======================================================= */
-
-  /*
-
-   * Backend /offices already filters by JWT.
-
-   *
-
-   * SUPER_ADMIN:
-
-   *   "" means All Offices.
-
-   *
-
-   * ADMIN / USER:
-
-   *   One office -> automatically selected.
-
-   *   Multiple -> select an authorized office.
-
-   *
-
-   * Never allow a restricted user to request office="".
-
-   */
 
   const officesReady = Boolean(period) && officePeriodReady === period;
 
@@ -691,26 +619,7 @@ export default function GstReturn3bGrowth() {
       setPageData(EMPTY_PAGE);
 
       try {
-        /*
-
-         * GET /gst/return-3b/growth/offices
-
-         *
-
-         * Backend decides office access:
-
-         *
-
-         * SUPER_ADMIN -> service.getOffices(period)
-
-         *
-
-         * ADMIN/USER ->
-
-         * service.findChargeCdOffices(officeId)
-
-         */
-
+        
         const response = await fetchGrowthOffices(period, {
           signal: controller.signal,
         });
@@ -1230,7 +1139,8 @@ export default function GstReturn3bGrowth() {
             <div className="growth-filter-title-content">
               <h2>Taxpayer Growth Analysis</h2>
               <p>
-                Monitor taxpayer turnover, output tax, ITC utilisation, cash payment and growth behaviour.
+                Monitor taxpayer turnover, output tax, ITC utilisation, cash
+                payment and growth behaviour.
               </p>
             </div>
           </div>
@@ -1356,7 +1266,7 @@ export default function GstReturn3bGrowth() {
 
               <option value="DECLINING">Declining</option>
 
-              <option value="STRONG_DECLINE">Sharp Decline</option>
+              <option value="STRONG_DECLINE">Strong Decline</option>
             </select>
           </label>
 
@@ -1518,8 +1428,7 @@ export default function GstReturn3bGrowth() {
           title="Taxable Value"
           value={formatMoney(summary.totalTaxableValue)}
           subtext="Selected return period"
-          tone="green"
-          trend={summary.avgMomTaxableGrowth}
+          tone="green"         
         />
 
         <MetricCard
@@ -1527,8 +1436,7 @@ export default function GstReturn3bGrowth() {
           title="Output Tax"
           value={formatMoney(summary.totalOutputTax)}
           subtext="Total tax liability"
-          tone="red"
-          trend={summary.avgMomOutputTaxGrowth}
+          tone="red"         
         />
 
         <MetricCard
@@ -1545,33 +1453,6 @@ export default function GstReturn3bGrowth() {
           value={formatMoney(summary.totalCashTaxPaid)}
           subtext="Cash component"
           tone="orange"
-        />
-
-        <MetricCard
-          icon={TrendingUp}
-          title="Avg. MoM Growth"
-          value={formatPercent(summary.avgMomOutputTaxGrowth)}
-          subtext="Output tax movement"
-          tone="cyan"
-        />
-
-        <MetricCard
-          icon={TrendingUp}
-          title="Avg. YoY Growth"
-          value={formatPercent(summary.avgYoyOutputTaxGrowth)}
-          subtext="Output tax movement"
-          tone="indigo"
-        />
-
-        <MetricCard
-          icon={TrendingDown}
-          title="Declining GSTINs"
-          value={formatNumber(
-            numberValue(summary.declineCount) +
-              numberValue(summary.strongDeclineCount),
-          )}
-          subtext="Requires analytical review"
-          tone="amber"
         />
       </section>
 
