@@ -1652,33 +1652,7 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
 
       {/* KPI */}
 
-      <section className="office-kpi-grid" aria-busy={summaryLoading}>
-        {/* <KpiCard
-
-
-
-          title="Total Offices"
-
-
-
-          value={formatInteger(summary.totalOffices)}
-
-
-
-          subtitle="Reporting offices"
-
-
-
-          icon={Building2}
-
-
-
-          tone="kpi-blue"
-
-
-
-        /> */}
-
+      <section className="office-kpi-grid" aria-busy={summaryLoading}>  
         <KpiCard
           title="Taxable Value"
           value={formatCrore(summary.totalTaxableValue)}
@@ -1975,8 +1949,13 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
             </div>
           )}
         </ChartCard>
+       
+      </section>
 
-        <ChartCard
+      {/* SECONDARY CHARTS */}
+
+      <section className="office-chart-grid office-chart-grid-secondary">
+         <ChartCard
           title="Revenue Comparison"
           subtitle="Current vs previous periods · ₹ Crore"
         >
@@ -2060,11 +2039,6 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
             </ResponsiveContainer>
           )}
         </ChartCard>
-      </section>
-
-      {/* SECONDARY CHARTS */}
-
-      <section className="office-chart-grid office-chart-grid-secondary">
         <ChartCard
           title="Top 5 Offices by Revenue"
           subtitle="Current page · Output Tax · ₹ Crore"
@@ -2197,7 +2171,7 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
           )}
         </ChartCard>
 
-        <ChartCard title="Filing Status" subtitle={periodLabel(selectedPeriod)}>
+        {/* <ChartCard title="Filing Status" subtitle={periodLabel(selectedPeriod)}>
           {filingStatus.length === 0 ? (
             <EmptyChart message="No filing-status data available" />
           ) : (
@@ -2254,7 +2228,7 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
               </div>
             </div>
           )}
-        </ChartCard>
+        </ChartCard> */}
       </section>
 
       {/* TABLE */}
@@ -2262,7 +2236,7 @@ const OfficeRevenueDashboard = ({ onViewOffice }) => {
       <section className="office-revenue-table-card" aria-busy={loading}>
         <div className="office-table-toolbar">
           <div>
-            <h3>Office-wise Revenue Collection</h3>
+            <h3>Office-wise Revenue </h3>
 
             <p>Office records for {periodLabel(selectedPeriod)}</p>
           </div>
