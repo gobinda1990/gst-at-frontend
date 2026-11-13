@@ -41,7 +41,7 @@ const API_BASE_URL =
   (import.meta.env.DEV ? "/api" : "/api");
 
 const AUTH_BASE_URL = (
-  import.meta.env.VITE_AUTH_BASE?.trim() || "auth:8081/api/auth"
+  import.meta.env.VITE_AUTH_BASE?.trim() || "http://10.153.43.8:8081/api/auth"
 ).replace(/\/+$/, "");
 
 const REFRESH_ENDPOINT = `${AUTH_BASE_URL}/refresh-token`;
