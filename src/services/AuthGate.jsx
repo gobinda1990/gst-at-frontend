@@ -9,6 +9,7 @@ import {
   saveAuth,
   secondsToExpiry,
 } from "./authStorage";
+import { startAuthRefresh } from "./apiClient";
 
 const toOrigin = (value) => {
   try { return new URL(value.trim()).origin; } catch { return null; }
@@ -77,6 +78,7 @@ export default function AuthGate() {
       }
       try {
         saveAuth(data);
+        startAuthRefresh();
         const profile = getAuthUser();
         if (!profile || profile.resolvedRole === "UNAUTHORIZED") {
           clearAuth();
