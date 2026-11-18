@@ -300,7 +300,7 @@ const GrowthBadge = ({ value }) => {
     .replace(/[\s-]+/g, "_");
 
   const labels = {
-    STRONG_GROWTH: "Strong Growth",
+    HIGH_GROWTH: "Strong Growth",
 
     GROWTH: "Growth",
 
@@ -308,7 +308,7 @@ const GrowthBadge = ({ value }) => {
 
     DECLINING: "Declining",
 
-    STRONG_DECLINE: "Strong Decline",
+    HIGH_DECLINE: "Strong Decline",
 
     NA: "Not Available",
   };
@@ -1258,7 +1258,7 @@ export default function GstReturn3bGrowth() {
             >
               <option value="">All Growth Status</option>
 
-              <option value="STRONG_GROWTH">Strong Growth</option>
+              <option value="HIGH_GROWTH">Strong Growth</option>
 
               <option value="GROWTH">Growth</option>
 
@@ -1266,7 +1266,7 @@ export default function GstReturn3bGrowth() {
 
               <option value="DECLINING">Declining</option>
 
-              <option value="STRONG_DECLINE">Strong Decline</option>
+              <option value="HIGH_DECLINE">Strong Decline</option>
             </select>
           </label>
 
