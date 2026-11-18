@@ -1094,14 +1094,14 @@
   border-radius: 50%;
 }
 
-.growth-strong-growth {
+.growth-high-growth {
   color: #065f46;
   background: #d1fae5;
   border: 1px solid #6ee7b7;
   box-shadow: inset 3px 0 0 #047857;
 }
 
-.growth-strong-growth .badge-dot {
+.growth-high-growth .badge-dot {
   background: #047857;
   box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.11);
 }
@@ -1136,14 +1136,14 @@
   background: #f59e0b;
 }
 
-.growth-strong-decline {
+.growth-high-decline {
   color: #991b1b;
   background: #fff1f2;
   border: 1px solid #fecaca;
   box-shadow: inset 3px 0 0 #dc2626;
 }
 
-.growth-strong-decline .badge-dot {
+.growth-high-decline .badge-dot {
   background: #dc2626;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
