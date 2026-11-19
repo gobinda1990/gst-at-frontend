@@ -102,7 +102,7 @@ const TAX_SUMMARY_ITEMS = [
   },
   {
     key: "itc",
-    label: "ITC Claimed",
+    label: "ITC Utilized",
     color: "#0284c7",
     bgTint: "#e0f2fe",
     borderColor: "#bae6fd",
@@ -133,7 +133,7 @@ const TAX_SUMMARY_ITEMS = [
 const COMPLIANCE_ITEMS = [
   {
     key: "itc",
-    label: "Average ITC Ratio",
+    label: "Overall ITC / Output Tax",
     badge: "ITC",
     color: "#6f42c1",
     bgTint: "#f3e8ff",
@@ -141,7 +141,7 @@ const COMPLIANCE_ITEMS = [
   },
   {
     key: "cash",
-    label: "Average Cash Payment Ratio",
+    label: "Overall Cash / Total Liability",
     badge: "CASH",
     color: "#0d9488",
     bgTint: "#ccfbf1",
@@ -183,7 +183,7 @@ const GST_COMPONENT_ITEMS = [
 const PAYMENT_ITEMS = [
   {
     key: "itc",
-    label: "ITC Claimed",
+    label: "ITC Utilized",
     icon: <FaFileInvoiceDollar size={15} />,
     badgeBg: "bg-primary text-white",
     borderColor: "#bfdbfe",
@@ -213,7 +213,7 @@ const PAYMENT_ITEMS = [
 const RATIO_ITEMS = [
   {
     key: "cash",
-    label: "Cash / Output Tax",
+    label: "Cash / Total Liability",
     progressBg: "bg-success",
     cardBg: "#f0fdf4",
     borderColor: "#bbf7d0",
@@ -297,6 +297,23 @@ const formatINRCompact = (value) => {
 };
 
 const formatPercentage = (value) => `${(safeNumber(value) * 100).toFixed(2)}%`;
+
+/**
+ * Calculate a decimal ratio from monetary values.
+ * Returns 0 when the denominator is zero or invalid.
+ * Does not cap the result at 1.0 because ITC-to-tax ratios
+ * can legitimately exceed 100%.
+ */
+const calculateRatio = (numerator, denominator) => {
+  const num = safeNumber(numerator);
+  const den = safeNumber(denominator);
+
+  if (den <= 0 || num < 0) {
+    return 0;
+  }
+
+  return num / den;
+};
 
 const clampPercent = (value) => Math.min(Math.max(value, 0), 100);
 
@@ -683,49 +700,18 @@ const TaxpayerView = ({ gstin: initialGstin = "", onBack }) => {
    * COMPLIANCE METRICS
    * ============================================================ */
 
-  const averageCashRatio = useMemo(() => {
-    if (hasValue(analysis?.cashPaymentRatio)) {
-      return safeNumber(analysis.cashPaymentRatio);
-    }
+  // Weighted aggregate ratios: total numerator / total denominator.
+  // Do not average monthly percentages because that gives equal weight
+  // to returns with very different tax liabilities.
+  const averageCashRatio = useMemo(
+    () => calculateRatio(totals.cash, totals.outputTax + totals.rcm),
+    [totals],
+  );
 
-    const outputTax = safeNumber(analysis?.lifetimeOutputTax);
-    const cashPaid = safeNumber(analysis?.lifetimeCashPaid);
-
-    if (outputTax > 0) {
-      return cashPaid / outputTax;
-    }
-
-    if (!history.length) {
-      return 0;
-    }
-
-    return (
-      history.reduce((sum, item) => sum + safeNumber(item?.cashRatio), 0) /
-      history.length
-    );
-  }, [history, analysis]);
-
-  const averageItcRatio = useMemo(() => {
-    if (hasValue(analysis?.itcUtilizationRatio)) {
-      return safeNumber(analysis.itcUtilizationRatio);
-    }
-
-    const outputTax = safeNumber(analysis?.lifetimeOutputTax);
-    const utilizedItc = safeNumber(analysis?.lifetimeItcUtilized);
-
-    if (outputTax > 0) {
-      return utilizedItc / outputTax;
-    }
-
-    if (!history.length) {
-      return 0;
-    }
-
-    return (
-      history.reduce((sum, item) => sum + safeNumber(item?.itcRatio), 0) /
-      history.length
-    );
-  }, [history, analysis]);
+  const averageItcRatio = useMemo(
+    () => calculateRatio(totals.itc, totals.outputTax),
+    [totals],
+  );
 
   const delayedReturns = useMemo(() => {
     if (!history.length) {
@@ -979,7 +965,9 @@ const SearchHeader = memo(function SearchHeader({
                   spellCheck={false}
                   aria-label="GSTIN"
                   aria-invalid={Boolean(inputError)}
-                  aria-describedby={inputError ? "gstin-input-error" : undefined}
+                  aria-describedby={
+                    inputError ? "gstin-input-error" : undefined
+                  }
                   className="form-control bg-transparent border-0 py-1.5 px-2 shadow-none"
                   style={{
                     height: "38px",
@@ -1449,7 +1437,7 @@ const ComplianceIndicatorsPanel = memo(function ComplianceIndicatorsPanel({
                       color: "#64748b",
                     }}
                   >
-                    Average Ratio
+                    Weighted Ratio
                   </span>
                 </div>
 
@@ -1750,10 +1738,7 @@ const RecentHistory = memo(function RecentHistory({ history, onViewAll }) {
 
               <tbody>
                 {rows.map((item, index) => (
-                  <RecentHistoryRow
-                    key={item.retPeriod || index}
-                    item={item}
-                  />
+                  <RecentHistoryRow key={item.retPeriod || index} item={item} />
                 ))}
               </tbody>
             </table>
@@ -1769,6 +1754,15 @@ const RecentHistory = memo(function RecentHistory({ history, onViewAll }) {
  * ============================================================ */
 
 const HistoryRow = memo(function HistoryRow({ item }) {
+  // Match the backend definitions:
+  // ITC ratio = utilized ITC / normal output tax.
+  // Cash ratio = cash paid / (normal output tax + RCM liability).
+  const itcRatio = calculateRatio(item.itcClaimed, item.outputTax);
+  const cashRatio = calculateRatio(
+    item.cashPaid,
+    safeNumber(item.outputTax) + safeNumber(item.rcmTax),
+  );
+
   return (
     <tr>
       <PeriodCell item={item} />
@@ -1793,6 +1787,9 @@ const HistoryRow = memo(function HistoryRow({ item }) {
       <ValueCell color="#198754" bold>
         {formatINR(item.itcClaimed)}
       </ValueCell>
+      <ValueCell color="#198754" bold>
+        {formatINR(item.itcEligible)}
+      </ValueCell>
       <ValueCell color="#059669" bold>
         {formatINR(item.cashPaid)}
       </ValueCell>
@@ -1800,13 +1797,11 @@ const HistoryRow = memo(function HistoryRow({ item }) {
         {formatINR(item.rcmTax)}
       </ValueCell>
       <ValueCell color="#0891b2" bold>
-        {formatPercentage(item.itcRatio)}
+        {formatPercentage(itcRatio)}
       </ValueCell>
       <ValueCell color="#475569" bold>
-        {formatPercentage(item.cashRatio)}
+        {formatPercentage(cashRatio)}
       </ValueCell>
-      <DelayCell days={item.filingDelayDays} />
-      <StatusCell status={item.filingStatus || "FILED"} />
     </tr>
   );
 });
@@ -1820,12 +1815,11 @@ const HISTORY_COLUMNS = [
   { label: "CESS", className: "py-3 px-2 border-0 text-end" },
   { label: "Output Tax", className: "py-3 px-2 border-0 text-end" },
   { label: "ITC Claimed", className: "py-3 px-2 border-0 text-end" },
+  { label: "ITC Eligible", className: "py-3 px-2 border-0 text-end" },
   { label: "Cash Paid", className: "py-3 px-2 border-0 text-end" },
   { label: "RCM Tax", className: "py-3 px-2 border-0 text-end" },
-  { label: "ITC Ratio", className: "py-3 px-2 border-0 text-end" },
-  { label: "Cash Ratio", className: "py-3 px-2 border-0 text-end" },
-  { label: "Delay", className: "py-3 px-2 border-0 text-center" },
-  { label: "Status", className: "py-3 px-2 border-0 text-center" },
+  { label: "ITC / Output Tax", className: "py-3 px-2 border-0 text-end" },
+  { label: "Cash / Total Liability", className: "py-3 px-2 border-0 text-end" },
 ];
 
 const HistoryTable = memo(function HistoryTable({ history }) {
@@ -2112,13 +2106,16 @@ const TaxBreakdown = memo(function TaxBreakdown({
 
               <div className="row g-2.5">
                 {RATIO_ITEMS.map((ratio) => {
-                  const ratioValue = Number(safeNumber(totals[ratio.key])) || 0;
-                  const calculatedRatio =
-                    outputTaxTotal > 0 ? ratioValue / outputTaxTotal : 0;
-                  const percentFormatted =
-                    outputTaxTotal > 0
-                      ? formatPercentage(calculatedRatio)
-                      : "0.00%";
+                  const ratioValue = safeNumber(totals[ratio.key]);
+                  const denominator =
+                    ratio.key === "cash"
+                      ? outputTaxTotal + safeNumber(totals.rcm)
+                      : outputTaxTotal;
+                  const calculatedRatio = calculateRatio(
+                    ratioValue,
+                    denominator,
+                  );
+                  const percentFormatted = formatPercentage(calculatedRatio);
                   const progressWidth = clampPercent(
                     calculatedRatio * 100,
                   ).toFixed(1);
@@ -2491,7 +2488,7 @@ const RiskSection = memo(function RiskSection({
             <div className="card-body p-3.5 d-flex align-items-center justify-content-between">
               <div className="d-flex align-items-center gap-3">
                 <RiskGauge
-                  score={analysis.currentRiskScore}
+                  score={safeNumber(analysis.currentRiskScore) * 10}
                   category={analysis.riskCategory}
                 />
 
@@ -2532,7 +2529,7 @@ const RiskSection = memo(function RiskSection({
                     style={{ fontSize: "0.82rem" }}
                   >
                     <span className="fw-bold" style={{ color: "#111827" }}>
-                      {safeNumber(analysis.currentRiskScore).toFixed(2)}
+                      {(safeNumber(analysis.currentRiskScore) * 10).toFixed(2)}
                     </span>
                     <span className="fw-medium" style={{ color: "#6b7280" }}>
                       / 10.00 Overall Score
@@ -2970,11 +2967,7 @@ class TaxpayerViewErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    console.error(
-      "TaxpayerView crashed:",
-      error,
-      info?.componentStack || "",
-    );
+    console.error("TaxpayerView crashed:", error, info?.componentStack || "");
   }
 
   handleReset() {

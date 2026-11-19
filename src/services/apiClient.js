@@ -7,7 +7,7 @@ import {
 } from "./authStorage";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE?.trim() || "/api").replace(/\/+$/, "");
-const AUTH_BASE_URL = (import.meta.env.VITE_AUTH_BASE?.trim() || "/api/auth").replace(/\/+$/, "");
+const AUTH_BASE_URL = (import.meta.env.VITE_AUTH_BASE?.trim() || "http://auth:8081/api/auth").replace(/\/+$/, "");
 const REFRESH_ENDPOINT = `${AUTH_BASE_URL}/refresh-token`;
 const DEFAULT_TIMEOUT = 120000;
 const REFRESH_TIMEOUT = 30000;
